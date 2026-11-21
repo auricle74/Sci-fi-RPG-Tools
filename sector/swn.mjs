@@ -194,6 +194,11 @@ export function placeStars(width, height, count, initialCount, roll) {
   return stars.map(({x,y}) => ({ column: x + 1, row: y + 1 }));
 }
 
+export function rerollTag(other, roll) {
+  const pool = tags.filter((tag) => tag !== other);
+  return pool[roll(pool.length) - 1];
+}
+
 export function rollWorld(roll) {
   const first = roll(100) - 1;
   const second = roll(99) - 1;

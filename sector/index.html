@@ -35,6 +35,12 @@
     </label>
     <button type="submit">Generate sector</button>
   </form>
+  <div class="panel sector-files">
+    <label>Sector name <input id="sector-name"></label>
+    <button type="button" id="export-sector">Export JSON</button>
+    <label>Import JSON <input id="import-sector" type="file" accept=".json,application/json"></label>
+    <p id="file-status" role="status"></p>
+  </div>
   <section class="map-section" aria-labelledby="map-title">
     <div class="map-header">
       <h2 id="map-title">Sector map</h2>
@@ -44,7 +50,7 @@
     <div class="map-window">
       <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
-    <section id="world" hidden aria-label="Main world"></section>
+    <section id="world" aria-label="Selected hex editor"></section>
     <p id="storage-message" role="status" hidden>Browser storage is unavailable. Your map may reset when you reload.</p>
   </section>
 </main>

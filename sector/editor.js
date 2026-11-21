@@ -1,9 +1,10 @@
 import { generateSystems, starCount } from "./swn.mjs";
+import { presets, readSector, validDimension } from "./sector-data.mjs";
+import { showInspector } from "./inspector.mjs";
 
 const schemaVersion = 1;
 const storageKey = "scifi-rpg-tools.sector";
 const rulesets = { "swn-revised": { id: "swn-revised", version: "revised" } };
-const presets = { swn: [8, 10], traveller: [8, 10], void: [10, 10] };
 const svgNamespace = "http://www.w3.org/2000/svg";
 const element = (id) => document.getElementById(id);
 const setup = element("setup");
@@ -16,13 +17,10 @@ const density = element("density");
 const roll = (sides) => 1 + Math.floor(Math.random() * sides);
 const dimensions = () => presets[size.value] ?? [widthInput.valueAsNumber, heightInput.valueAsNumber];
 
-function validDimension(value) {
-  return Number.isInteger(value) && value >= 1 && value <= 64;
-}
-
 function createSector(rulesetId, preset, width, height) {
   return {
     schemaVersion,
+    name: "Untitled sector",
     id: crypto.randomUUID(),
     ruleset: { ...rulesets[rulesetId] },
     grid: { preset, width, height },
@@ -33,21 +31,7 @@ function createSector(rulesetId, preset, width, height) {
 
 function loadSector() {
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey));
-    if (saved?.schemaVersion !== schemaVersion || typeof saved.id !== "string") return null;
-    const { grid, ruleset, selectedHex } = saved;
-    if (!grid || !ruleset || !selectedHex || !Object.hasOwn(rulesets, ruleset.id)) return null;
-    const { width, height } = grid;
-    // Earlier versions used the Traveller preset for a full sector.
-    if (grid.preset === "traveller" && width === 32 && height === 40) grid.preset = "custom";
-    const { preset } = grid;
-    const { column, row } = selectedHex;
-    if (!validDimension(width) || !validDimension(height)) return null;
-    if (preset !== "custom" && (!Object.hasOwn(presets, preset) ||
-        presets[preset][0] !== width || presets[preset][1] !== height)) return null;
-    if (!validDimension(column) || !validDimension(row) || column > width || row > height) return null;
-    if (!Array.isArray(saved.systems)) return null;
-    return saved;
+    return readSector(localStorage.getItem(storageKey));
   } catch {
     return null;
   }
@@ -83,27 +67,6 @@ function syncDensity() {
   element("density-help").textContent = low === high ? `${low} stars on this map.` : `${low}–${high} stars on this map.`;
 }
 
-function showWorld(system) {
-  const section = element("world");
-  section.hidden = !system;
-  section.replaceChildren();
-  if (!system) return;
-  const { mainWorld } = system;
-  const heading = document.createElement("h3");
-  heading.textContent = `${mainWorld.name} · Main world`;
-  const description = document.createElement("p");
-  description.textContent = mainWorld.description;
-  const details = document.createElement("dl");
-  for (const [field, value] of Object.entries({ ...mainWorld.profile, Tags: mainWorld.tags.join(", ") })) {
-    const term = document.createElement("dt");
-    const definition = document.createElement("dd");
-    term.textContent = field;
-    definition.textContent = value;
-    details.append(term, definition);
-  }
-  section.append(heading, description, details);
-}
-
 function coordinate(column, row) {
   return [column, row].map((value) => String(value).padStart(2, "0")).join("");
 }
@@ -120,7 +83,13 @@ function selectHex(column, row, focus = false) {
   sector.selectedHex = { column, row };
   const system = systems.get(code);
   element("selection").textContent = `Hex ${code} · ${system?.name ?? "Empty"}`;
-  showWorld(system);
+  showInspector(element("world"), sector, system, {
+    save() {
+      element("selection").textContent = `Hex ${code} · ${system?.name ?? "Empty"}`;
+      if (system) target.setAttribute("aria-label", `Hex ${code}, ${system.name}`);
+      saveSector();
+    }, render: renderMap, roll,
+  });
   if (focus) target.focus();
   saveSector();
 }
@@ -194,20 +163,60 @@ setup.addEventListener("submit", (event) => {
   event.preventDefault();
   const [width, height] = dimensions();
   if (!validDimension(width) || !validDimension(height)) return;
-  if (sector.systems.length && !confirm("Replace the current sector with a new one?")) return;
+  if (!confirm("Replace the current sector with a new one?")) return;
   const next = createSector(rules.value, size.value, width, height);
   next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
   next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
-  sector = next;
-  renderMap();
+  activateSector(next);
 });
 
-rules.value = sector.ruleset.id;
-size.value = sector.grid.preset;
-widthInput.value = sector.grid.width;
-heightInput.value = sector.grid.height;
+function activateSector(next) {
+  sector = next;
+  element("sector-name").value = sector.name ?? "Untitled sector";
+  rules.value = sector.ruleset.id;
+  size.value = sector.grid.preset;
+  widthInput.value = sector.grid.width;
+  heightInput.value = sector.grid.height;
+  density.value = sector.starCountPolicy ?? "fixed";
+  syncCustomInputs();
+  renderMap();
+}
+
+element("sector-name").addEventListener("input", (event) => {
+  sector.name = event.target.value;
+  saveSector();
+});
+
+element("export-sector").addEventListener("click", () => {
+  const json = new Blob([JSON.stringify(sector, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(json);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "sector.json";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+element("import-sector").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  const status = element("file-status");
+  let next;
+  try {
+    next = readSector(await file.text());
+  } catch {
+    status.textContent = "Could not import that file. Choose a valid sector JSON export.";
+    return;
+  }
+  if (!confirm("Replace the current sector with the imported sector?")) {
+    status.textContent = "Import cancelled.";
+    return;
+  }
+  activateSector(next);
+  status.textContent = "Sector imported.";
+});
+
 size.addEventListener("change", syncCustomInputs);
-density.value = sector.starCountPolicy ?? "fixed";
 for (const control of [widthInput, heightInput, density]) control.addEventListener("input", syncDensity);
-syncCustomInputs();
-renderMap();
+activateSector(sector);

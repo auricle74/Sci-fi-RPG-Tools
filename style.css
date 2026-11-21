@@ -48,5 +48,13 @@ svg { display: block; }
 .hex circle { fill: #9de7e1; pointer-events: none; }
 .hex.occupied polygon { fill: #1a3446; }
 .hex.occupied[aria-pressed="true"] polygon { fill: #234e56; }
-#world dl { display: grid; grid-template-columns: max-content 1fr; gap: .4rem 1rem; }
-#world dd { margin: 0; }
+
+.sector-files { margin-top: 1rem; }
+#file-status:empty { display: none; }
+#world { margin-top: 1rem; display: grid; gap: .65rem; justify-items: start; }
+#world details { width: 100%; box-sizing: border-box; border: 1px solid #34495c; border-radius: .4rem; padding: .65rem; }
+#world summary { cursor: pointer; font-weight: 700; }
+#world .edit-field, .move-system { display: flex; flex-wrap: wrap; align-items: end; gap: .55rem; margin: .6rem 0; }
+#world textarea { font: inherit; color: inherit; background: #0c131e; border: 1px solid #647991; border-radius: .4rem; padding: .55rem; width: min(26rem, 65vw); }
+#world details > button, #world details > details { margin-top: .55rem; }
+.move-system p { margin: 0; }
