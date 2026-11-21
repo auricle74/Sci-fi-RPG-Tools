@@ -42,3 +42,11 @@ svg { display: block; }
 .hex[aria-pressed="true"] polygon { fill: #234e56; stroke: #9de7e1; stroke-width: 2; }
 .hex:focus-visible { outline: none; }
 .hex:focus-visible polygon { stroke: #ffe1a0; stroke-width: 3; }
+
+#density-control[hidden] { display: none; }
+#density-help { font-weight: 400; }
+.hex circle { fill: #9de7e1; pointer-events: none; }
+.hex.occupied polygon { fill: #1a3446; }
+.hex.occupied[aria-pressed="true"] polygon { fill: #234e56; }
+#world dl { display: grid; grid-template-columns: max-content 1fr; gap: .4rem 1rem; }
+#world dd { margin: 0; }

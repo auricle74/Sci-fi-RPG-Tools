@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sector Generator · Sci-fi-RPG-Tools</title>
 <link rel="stylesheet" href="../style.css">
-<script defer src="editor.js"></script>
+<script type="module" src="editor.js"></script>
 <main>
   <nav><a href="../">← Sci-fi-RPG-Tools</a></nav>
   <h1>Sector Generator</h1>
@@ -15,7 +15,7 @@
     <label>Sector size
       <select id="size">
         <option value="swn">Stars Without Number · 8 × 10</option>
-        <option value="traveller">Traveller · 32 × 40</option>
+        <option value="traveller">Traveller subsector · 8 × 10</option>
         <option value="void">The Perilous Void · 10 × 10</option>
         <option value="custom">Custom</option>
       </select>
@@ -26,7 +26,14 @@
       <label>Height <input id="height" type="number" min="1" max="64" step="1" value="10" required></label>
       <small id="limits">1–64 whole hexes per side.</small>
     </fieldset>
-    <button type="submit">Create blank map</button>
+    <label id="density-control" hidden>Star count
+      <select id="density" aria-describedby="density-help">
+        <option value="fixed">Fixed · 21–30 stars</option>
+        <option value="scaled">Standard SWN density · scale to map size</option>
+      </select>
+      <small id="density-help"></small>
+    </label>
+    <button type="submit">Generate sector</button>
   </form>
   <section class="map-section" aria-labelledby="map-title">
     <div class="map-header">
@@ -37,6 +44,7 @@
     <div class="map-window">
       <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
+    <section id="world" hidden aria-label="Main world"></section>
     <p id="storage-message" role="status" hidden>Browser storage is unavailable. Your map may reset when you reload.</p>
   </section>
 </main>
