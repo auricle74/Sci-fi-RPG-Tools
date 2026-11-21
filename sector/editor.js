@@ -3,7 +3,7 @@ import { generateSystems, starCount } from "./swn.mjs";
 const schemaVersion = 1;
 const storageKey = "scifi-rpg-tools.sector";
 const rulesets = { "swn-revised": { id: "swn-revised", version: "revised" } };
-const presets = { swn: [8, 10], traveller: [32, 40], void: [10, 10] };
+const presets = { swn: [8, 10], traveller: [8, 10], void: [10, 10] };
 const svgNamespace = "http://www.w3.org/2000/svg";
 const element = (id) => document.getElementById(id);
 const setup = element("setup");
@@ -37,7 +37,10 @@ function loadSector() {
     if (saved?.schemaVersion !== schemaVersion || typeof saved.id !== "string") return null;
     const { grid, ruleset, selectedHex } = saved;
     if (!grid || !ruleset || !selectedHex || !Object.hasOwn(rulesets, ruleset.id)) return null;
-    const { width, height, preset } = grid;
+    const { width, height } = grid;
+    // Earlier versions used the Traveller preset for a full sector.
+    if (grid.preset === "traveller" && width === 32 && height === 40) grid.preset = "custom";
+    const { preset } = grid;
     const { column, row } = selectedHex;
     if (!validDimension(width) || !validDimension(height)) return null;
     if (preset !== "custom" && (!Object.hasOwn(presets, preset) ||
