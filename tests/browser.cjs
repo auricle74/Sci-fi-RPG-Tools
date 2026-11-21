@@ -39,7 +39,15 @@ async function main() {
     await page.locator('[data-column="32"][data-row="40"]').click();
     await page.keyboard.press("ArrowUp");
     assert.match(await page.locator("#selection").innerText(), /3239/);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
+    const overflow = await page.evaluate(() => {
+      document.scrollingElement.scrollLeft = 0;
+      const width = document.documentElement.scrollWidth;
+      const offenders = Array.from(document.querySelectorAll("main *"))
+        .filter((el) => !el.closest(".map-window") && el.getBoundingClientRect().right > 390)
+        .map((el) => [el.tagName, el.id, el.className, el.getBoundingClientRect().right]);
+      return { width, offenders };
+    });
+    assert.equal(overflow.width, 390, JSON.stringify(overflow.offenders));
 
     const input = page.getByLabel("Import JSON");
     await input.setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from("{") });
