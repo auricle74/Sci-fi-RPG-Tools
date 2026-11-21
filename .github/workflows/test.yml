@@ -1,0 +1,27 @@
+name: SWN acceptance tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test sector/*.test.mjs
+      - run: npm install --no-save --no-package-lock playwright@1.51.1
+      - run: npx playwright install --with-deps chromium
+      - name: Test the browser workflow
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          curl --retry 5 --retry-connrefused --silent --show-error --fail http://127.0.0.1:8000/ > /dev/null
+          node tests/browser.cjs
