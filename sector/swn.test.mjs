@@ -53,7 +53,7 @@ test("all 2d6 totals map to the expected bands, with distinct percentile tags", 
   assert.deepEqual(rollWorld(() => 1).tags, ["Abandoned Colony", "Alien Ruins"]);
 });
 
-test("Traveller-sized generation remains unique under repeated coordinate rolls", () => {
+test("Large custom-map generation remains unique under repeated coordinate rolls", () => {
   let id = 0;
   const systems = generateSystems({grid: {width: 32, height: 40}, ruleset: { id: "swn-revised" }},
     "scaled", () => 1, () => String(++id));
