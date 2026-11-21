@@ -1,0 +1,44 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  color: #edf4fb;
+  background: #0c131e;
+}
+body { margin: 0; }
+main { width: min(92%, 74rem); margin: 2.5rem auto; }
+.home { max-width: 48rem; padding-top: 7vh; }
+h1 { font-size: clamp(2rem, 5vw, 3.3rem); margin: .75rem 0 1.5rem; }
+h2 { margin: 0; font-size: 1.15rem; }
+a { color: #9de7e1; }
+.tool, .panel, .map-section {
+  border: 1px solid #34495c;
+  border-radius: .85rem;
+  background: #131f2d;
+  padding: 1rem;
+}
+.tool { display: grid; gap: .65rem; max-width: 24rem; padding: 1.4rem; text-decoration: none; }
+.tool strong { font-size: 1.3rem; }
+.tool span { color: #c7d6e4; }
+.tool:hover { border-color: #9de7e1; }
+.panel, fieldset { display: flex; gap: 1rem; flex-wrap: wrap; align-items: end; }
+fieldset { border: 1px solid #52667e; border-radius: .4rem; margin: 0; }
+fieldset[hidden] { display: none; }
+fieldset input { width: 4rem; }
+label { display: grid; gap: .4rem; font-weight: 600; }
+button, select, input { font: inherit; padding: .55rem .7rem; border-radius: .4rem; }
+select, input { background: #0c131e; border: 1px solid #647991; color: inherit; max-width: 100%; }
+button { background: #9de7e1; color: #0c2228; border: 1px solid transparent; font-weight: 700; cursor: pointer; }
+:focus-visible { outline: 3px solid #ffe1a0; outline-offset: 3px; }
+.map-section { margin-top: 1rem; }
+.map-header { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: space-between; }
+output { color: #9de7e1; font-weight: 600; }
+#map-help { color: #c7d6e4; font-size: .9rem; }
+.map-window { overflow: auto; max-height: 66vh; background: #0a111b; border-radius: .35rem; }
+svg { display: block; }
+.hex { cursor: pointer; }
+.hex polygon { stroke: #496176; fill: #142333; }
+.hex text { fill: #c7d6e4; font-size: 13px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.hex:hover polygon { fill: #243e51; }
+.hex[aria-pressed="true"] polygon { fill: #234e56; stroke: #9de7e1; stroke-width: 2; }
+.hex:focus-visible { outline: none; }
+.hex:focus-visible polygon { stroke: #ffe1a0; stroke-width: 3; }
