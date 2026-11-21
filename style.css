@@ -58,3 +58,10 @@ svg { display: block; }
 #world textarea { font: inherit; color: inherit; background: #0c131e; border: 1px solid #647991; border-radius: .4rem; padding: .55rem; width: min(26rem, 65vw); }
 #world details > button, #world details > details { margin-top: .55rem; }
 .move-system p { margin: 0; }
+
+.panel > label, .panel > fieldset, .move-system > label, #world .edit-field > label {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+button, select, input { box-sizing: border-box; max-width: 100%; }
