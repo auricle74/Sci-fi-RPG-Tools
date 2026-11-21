@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sector Generator · Sci-fi-RPG-Tools</title>
+<link rel="stylesheet" href="../style.css">
+<script defer src="editor.js"></script>
+<main>
+  <nav><a href="../">← Sci-fi-RPG-Tools</a></nav>
+  <h1>Sector Generator</h1>
+  <form id="setup" class="panel">
+    <label>Generation rules
+      <select id="rules"><option value="swn-revised">Stars Without Number Revised</option></select>
+    </label>
+    <label>Sector size
+      <select id="size">
+        <option value="swn">Stars Without Number · 8 × 10</option>
+        <option value="traveller">Traveller · 32 × 40</option>
+        <option value="void">The Perilous Void · 10 × 10</option>
+        <option value="custom">Custom</option>
+      </select>
+    </label>
+    <fieldset id="custom" hidden aria-describedby="limits">
+      <legend>Custom size</legend>
+      <label>Width <input id="width" type="number" min="1" max="64" step="1" value="8" required></label>
+      <label>Height <input id="height" type="number" min="1" max="64" step="1" value="10" required></label>
+      <small id="limits">1–64 whole hexes per side.</small>
+    </fieldset>
+    <button type="submit">Create blank map</button>
+  </form>
+  <section class="map-section" aria-labelledby="map-title">
+    <div class="map-header">
+      <h2 id="map-title">Sector map</h2>
+      <output id="selection" aria-live="polite"></output>
+    </div>
+    <p id="map-help">Click a hex or use Tab to enter the map and the arrow keys to move between coordinates.</p>
+    <div class="map-window">
+      <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <p id="storage-message" role="status" hidden>Browser storage is unavailable. Your map may reset when you reload.</p>
+  </section>
+</main>
+</html>
