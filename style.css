@@ -67,3 +67,9 @@ svg { display: block; }
 button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #world .edit-field, .move-system { max-width: 100%; }
 #world { overflow-wrap: anywhere; }
+
+@media (max-width: 480px) {
+  .panel { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .panel label { grid-template-columns: minmax(0, 1fr); }
+  .map-section, .map-window { min-width: 0; }
+}
