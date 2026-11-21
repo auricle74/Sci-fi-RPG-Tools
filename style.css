@@ -51,7 +51,7 @@ svg { display: block; }
 
 .sector-files { margin-top: 1rem; }
 #file-status:empty { display: none; }
-#world { margin-top: 1rem; display: grid; gap: .65rem; justify-items: start; }
+#world { margin-top: 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: .65rem; justify-items: start; }
 #world details { width: 100%; box-sizing: border-box; border: 1px solid #34495c; border-radius: .4rem; padding: .65rem; }
 #world summary { cursor: pointer; font-weight: 700; }
 #world .edit-field, .move-system { display: flex; flex-wrap: wrap; align-items: end; gap: .55rem; margin: .6rem 0; }
@@ -64,4 +64,6 @@ svg { display: block; }
   max-width: 100%;
   box-sizing: border-box;
 }
-button, select, input { box-sizing: border-box; max-width: 100%; }
+button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
+#world .edit-field, .move-system { max-width: 100%; }
+#world { overflow-wrap: anywhere; }
