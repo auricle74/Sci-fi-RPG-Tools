@@ -2,12 +2,12 @@
 
 ## Specification for review
 
-Build a browser-based collection of sci-fi RPG generators in the `Sci-fi-RPG-Tools` GitHub repository. The home page lists and links to each available generator. The first tool is the Sector Generator, with its own page and room for additional rulesets. The first milestone implements **Stars Without Number Revised**. Add Traveller Mg2e, The Perilous Void and GURPS Space individually after the SWN milestone passes review.
+Build a browser-based collection of sci-fi RPG generators in the `Sci-fi-RPG-Tools` GitHub repository. The home page lists and links to each available generator. The first tool is the Sector Generator, with its own page and room for additional rulesets. The first milestone implements **Stars Without Number Revised**. Add Traveller Mg2e subsector generation, The Perilous Void and GURPS Space individually after the SWN milestone passes review.
 
 ### Create a sector
 
 1. Select **Generation rules**. The first release offers SWN Revised.
-2. Select **Sector size** independently. Default to SWN's 8 × 10 map. Offer Traveller 32 × 40, The Perilous Void 10 × 10 and Custom. Add a GURPS preset once its source and dimensions are confirmed. Custom shows separate width and height inputs for whole numbers of hexes.
+2. Select **Sector size** independently. Default to SWN's 8 × 10 map. Offer Traveller subsector 8 × 10, The Perilous Void 10 × 10 and Custom. Add a GURPS preset once its source and dimensions are confirmed. Custom shows separate width and height inputs for whole numbers of hexes.
 3. Select **Generate Sector**. Show the new sector as a clickable hex map with coordinates. Highlight the selected hex and show its contents or an option to add a system.
 
 The size preset changes the grid dimensions. SWN rules still determine what the hexes mean and how the sector is populated.
