@@ -42,145 +42,58 @@ function field(label, value, update, reroll) {
   return wrapper;
 }
 
+const hexCode = ({ column, row }) => [column, row].map(n => String(n).padStart(2, "0")).join("");
+const tagNames = (record) => (record.tags ?? []).map(tag => tag.trim()).filter(Boolean);
+const titleText = (value) => value.replace(/\s+/g, " ").trim().replace(/[\\`*_{}\[\]<>#!|]/g, "\\$&");
+
+function attributes(record) {
+  if (record.profile) return profileFields.map(key => [key, record.profile[key]]);
+  if (record.column) return [["Hex", hexCode(record)]];
+  return [["Type", record.type]];
+}
+
+function objectMarkdown(record, kind, depth = 1) {
+  const heading = "#".repeat(Math.min(depth, 6));
+  const lines = [`${heading} ${titleText(record.name || kind)}`, "", `**${titleText(kind)}**`];
+  for (const [key, value] of attributes(record)) {
+    if (value) lines.push("", `- **${key}:** ${titleText(value)}`);
+  }
+  if (record.description?.trim()) lines.push("", record.description.trim());
+  for (const name of tagNames(record)) {
+    lines.push("", `${"#".repeat(Math.min(depth + 1, 6))} ${titleText(name)}`);
+    const tag = worldTagDetails.get(name);
+    if (!tag) continue;
+    lines.push("", tag.description);
+    for (const [label, hooks] of Object.entries(tag.hooks)) {
+      lines.push("", `**${label}**`, "", ...hooks.map(hook => `- ${hook}`));
+    }
+  }
+  if (record.mainWorld) lines.push("", objectMarkdown(record.mainWorld, "Main world", depth + 1));
+  for (const world of record.worlds ?? []) lines.push("", objectMarkdown(world, "World", depth + 1));
+  for (const location of record.locations ?? record.children ?? []) {
+    lines.push("", objectMarkdown(location, location.type.trim() || "Location", depth + 1));
+  }
+  return lines.join("\n");
+}
+
+function disclosure(title, className = "inspector-group") {
+  const group = node("details");
+  group.className = className;
+  group.open = true;
+  const summary = node("summary");
+  summary.append(node("span", title));
+  group.append(summary);
+  return group;
+}
+
 export function showInspector(section, sector, system, { save, render, roll }) {
-  section.replaceChildren();
   const makeId = () => crypto.randomUUID();
-  function newWorld() {
-    return {
-      id: makeId(), name: "New world", description: "", ruleset: { ...sector.ruleset },
-      profile: Object.fromEntries(profileFields.map((key) => [key, ""])), tags: ["", ""],
-    };
-  }
-  function edit(label, object, key, reroll) {
-    return field(label, object[key] ?? "", (value) => {
-      object[key] = value;
-      save();
-    }, reroll);
-  }
-
-  function showDetail(record, kind, back, build) {
-    section.replaceChildren();
-    const backButton = action(back.label, back.open);
-    backButton.className = "inspector-back";
-    const heading = node("h3", record.name || kind);
-    section.append(backButton, node("small", kind), heading);
-    const body = node("div");
-    body.className = "inspector-fields";
-    body.addEventListener("input", () => { heading.textContent = record.name || kind; });
-    section.append(body);
-    build(body);
-    backButton.focus();
-  }
-
-  function entryGroup(container, title, entries) {
-    const group = node("details");
-    group.className = "inspector-group";
-    group.open = true;
-    const summary = node("summary");
-    const count = node("small", String(entries.length));
-    count.setAttribute("aria-label", `${entries.length} entries`);
-    summary.append(node("span", title), count);
-    const list = node("ul");
-    for (const { name, note, open } of entries) {
-      const item = node("li");
-      const button = action(name, open);
-      button.className = "inspector-entry";
-      if (note) button.append(node("small", note));
-      item.append(button);
-      list.append(item);
-    }
-    group.append(summary, list);
-    container.append(group);
-  }
-
-  function locationList(container, owner, key, back) {
-    const groups = new Map();
-    for (const location of owner[key] ?? []) {
-      const type = location.type.trim() || "Other locations";
-      if (!groups.has(type)) groups.set(type, []);
-      groups.get(type).push({
-        name: location.name || "Unnamed location",
-        open: () => openLocation(location),
-      });
-    }
-    function openLocation(location) {
-      const reopen = { label: "Back to location", open: () => openLocation(location) };
-      showDetail(location, location.type.trim() || "Location", back, (body) => {
-        body.append(edit("Location name", location, "name"), edit("Location type", location, "type"),
-          edit("Description", location, "description"));
-        locationList(body, location, "children", reopen);
-        body.append(action("Remove location", () => {
-          if (!confirm("Remove this location and its contents?")) return;
-          owner[key].splice(owner[key].indexOf(location), 1);
-          save();
-          back.open();
-        }));
-      });
-    }
-    for (const [type, entries] of groups) entryGroup(container, type, entries);
-    container.append(action(key === "children" ? "Add nested location" : "Add location", () => {
-      const location = { id: makeId(), name: "New location", type: "", description: "" };
-      (owner[key] ??= []).push(location);
-      save();
-      openLocation(location);
-    }));
-  }
-
-  const systemBack = { label: "Back to system", open: () => showOverview(true) };
-
-  function openWorld(world, main = false) {
-    const kind = main ? "Main world" : "World";
-    showDetail(world, kind, systemBack, (body) => {
-      body.append(edit("World name", world, "name"), edit("Description", world, "description"));
-      for (const key of profileFields) {
-        body.append(edit(key, world.profile, key, () => rollWorld(roll).profile[key]));
-      }
-      const tags = node("details");
-      tags.className = "planet-tags";
-      tags.open = true;
-      const reference = node("div");
-      const controls = node("details");
-      controls.append(node("summary", "Edit tags"));
-      function renderTags() {
-        reference.replaceChildren();
-        const names = world.tags.map((tag) => tag.trim()).filter(Boolean);
-        if (!names.length) reference.append(node("p", "No tags assigned."));
-        for (const name of names) {
-          const article = node("article");
-          article.append(node("h4", name));
-          const details = worldTagDetails.get(name);
-          if (details) {
-            article.append(node("p", details.description));
-            for (const [label, hooks] of Object.entries(details.hooks)) {
-              const list = node("ul");
-              for (const hook of hooks) list.append(node("li", hook));
-              article.append(node("h5", label), list);
-            }
-          }
-          reference.append(article);
-        }
-      }
-      for (const index of [0, 1]) {
-        controls.append(field(`Tag ${index + 1}`, world.tags[index], (value) => {
-          world.tags[index] = value;
-          save();
-          renderTags();
-        }, () => rerollTag(world.tags[1 - index], roll)));
-      }
-      renderTags();
-      tags.append(node("summary", "Planet Tags"), controls, reference);
-      body.append(tags);
-      locationList(body, world, "locations", { label: "Back to world", open: () => openWorld(world, main) });
-      body.append(action("Remove world", () => {
-        if (!confirm("Remove this world and its locations?")) return;
-        if (main) system.mainWorld = null;
-        else system.worlds.splice(system.worlds.indexOf(world), 1);
-        save();
-        systemBack.open();
-      }));
-    });
-  }
-
+  const newWorld = () => ({
+    id: makeId(), name: "New world", description: "", ruleset: { ...sector.ruleset },
+    profile: Object.fromEntries(profileFields.map(key => [key, ""])), tags: ["", ""],
+  });
+  const newLocation = () => ({ id: makeId(), name: "New location", type: "", description: "" });
+  section.replaceChildren();
   if (!system) {
     section.append(action("Add system", () => {
       sector.systems.push({
@@ -192,73 +105,212 @@ export function showInspector(section, sector, system, { save, render, roll }) {
     return;
   }
 
-  function systemControls() {
-    const controls = node("details");
-    controls.className = "inspector-controls";
-    controls.append(node("summary", "Manage system"), edit("System name", system, "name"));
-    const move = node("form");
-    move.className = "move-system";
-    const destination = node("label", "Destination hex");
-    const coordinate = node("input");
-    coordinate.placeholder = "0405";
-    coordinate.inputMode = "numeric";
-    coordinate.pattern = "[0-9]{4}";
-    coordinate.required = true;
-    const message = node("p");
-    message.setAttribute("role", "status");
-    const moveButton = node("button", "Move system");
-    destination.append(coordinate);
-    move.append(destination, moveButton, message);
-    move.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const hex = { column: Number(coordinate.value.slice(0, 2)), row: Number(coordinate.value.slice(2)) };
-      if (!validHex(hex, sector.grid) ||
-          sector.systems.some(({ column, row }) => column === hex.column && row === hex.row)) {
-        message.textContent = "Choose an empty hex within the map.";
-        return;
-      }
-      Object.assign(system, hex);
-      sector.selectedHex = hex;
-      render();
-    });
-    controls.append(move, action("Remove system", () => {
-      if (!confirm("Remove this system and all its worlds and locations?")) return;
-      sector.systems.splice(sector.systems.indexOf(system), 1);
-      render();
-    }));
-    return controls;
+  function entries(container, title, records, open) {
+    const group = disclosure(title);
+    const count = node("small", String(records.length));
+    count.setAttribute("aria-label", `${records.length} entries`);
+    group.firstElementChild.append(count);
+    const list = node("ul");
+    for (const record of records) {
+      const item = node("li");
+      const button = action(record.name || "Unnamed entry", () => open(record));
+      button.className = "inspector-entry";
+      const tags = tagNames(record);
+      if (tags.length) button.append(node("small", tags.join(" · ")));
+      item.append(button);
+      list.append(item);
+    }
+    group.append(list);
+    container.append(group);
   }
 
-  function showOverview(focus = false) {
-    section.replaceChildren();
-    const heading = node("h3", system.name || "Unnamed system");
-    heading.tabIndex = -1;
-    const meta = node("small", "System");
-    section.append(meta, heading);
-    const worldEntry = (world, main) => ({
-      name: world.name || "Unnamed world",
-      note: world.tags.filter(Boolean).join(" · "),
-      open: () => openWorld(world, main),
+  function readObject(body, record, back) {
+    const values = attributes(record).filter(([, value]) => value);
+    if (values.length) {
+      const group = disclosure("Attributes");
+      const list = node("dl");
+      list.className = "inspector-attributes";
+      for (const [label, value] of values) list.append(node("dt", label), node("dd", value));
+      group.append(list);
+      body.append(group);
+    }
+    if (record.description?.trim()) {
+      const group = disclosure("Description");
+      const description = node("p", record.description);
+      description.className = "inspector-description";
+      group.append(description);
+      body.append(group);
+    }
+    if (record.mainWorld) entries(body, "Main world", [record.mainWorld], () => {
+      openObject(record.mainWorld, "Main world", back, () => { record.mainWorld = null; });
     });
-    if (system.mainWorld) entryGroup(section, "Main world", [worldEntry(system.mainWorld, true)]);
-    if (system.worlds?.length) entryGroup(section, "Other worlds", system.worlds.map(world => worldEntry(world, false)));
-    locationList(section, system, "locations", systemBack);
-    if (!system.mainWorld) section.append(action("Add main world", () => {
-      system.mainWorld = newWorld();
-      save();
-      openWorld(system.mainWorld, true);
+    if (record.worlds?.length) entries(body, "Other worlds", record.worlds, world => {
+      openObject(world, "World", back, () => record.worlds.splice(record.worlds.indexOf(world), 1));
+    });
+    const locations = record.locations ?? record.children ?? [];
+    const groups = new Map();
+    for (const location of locations) {
+      const type = location.type.trim() || "Other locations";
+      if (!groups.has(type)) groups.set(type, []);
+      groups.get(type).push(location);
+    }
+    for (const [type, records] of groups) entries(body, type, records, location => {
+      openObject(location, location.type.trim() || "Location", back, () =>
+        locations.splice(locations.indexOf(location), 1));
+    });
+    if (record.profile) {
+      const group = disclosure("Planet Tags", "planet-tags");
+      const names = tagNames(record);
+      if (!names.length) group.append(node("p", "No tags assigned."));
+      for (const name of names) {
+        const article = node("article");
+        article.append(node("h4", name));
+        const details = worldTagDetails.get(name);
+        if (details) {
+          article.append(node("p", details.description));
+          for (const [label, hooks] of Object.entries(details.hooks)) {
+            const list = node("ul");
+            for (const hook of hooks) list.append(node("li", hook));
+            article.append(node("h5", label), list);
+          }
+        }
+        group.append(article);
+      }
+      body.append(group);
+    }
+  }
+
+  function openObject(record, kind, back, remove, focus = true) {
+    section.replaceChildren();
+    const header = node("header");
+    header.className = "inspector-header";
+    const heading = node("h3", record.name || kind);
+    heading.tabIndex = -1;
+    const commands = node("nav");
+    commands.className = "inspector-commands";
+    commands.setAttribute("aria-label", `${kind} commands`);
+    const status = node("p");
+    status.className = "inspector-status";
+    status.setAttribute("role", "status");
+    const body = node("div");
+    body.className = "inspector-fields";
+    const reopen = () => openObject(record, record.type?.trim() || kind, back, remove);
+    if (back) commands.append(action("Back", back));
+    commands.append(action("Edit", () => {
+      status.textContent = "";
+      commands.hidden = true;
+      body.replaceChildren();
+      editObject(body, record, kind, reopen);
+      body.querySelector("input")?.focus();
+    }), action("Delete", () => {
+      if (!confirm(`Delete “${record.name || kind}” and its contents?`)) return;
+      remove();
+      if (back) {
+        save();
+        back();
+      } else render();
+    }), action("Share", async () => {
+      try {
+        await navigator.clipboard.writeText(objectMarkdown(record, kind));
+        status.textContent = "Copied as Markdown.";
+      } catch {
+        status.textContent = "Could not copy to the clipboard.";
+      }
     }));
-    section.append(action("Add world", () => {
-      const world = newWorld();
-      (system.worlds ??= []).push(world);
-      save();
-      openWorld(world);
-    }));
-    const controls = systemControls();
-    controls.addEventListener("input", () => { heading.textContent = system.name || "Unnamed system"; });
-    section.append(controls);
+    header.append(node("small", kind), heading, commands, status);
+    section.append(header, body);
+    readObject(body, record, reopen);
     if (focus) heading.focus();
   }
 
-  showOverview();
+  function editObject(body, record, kind, reopen) {
+    const draft = structuredClone(record);
+    const form = node("form");
+    const fields = disclosure("Attributes");
+    const edit = (label, target, key, reroll) => field(label, target[key] ?? "", value => {
+      target[key] = value;
+    }, reroll);
+    fields.append(edit(`${record.profile ? "World" : kind === "System" ? "System" : "Location"} name`, draft, "name"));
+    if (record.type !== undefined) fields.append(edit("Location type", draft, "type"));
+    if (record.description !== undefined) fields.append(edit("Description", draft, "description"));
+    let destination;
+    if (record === system) {
+      const label = node("label", "Destination hex");
+      destination = node("input");
+      destination.value = hexCode(record);
+      destination.inputMode = "numeric";
+      destination.pattern = "[0-9]{4}";
+      destination.required = true;
+      label.append(destination);
+      fields.append(label);
+    }
+    if (draft.profile) {
+      for (const key of profileFields) fields.append(edit(key, draft.profile, key, () => rollWorld(roll).profile[key]));
+    }
+    form.append(fields);
+    if (draft.profile) {
+      const tags = disclosure("Planet Tags");
+      for (const index of [0, 1]) {
+        tags.append(edit(`Tag ${index + 1}`, draft.tags, index, () => rerollTag(draft.tags[1 - index], roll)));
+      }
+      form.append(tags);
+    }
+    const additions = disclosure("Contents");
+    const addEntry = (label, create, once = false) => {
+      const button = action(label, () => {
+        const entry = create();
+        const added = edit("Name", entry, "name");
+        additions.insertBefore(added, button);
+        if (entry.type !== undefined) additions.insertBefore(edit("Location type", entry, "type"), button);
+        if (once) button.disabled = true;
+        added.querySelector("input").focus();
+      });
+      additions.append(button);
+    };
+    if (record === system) {
+      if (!draft.mainWorld) addEntry("Add main world", () => { return draft.mainWorld = newWorld(); }, true);
+      addEntry("Add world", () => {
+        const world = newWorld();
+        (draft.worlds ??= []).push(world);
+        return world;
+      });
+    }
+    addEntry(record.type !== undefined ? "Add nested location" : "Add location", () => {
+      const location = newLocation();
+      const key = record.type !== undefined ? "children" : "locations";
+      (draft[key] ??= []).push(location);
+      return location;
+    });
+    const message = node("p");
+    message.className = "inspector-status";
+    message.setAttribute("role", "status");
+    const footer = node("div");
+    footer.className = "inspector-commands";
+    const submit = node("button", "Save");
+    submit.type = "submit";
+    footer.append(action("Cancel", reopen), submit);
+    form.append(additions, message, footer);
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      if (destination && destination.value !== hexCode(record)) {
+        const hex = { column: Number(destination.value.slice(0, 2)), row: Number(destination.value.slice(2)) };
+        if (!validHex(hex, sector.grid) || sector.systems.some(other =>
+          other.column === hex.column && other.row === hex.row)) {
+          message.textContent = "Choose an empty hex within the map.";
+          destination.focus();
+          return;
+        }
+        Object.assign(record, draft, hex);
+        sector.selectedHex = hex;
+        render();
+        return;
+      }
+      Object.assign(record, draft);
+      save();
+      reopen();
+    });
+    body.append(form);
+  }
+
+  openObject(system, "System", null, () => sector.systems.splice(sector.systems.indexOf(system), 1), false);
 }

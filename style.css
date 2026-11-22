@@ -236,3 +236,31 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #world .inspector-entry { font-size: .94rem; font-weight: 400; }
 #world .inspector-entry small { font-size: .78rem; }
 #world .inspector-controls > summary { font-size: .88rem; }
+
+.inspector-header {
+  width: 100%;
+  padding-bottom: .55rem;
+  border-bottom: 1px solid #34495c;
+}
+.inspector-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin-block: .45rem;
+}
+#world .inspector-commands button { padding: .35rem .55rem; font-size: .85rem; }
+#world .inspector-commands[hidden] { display: none; }
+#world .inspector-commands button + button { border-inline-start: 1px solid #34495c; }
+.inspector-status { margin: .35rem 0; font-size: .85rem; }
+.inspector-status:empty { display: none; }
+.inspector-attributes {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 2fr) minmax(0, 3fr);
+  gap: .65rem .8rem;
+  margin: .8rem 0 1rem;
+  font-size: .9rem;
+}
+.inspector-attributes dt { font-weight: 600; }
+.inspector-attributes dd { margin: 0; color: #c7d6e4; }
+.inspector-description { white-space: pre-wrap; line-height: 1.55; font-size: .9rem; }
+#world .inspector-fields .inspector-group + .inspector-group { margin-block-start: .65rem; }
