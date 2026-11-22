@@ -45,6 +45,12 @@
           <option value="20">D20</option>
         </select>
       </label>
+      <label>Generate trade routes?
+        <select id="generate-trade-routes">
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </label>
       <button type="submit" id="generate-sector">Generate sector</button>
       <div id="replace-sector" hidden>
         <p>Replace the current sector with a new one?</p>
@@ -69,6 +75,7 @@
     <header class="sector-map-header">
       <h2 id="map-title">Sector map</h2>
       <p id="map-help">Click a hex to inspect it. Drag to pan. Use the mouse wheel or + and − to zoom. Arrow keys move the selection.</p>
+      <p id="trade-route-key" hidden></p>
     </header>
     <div class="map-stage">
       <div class="map-window">
