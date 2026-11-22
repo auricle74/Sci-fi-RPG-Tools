@@ -124,7 +124,11 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   display: flex;
   max-height: none;
   border-radius: 0;
+  cursor: grab;
+  user-select: none;
 }
+.sector-map .map-window.is-panning,
+.sector-map .map-window.is-panning .hex { cursor: grabbing; }
 .sector-map svg { flex: none; margin: auto; }
 .map-zoom {
   position: absolute;
