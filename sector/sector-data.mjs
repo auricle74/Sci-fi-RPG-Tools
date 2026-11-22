@@ -43,6 +43,7 @@ export function readSector(json) {
   check(sector.schemaVersion === 1 && provenance(sector.ruleset) &&
     record(sector.grid) && record(sector.selectedHex) && Array.isArray(sector.systems));
   check(sector.name === undefined || typeof sector.name === "string");
+  check(sector.generateTradeRoutes === undefined || typeof sector.generateTradeRoutes === "boolean");
   check(sector.systemPointDie === undefined || [0, 4, 6, 8, 10, 20].includes(sector.systemPointDie));
   check(sector.starCountPolicy === undefined || ["fixed", "scaled"].includes(sector.starCountPolicy));
   const { grid } = sector;
