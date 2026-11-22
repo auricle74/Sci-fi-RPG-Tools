@@ -126,14 +126,14 @@ async function main() {
     assert.equal(await page.locator(".hex:not(.occupied) .hex-system-name").count(), 0);
     assert.ok(await nameLabels.first().isVisible());
     await routeVisibility.uncheck();
-    assert.equal(await tradeLines.first().isVisible(), false);
+    assert.equal(await page.locator(".trade-routes").isVisible(), false);
     assert.ok(await nameLabels.first().isVisible());
     await nameVisibility.uncheck();
     await page.reload();
     assert.equal(await nameLabels.first().isVisible(), false);
     assert.equal(await page.locator("#trade-route-key").isVisible(), false);
     await routeVisibility.check();
-    assert.ok(await tradeLines.first().isVisible());
+    assert.ok(await page.locator(".trade-routes").isVisible());
     assert.equal(await nameLabels.first().isVisible(), false);
     await nameVisibility.check();
     assert.ok(await nameLabels.first().isVisible());
