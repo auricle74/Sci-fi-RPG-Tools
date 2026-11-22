@@ -30,9 +30,11 @@ export function readCustomTags() {
   return catalogue(readTagChanges());
 }
 
-export function tagsByType() {
-  let tags;
-  try { tags = readCustomTags(); } catch { tags = starterTags; }
+export function catalogueTags() {
+  try { return readCustomTags(); } catch { return starterTags; }
+}
+
+export function tagsByType(tags = catalogueTags()) {
   const groups = new Map();
   for (const {type, name} of tags) {
     const key = normalise(type);

@@ -1,7 +1,7 @@
 import { systemPointTypes } from "./system-points.mjs";
 import { profileFields, validHex } from "./sector-data.mjs";
 import { rerollTag, rollName, rollWorld } from "./swn.mjs";
-import { planetTagDetails, catalogueTagDetails, systemTagNames } from "./tag-catalogue.mjs";
+import { planetTagDetails, catalogueTagDetails, systemTagNames, tagsByType, tagTypes, catalogueTags } from "./tag-catalogue.mjs";
 
 function node(tag, label) {
   const element = document.createElement(tag);
@@ -246,7 +246,63 @@ export function showInspector(section, sector, system, { save, render, roll }) {
       target[key] = value;
     }, key === "name" ? () => generateName(draft) : reroll, key === "name" ? "New name" : "Reroll");
     fields.append(edit(`${record.profile ? "World" : kind === "System" ? "System" : "Location"} name`, draft, "name"));
-    if (record.type !== undefined) fields.append(edit("Location type", draft, "type"));
+    let locationTags;
+    if (record.type !== undefined) {
+      const availableTags = catalogueTags();
+      const catalogue = tagsByType(availableTags);
+      const types = new Map(tagTypes.filter(type => !["Planet", "System"].includes(type))
+        .map(type => [type.toLowerCase(), type]));
+      for (const { type } of availableTags) {
+        const key = type.toLowerCase();
+        if (!["planet", "system"].includes(key) && !types.has(key)) types.set(key, type);
+      }
+      const currentType = draft.type.trim();
+      if (currentType) types.set(currentType.toLowerCase(), currentType);
+      const typeSelect = node("select");
+      typeSelect.append(new Option("Unspecified", ""), ...Array.from(types.values()).sort()
+        .map(type => new Option(type)));
+      typeSelect.value = currentType;
+      const typeLabel = node("label", "Location type");
+      typeLabel.append(typeSelect);
+      fields.append(typeLabel);
+
+      locationTags = disclosure("Location Tags");
+      const picks = [1, 2].map(number => {
+        const label = node("label", `Location tag ${number}`);
+        const select = node("select");
+        label.append(select);
+        locationTags.append(label);
+        return select;
+      });
+      const assignments = new Map([[currentType.toLowerCase(), [...(draft.tags ?? [])]]]);
+      function refreshTagOptions() {
+        const key = typeSelect.value.toLowerCase();
+        const assigned = assignments.get(key) ?? [];
+        const names = catalogue.get(key) ?? [];
+        for (const [index, select] of picks.entries()) {
+          const current = assigned[index] ?? "";
+          const other = assigned[1 - index] ?? "";
+          const options = Array.from(new Set([...names, current])).filter(name => name && (name === current || name !== other));
+          select.replaceChildren(new Option("No tag", ""), ...options.sort().map(name => new Option(name)));
+          select.value = current;
+        }
+      }
+      typeSelect.addEventListener("change", () => {
+        draft.type = typeSelect.value;
+        draft.tags = assignments.get(draft.type.toLowerCase()) ?? [];
+        refreshTagOptions();
+      });
+      for (const select of picks) {
+        select.addEventListener("change", () => {
+          const key = typeSelect.value.toLowerCase();
+          const assigned = picks.map(pick => pick.value);
+          assignments.set(key, assigned);
+          draft.tags = assigned;
+          refreshTagOptions();
+        });
+      }
+      refreshTagOptions();
+    }
     if (record === system || record.description !== undefined) fields.append(edit("Description", draft, "description"));
     let destination;
     if (record === system) {
@@ -263,6 +319,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
       for (const key of profileFields) fields.append(edit(key, draft.profile, key, () => rollWorld(roll).profile[key]));
     }
     form.append(fields);
+    if (locationTags) form.append(locationTags);
     if (draft.profile) {
       const tags = disclosure("Planet Tags");
       for (const index of [0, 1]) {
@@ -361,7 +418,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
     form.append(message, footer);
     form.addEventListener("submit", event => {
       event.preventDefault();
-      const changes = record === system ? { ...draft, tags: tagNames(draft) } : draft;
+      const changes = record === system || locationTags ? { ...draft, tags: tagNames(draft) } : draft;
       if (destination && destination.value !== hexCode(record)) {
         const hex = { column: Number(destination.value.slice(0, 2)), row: Number(destination.value.slice(2)) };
         if (!validHex(hex, sector.grid) || sector.systems.some(other =>
