@@ -1,3 +1,4 @@
+import { starterTags } from "./starter-tags.mjs";
 import { systemPointTypes } from "./system-points.mjs";
 import { worldTagDetails } from "./world-tags.mjs";
 
@@ -9,15 +10,31 @@ export const bookTags = Array.from(worldTagDetails, ([name, details]) => ({
 }));
 const normalise = value => value.trim().toLowerCase();
 
+function readTagChanges() {
+  const stored = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
+  return Array.isArray(stored) ? { tags: stored, deleted: [] } : stored;
+}
+
+const tagKey = tag => JSON.stringify([normalise(tag.type), normalise(tag.name)]);
+
+function catalogue({ tags, deleted }) {
+  const replacedIds = new Set([...deleted, ...tags.map(tag => tag.id)]);
+  const occupiedNames = new Set(tags.map(tagKey));
+  return [
+    ...starterTags.filter(tag => !replacedIds.has(tag.id) && !occupiedNames.has(tagKey(tag))),
+    ...tags,
+  ];
+}
+
 export function readCustomTags() {
-  return JSON.parse(localStorage.getItem(storageKey) ?? "[]");
+  return catalogue(readTagChanges());
 }
 
 export function planetTagDetails(name) {
   const bookTag = worldTagDetails.get(name);
   if (bookTag) return bookTag;
   try {
-    return readCustomTags().find(tag => normalise(tag.type) === "planet" &&
+    return readTagChanges().tags.find(tag => normalise(tag.type) === "planet" &&
       normalise(tag.name) === normalise(name));
   } catch {
     return undefined;
@@ -42,7 +59,8 @@ export function tagFields(value) {
 
 export function saveCustomTag(id, value) {
   const tag = tagFields(value);
-  const tags = readCustomTags();
+  const changes = readTagChanges();
+  const tags = catalogue(changes);
   if (id && !tags.some(entry => entry.id === id)) throw new Error("This tag was removed in another tab.");
   const matches = entry => normalise(entry.type) === normalise(tag.type) &&
     normalise(entry.name) === normalise(tag.name);
@@ -50,11 +68,14 @@ export function saveCustomTag(id, value) {
     throw new Error("A tag with that name and type already exists.");
   }
   const saved = { ...tag, id: id ?? crypto.randomUUID() };
-  localStorage.setItem(storageKey, JSON.stringify([...tags.filter(entry => entry.id !== id), saved]));
+  changes.tags = [...changes.tags.filter(entry => entry.id !== id), saved];
+  localStorage.setItem(storageKey, JSON.stringify(changes));
   return saved;
 }
 
 export function deleteCustomTag(id) {
-  const tags = readCustomTags().filter(tag => tag.id !== id);
-  localStorage.setItem(storageKey, JSON.stringify(tags));
+  const changes = readTagChanges();
+  changes.tags = changes.tags.filter(tag => tag.id !== id);
+  if (starterTags.some(tag => tag.id === id) && !changes.deleted.includes(id)) changes.deleted.push(id);
+  localStorage.setItem(storageKey, JSON.stringify(changes));
 }
