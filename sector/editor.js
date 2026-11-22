@@ -191,6 +191,53 @@ mapWindow.addEventListener("wheel", (event) => {
   zoomMap(event.deltaY < 0 ? zoomStep : 1 / zoomStep, event.clientX, event.clientY);
 }, { passive: false });
 
+const panThreshold = 5;
+let panGesture;
+
+mapWindow.addEventListener("pointerdown", (event) => {
+  if (event.pointerType !== "mouse" || event.button !== 0 || !event.isPrimary) return;
+  if (mapWindow.scrollWidth <= mapWindow.clientWidth && mapWindow.scrollHeight <= mapWindow.clientHeight) return;
+  const bounds = mapWindow.getBoundingClientRect();
+  if (event.clientX >= bounds.left + mapWindow.clientWidth ||
+      event.clientY >= bounds.top + mapWindow.clientHeight) return;
+  panGesture = {
+    pointerId: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    left: mapWindow.scrollLeft,
+    top: mapWindow.scrollTop,
+    dragging: false,
+  };
+});
+
+mapWindow.addEventListener("pointermove", (event) => {
+  if (panGesture?.pointerId !== event.pointerId) return;
+  const dx = event.clientX - panGesture.x;
+  const dy = event.clientY - panGesture.y;
+  if (!panGesture.dragging) {
+    if (Math.hypot(dx, dy) < panThreshold) return;
+    panGesture.dragging = true;
+    // Capture only after a drag starts. Its release click targets the viewport, outside the SVG.
+    mapWindow.setPointerCapture(event.pointerId);
+    mapWindow.classList.add("is-panning");
+  }
+  mapWindow.scrollLeft = panGesture.left - dx;
+  mapWindow.scrollTop = panGesture.top - dy;
+});
+
+function endPan(event) {
+  if (panGesture?.pointerId !== event.pointerId) return;
+  panGesture = undefined;
+  mapWindow.classList.remove("is-panning");
+}
+
+for (const eventName of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  mapWindow.addEventListener(eventName, endPan);
+}
+mapWindow.addEventListener("pointerleave", (event) => {
+  if (!panGesture?.dragging) endPan(event);
+});
+
 map.addEventListener("click", (event) => {
   const hex = event.target.closest(".hex");
   if (hex) selectHex(Number(hex.dataset.column), Number(hex.dataset.row), true);
