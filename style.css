@@ -269,3 +269,11 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #new-sector-name { padding: .15rem .35rem; color: #92a3b3; font-size: .75rem; font-weight: 400; }
 
 #world .reroll-action:disabled { opacity: .55; cursor: default; }
+
+.trade-routes { pointer-events: none; }
+.trade-routes line {
+  stroke: #eab66d;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+#trade-route-key { color: #edc68f; font-size: .85rem; }
