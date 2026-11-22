@@ -278,6 +278,7 @@ function generateSector() {
   let next;
   try {
     next = createSector(rules.value, size.value, width, height);
+    next.name = rollName(roll, new Set([sector.name?.trim()]));
     next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
     next.systemPointDie = Number(element("system-point-die").value);
     next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
