@@ -277,3 +277,21 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   stroke-dasharray: 5 4;
 }
 #trade-route-key { color: #edc68f; font-size: .85rem; }
+
+.sector-options .map-visibility { margin-top: 1rem; gap: .55rem 1rem; }
+.map-visibility legend { font-weight: 600; }
+.map-visibility label { display: flex; align-items: center; }
+.map-visibility input { width: auto; margin: 0; accent-color: #9de7e1; }
+.hex-system-name { pointer-events: none; }
+.hex-system-name div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  color: #edf4fb;
+  font-size: 8px;
+  line-height: 11px;
+  text-shadow: 0 1px 2px #0c131e;
+}
+.hide-system-names .hex-system-name,
+.hide-trade-routes .trade-routes { display: none; }
