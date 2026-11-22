@@ -53,7 +53,11 @@
       <p id="generation-status" role="status"></p>
     </form>
     <div class="panel sector-files">
-      <label>Sector name <input id="sector-name"></label>
+      <div class="sector-name-heading">
+        <label for="sector-name">Sector name</label>
+        <button id="new-sector-name" type="button" aria-label="New name for sector">New name</button>
+      </div>
+      <input id="sector-name">
       <button type="button" id="export-sector">Export JSON</button>
       <label>Import JSON <input id="import-sector" type="file" accept=".json,application/json"></label>
       <p id="file-status" role="status"></p>

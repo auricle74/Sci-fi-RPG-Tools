@@ -66,8 +66,8 @@ test("generated worlds and points have names distinct from their types and each 
   let id = 0;
   const sector = { grid: { width: 2, height: 1 }, ruleset: { id: "swn-revised" }, systemPointDie: 4 };
   const systems = generateSystems(sector, "fixed", () => 1, () => String(++id));
-  const entries = systems.flatMap(system => [system.mainWorld, ...system.locations]);
-  assert.equal(entries.length, 4);
+  const entries = systems.flatMap(system => [system, system.mainWorld, ...system.locations]);
+  assert.equal(entries.length, 6);
   assert.equal(new Set(entries.map(entry => entry.name)).size, entries.length);
-  for (const entry of entries) assert.match(entry.name, /^Aelara(?: [2-4])?$/);
+  for (const entry of entries) assert.match(entry.name, /^Aelara(?: [2-6])?$/);
 });

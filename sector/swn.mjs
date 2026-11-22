@@ -214,27 +214,27 @@ export function rollWorld(roll) {
 const nameStarts = ["Ael", "Bel", "Cor", "Dar", "Eri", "Fen", "Hal", "Iri", "Kael", "Lor", "Mer", "Nim", "Or", "Pra", "Sel", "Tor", "Vael", "Zen"];
 const nameEnds = ["ara", "eth", "eva", "ian", "ion", "ira", "os", "une", "essa", "ova", "axis", "ai", "ora", "ium", "aris", "en"];
 
+export function rollName(roll, used = new Set()) {
+  const root = nameStarts[roll(nameStarts.length) - 1] + nameEnds[roll(nameEnds.length) - 1];
+  let name = root;
+  for (let suffix = 2; used.has(name); suffix += 1) name = `${root} ${suffix}`;
+  used.add(name);
+  return name;
+}
+
 export function generateSystems(sector, policy, roll, makeId) {
   const { width, height } = sector.grid;
   const count = starCount(width, height, policy, roll(10));
   const initialCount = policy === "scaled" ? Math.max(1, Math.round(width * height / 4)) : 20;
-  const nameCounts = new Map();
-  function generateName() {
-    const name = nameStarts[roll(nameStarts.length) - 1] + nameEnds[roll(nameEnds.length) - 1];
-    const occurrence = (nameCounts.get(name) ?? 0) + 1;
-    nameCounts.set(name, occurrence);
-    return occurrence === 1 ? name : `${name} ${occurrence}`;
-  }
+  const usedNames = new Set();
   const systems = placeStars(width, height, count, initialCount, roll).map(({column, row}) => {
-    const prefix = ["Aster", "Cinder", "Dawn", "Ember", "Iris", "Lumen", "Meridian", "Vesper"][roll(8) - 1];
-    const suffix = ["Reach", "Vale", "Haven", "Spur", "Drift", "Crown", "Gate", "Deep"][roll(8) - 1];
-    const code = String(column).padStart(2, "0") + String(row).padStart(2, "0");
+    const name = rollName(roll, usedNames);
     const { tags, profile } = rollWorld(roll);
     return {
-      id: makeId(), column, row, name: prefix + " " + suffix + " " + code,
+      id: makeId(), column, row, name,
       ruleset: { ...sector.ruleset },
       mainWorld: {
-        id: makeId(), name: generateName(), ruleset: { ...sector.ruleset },
+        id: makeId(), name: rollName(roll, usedNames), ruleset: { ...sector.ruleset },
         tags, profile, description: `A world marked by ${tags[0].toLowerCase()} and ${tags[1].toLowerCase()}.`,
       },
     };
@@ -243,7 +243,7 @@ export function generateSystems(sector, policy, roll, makeId) {
     for (const system of systems) {
       const pointCount = roll(sector.systemPointDie);
       system.locations = Array.from({ length: pointCount }, () =>
-        rollSystemPoint(generateName(), roll, makeId));
+        rollSystemPoint(rollName(roll, usedNames), roll, makeId));
     }
   }
   return systems;
