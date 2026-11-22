@@ -211,10 +211,20 @@ export function rollWorld(roll) {
   return { tags: [tags[first], tags[second < first ? second : second + 1]], profile };
 }
 
+const nameStarts = ["Ael", "Bel", "Cor", "Dar", "Eri", "Fen", "Hal", "Iri", "Kael", "Lor", "Mer", "Nim", "Or", "Pra", "Sel", "Tor", "Vael", "Zen"];
+const nameEnds = ["ara", "eth", "eva", "ian", "ion", "ira", "os", "une", "essa", "ova", "axis", "ai", "ora", "ium", "aris", "en"];
+
 export function generateSystems(sector, policy, roll, makeId) {
   const { width, height } = sector.grid;
   const count = starCount(width, height, policy, roll(10));
   const initialCount = policy === "scaled" ? Math.max(1, Math.round(width * height / 4)) : 20;
+  const nameCounts = new Map();
+  function generateName() {
+    const name = nameStarts[roll(nameStarts.length) - 1] + nameEnds[roll(nameEnds.length) - 1];
+    const occurrence = (nameCounts.get(name) ?? 0) + 1;
+    nameCounts.set(name, occurrence);
+    return occurrence === 1 ? name : `${name} ${occurrence}`;
+  }
   const systems = placeStars(width, height, count, initialCount, roll).map(({column, row}) => {
     const prefix = ["Aster", "Cinder", "Dawn", "Ember", "Iris", "Lumen", "Meridian", "Vesper"][roll(8) - 1];
     const suffix = ["Reach", "Vale", "Haven", "Spur", "Drift", "Crown", "Gate", "Deep"][roll(8) - 1];
@@ -224,7 +234,7 @@ export function generateSystems(sector, policy, roll, makeId) {
       id: makeId(), column, row, name: prefix + " " + suffix + " " + code,
       ruleset: { ...sector.ruleset },
       mainWorld: {
-        id: makeId(), name: prefix + suffix.toLowerCase(), ruleset: { ...sector.ruleset },
+        id: makeId(), name: generateName(), ruleset: { ...sector.ruleset },
         tags, profile, description: `A world marked by ${tags[0].toLowerCase()} and ${tags[1].toLowerCase()}.`,
       },
     };
@@ -232,8 +242,8 @@ export function generateSystems(sector, policy, roll, makeId) {
   if (sector.systemPointDie) {
     for (const system of systems) {
       const pointCount = roll(sector.systemPointDie);
-      system.locations = Array.from({ length: pointCount }, (_, index) =>
-        rollSystemPoint(index + 1, roll, makeId));
+      system.locations = Array.from({ length: pointCount }, () =>
+        rollSystemPoint(generateName(), roll, makeId));
     }
   }
   return systems;
