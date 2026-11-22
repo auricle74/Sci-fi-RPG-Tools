@@ -21,21 +21,28 @@ async function main() {
     const mainWorld = page.locator(".inspector-group").filter({ hasText: "Main world" }).getByRole("button");
     assert.equal(await page.getByLabel("World name").count(), 0);
     await page.locator(".inspector-entry").nth(1).click();
-    assert.match(await page.getByLabel("Description").inputValue(), /Occupants:[\s\S]+Situation:/);
-    await page.getByRole("button", { name: "Back to system" }).click();
+    assert.match(await page.locator(".inspector-description").innerText(), /Occupants:[\s\S]+Situation:/);
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await mainWorld.click();
     assert.equal(await page.locator(".planet-tags article").count(), 2);
-    await page.getByText("Edit tags", { exact: true }).click();
+    assert.equal(await page.getByLabel("World name").count(), 0);
+    const inspector = page.locator("#world");
+    const edit = inspector.getByRole("button", { name: "Edit", exact: true });
+    await edit.click();
+    await page.getByLabel("World name").fill("Discarded name");
+    await inspector.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.notEqual(await inspector.locator("h3").innerText(), "Discarded name");
+    await edit.click();
     await page.getByLabel("World name").fill("New Horizon");
     await page.getByLabel("Tag 1").fill("Handwritten tag");
     await page.getByRole("button", { name: "Reroll atmosphere" }).click();
     assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
+    await inspector.getByRole("button", { name: "Save", exact: true }).click();
     await page.reload();
     await mainWorld.click();
     assert.equal(await page.locator(".planet-tags article").count(), 2);
-    await page.getByText("Edit tags", { exact: true }).click();
-    assert.equal(await page.getByLabel("World name").inputValue(), "New Horizon");
-    assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
+    assert.equal(await inspector.locator("h3").innerText(), "New Horizon");
+    assert.equal(await inspector.locator(".planet-tags h4").first().innerText(), "Handwritten tag");
 
     const downloadReady = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export JSON" }).click();
@@ -47,7 +54,7 @@ async function main() {
     await generate.click();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     assert.equal(await page.locator(".hex.occupied").count(), count);
-    assert.equal(await page.getByLabel("World name").inputValue(), "New Horizon");
+    assert.equal(await inspector.locator("h3").innerText(), "New Horizon");
     await generate.click();
     await page.getByRole("button", { name: "Replace and generate" }).click();
     assert.equal(await page.locator(".hex").count(), 1280);
@@ -75,10 +82,9 @@ async function main() {
     await page.getByText("Sector imported.").waitFor();
     await mainWorld.click();
     assert.equal(await page.locator(".planet-tags article").count(), 2);
-    await page.getByText("Edit tags", { exact: true }).click();
     assert.equal(await page.locator(".hex").count(), 80);
-    assert.equal(await page.getByLabel("World name").inputValue(), "New Horizon");
-    assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
+    assert.equal(await inspector.locator("h3").innerText(), "New Horizon");
+    assert.equal(await inspector.locator(".planet-tags h4").first().innerText(), "Handwritten tag");
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();
