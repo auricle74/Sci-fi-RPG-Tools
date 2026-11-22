@@ -34,9 +34,9 @@ async function main() {
     assert.notEqual(await inspector.locator("h3").innerText(), "Discarded name");
     await edit.click();
     await page.getByLabel("World name").fill("New Horizon");
-    await page.getByLabel("Tag 1").fill("Handwritten tag");
+    await page.getByRole("textbox", { name: "Tag 1", exact: true }).fill("Handwritten tag");
     await page.getByRole("button", { name: "Reroll atmosphere" }).click();
-    assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
+    assert.equal(await page.getByRole("textbox", { name: "Tag 1", exact: true }).inputValue(), "Handwritten tag");
     await inspector.getByRole("button", { name: "Save", exact: true }).click();
     await page.reload();
     await mainWorld.click();
