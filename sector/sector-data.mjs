@@ -55,8 +55,9 @@ export function readSector(json) {
     const hex = `${system.column},${system.row}`;
     check(!coords.has(hex));
     coords.add(hex);
+    check(system.description === undefined || typeof system.description === "string");
     if (system.tags !== undefined) {
-      check(Array.isArray(system.tags) && system.tags.length === 2 &&
+      check(Array.isArray(system.tags) &&
         system.tags.every(tag => typeof tag === "string"));
     }
     if (system.mainWorld !== null) world(system.mainWorld);

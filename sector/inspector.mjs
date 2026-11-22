@@ -1,6 +1,7 @@
+import { systemPointTypes } from "./system-points.mjs";
 import { profileFields, validHex } from "./sector-data.mjs";
 import { rerollTag, rollName, rollWorld } from "./swn.mjs";
-import { planetTagDetails, systemTagDetails } from "./tag-catalogue.mjs";
+import { planetTagDetails, systemTagDetails, systemTagNames } from "./tag-catalogue.mjs";
 
 function node(tag, label) {
   const element = document.createElement(tag);
@@ -246,7 +247,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
     }, key === "name" ? () => generateName(draft) : reroll, key === "name" ? "New name" : "Reroll");
     fields.append(edit(`${record.profile ? "World" : kind === "System" ? "System" : "Location"} name`, draft, "name"));
     if (record.type !== undefined) fields.append(edit("Location type", draft, "type"));
-    if (record.description !== undefined) fields.append(edit("Description", draft, "description"));
+    if (record === system || record.description !== undefined) fields.append(edit("Description", draft, "description"));
     let destination;
     if (record === system) {
       const label = node("label", "Destination hex");
@@ -269,33 +270,86 @@ export function showInspector(section, sector, system, { save, render, roll }) {
       }
       form.append(tags);
     }
-    const additions = disclosure("Contents");
-    const addEntry = (label, create, once = false) => {
+    function addNamedEntry(group, label, create) {
       const button = action(label, () => {
         const entry = create();
         entry.name = generateName(draft);
         const added = edit("Name", entry, "name");
-        additions.insertBefore(added, button);
-        if (entry.type !== undefined) additions.insertBefore(edit("Location type", entry, "type"), button);
-        if (once) button.disabled = true;
+        group.insertBefore(added, button);
+        if (entry.type === "") group.insertBefore(edit("Location type", entry, "type"), button);
+        if (label === "Add main planet") button.disabled = true;
         added.querySelector("input").focus();
       });
-      additions.append(button);
-    };
+      group.append(button);
+    }
+
     if (record === system) {
-      if (!draft.mainWorld) addEntry("Add main world", () => { return draft.mainWorld = newWorld(); }, true);
-      addEntry("Add world", () => {
+      const planets = disclosure("Planets");
+      if (draft.mainWorld) planets.append(edit("Main planet name", draft.mainWorld, "name"));
+      else addNamedEntry(planets, "Add main planet", () => { return draft.mainWorld = newWorld(); });
+      for (const world of draft.worlds ?? []) planets.append(edit("Planet name", world, "name"));
+      addNamedEntry(planets, "Add planet", () => {
         const world = newWorld();
         (draft.worlds ??= []).push(world);
         return world;
       });
+      form.append(planets);
+
+      const locations = draft.locations ??= [];
+      for (const type of [...systemPointTypes, "Other locations"]) {
+        const group = disclosure(type);
+        const isOther = type === "Other locations";
+        const entries = locations.filter(location => isOther
+          ? !systemPointTypes.includes(location.type) : location.type === type);
+        for (const location of entries) {
+          group.append(edit("Location name", location, "name"));
+          if (isOther) group.append(edit("Location type", location, "type"));
+        }
+        addNamedEntry(group, isOther ? "Add custom location" : `Add ${type.toLowerCase()}`, () => {
+          const location = { ...newLocation(), type: isOther ? "" : type };
+          locations.push(location);
+          return location;
+        });
+        form.append(group);
+      }
+
+      const tags = disclosure("System Tags");
+      const list = node("datalist");
+      list.id = "system-tag-options";
+      for (const name of systemTagNames()) list.append(new Option(name));
+      const rows = node("div");
+      draft.tags = [...tagNames(draft)];
+      function renderTags() {
+        rows.replaceChildren();
+        for (const [index, name] of draft.tags.entries()) {
+          const row = field(`System tag ${index + 1}`, name, value => { draft.tags[index] = value; });
+          row.querySelector("input").setAttribute("list", list.id);
+          row.append(action(`Remove system tag ${index + 1}`, () => {
+            draft.tags.splice(index, 1);
+            renderTags();
+            addTag.focus();
+          }));
+          rows.append(row);
+        }
+      }
+      const addTag = action("Add system tag", () => {
+        draft.tags.push("");
+        renderTags();
+        rows.lastElementChild.querySelector("input").focus();
+      });
+      tags.append(list, rows, addTag);
+      renderTags();
+      form.append(tags);
+    } else {
+      const additions = disclosure("Contents");
+      addNamedEntry(additions, record.type !== undefined ? "Add nested location" : "Add location", () => {
+        const location = newLocation();
+        const key = record.type !== undefined ? "children" : "locations";
+        (draft[key] ??= []).push(location);
+        return location;
+      });
+      form.append(additions);
     }
-    addEntry(record.type !== undefined ? "Add nested location" : "Add location", () => {
-      const location = newLocation();
-      const key = record.type !== undefined ? "children" : "locations";
-      (draft[key] ??= []).push(location);
-      return location;
-    });
     const message = node("p");
     message.className = "inspector-status";
     message.setAttribute("role", "status");
@@ -304,9 +358,10 @@ export function showInspector(section, sector, system, { save, render, roll }) {
     const submit = node("button", "Save");
     submit.type = "submit";
     footer.append(action("Cancel", reopen), submit);
-    form.append(additions, message, footer);
+    form.append(message, footer);
     form.addEventListener("submit", event => {
       event.preventDefault();
+      const changes = record === system ? { ...draft, tags: tagNames(draft) } : draft;
       if (destination && destination.value !== hexCode(record)) {
         const hex = { column: Number(destination.value.slice(0, 2)), row: Number(destination.value.slice(2)) };
         if (!validHex(hex, sector.grid) || sector.systems.some(other =>
@@ -315,7 +370,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
           destination.focus();
           return;
         }
-        Object.assign(record, draft, hex);
+        Object.assign(record, changes, hex);
         sector.selectedHex = hex;
         render();
         return;
