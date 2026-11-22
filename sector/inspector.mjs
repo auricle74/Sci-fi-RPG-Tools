@@ -50,7 +50,7 @@ const titleText = (value) => value.replace(/\s+/g, " ").trim().replace(/[\\`*_{}
 
 function attributes(record) {
   if (record.profile) return profileFields.map(key => [key, record.profile[key]]);
-  if (record.column) return [["Hex", hexCode(record)]];
+  if (record.column) return [["Hex", hexCode(record)], ["System tags", tagNames(record).join(", ")]];
   return [["Type", record.type]];
 }
 
