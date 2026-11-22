@@ -1,3 +1,4 @@
+import { systemTagNames } from "./tag-catalogue.mjs";
 import { rollSystemPoint } from "./system-points.mjs";
 
 const tags = [
@@ -244,6 +245,14 @@ export function generateSystems(sector, policy, roll, makeId) {
       const pointCount = roll(sector.systemPointDie);
       system.locations = Array.from({ length: pointCount }, () =>
         rollSystemPoint(rollName(roll, usedNames), roll, makeId));
+    }
+  }
+  const availableTags = systemTagNames();
+  for (const system of systems) {
+    const pool = [...availableTags];
+    system.tags = ["", ""];
+    for (let index = 0; index < 2 && pool.length; index += 1) {
+      system.tags[index] = pool.splice(roll(pool.length) - 1, 1)[0];
     }
   }
   return systems;

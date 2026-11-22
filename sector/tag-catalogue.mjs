@@ -30,6 +30,23 @@ export function readCustomTags() {
   return catalogue(readTagChanges());
 }
 
+export function systemTagNames() {
+  try {
+    return readCustomTags().filter(tag => normalise(tag.type) === "system").map(tag => tag.name);
+  } catch {
+    return starterTags.filter(tag => tag.type === "System").map(tag => tag.name);
+  }
+}
+
+export function systemTagDetails(name) {
+  try {
+    return readCustomTags().find(tag => normalise(tag.type) === "system" &&
+      normalise(tag.name) === normalise(name));
+  } catch {
+    return starterTags.find(tag => tag.type === "System" && normalise(tag.name) === normalise(name));
+  }
+}
+
 export function planetTagDetails(name) {
   const bookTag = worldTagDetails.get(name);
   if (bookTag) return bookTag;
