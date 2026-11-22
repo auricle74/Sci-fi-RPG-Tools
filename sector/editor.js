@@ -1,4 +1,4 @@
-import { generateSystems, starCount } from "./swn.mjs";
+import { generateSystems, rollName, starCount } from "./swn.mjs";
 import { presets, readSector, validDimension } from "./sector-data.mjs";
 import { showInspector } from "./inspector.mjs";
 
@@ -278,6 +278,7 @@ function generateSector() {
   let next;
   try {
     next = createSector(rules.value, size.value, width, height);
+    next.name = rollName(roll, new Set([sector.name?.trim()]));
     next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
     next.systemPointDie = Number(element("system-point-die").value);
     next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
@@ -314,6 +315,12 @@ function activateSector(next) {
   syncCustomInputs();
   renderMap();
 }
+
+element("new-sector-name").addEventListener("click", () => {
+  sector.name = rollName(roll, new Set([sector.name?.trim()]));
+  element("sector-name").value = sector.name;
+  saveSector();
+});
 
 element("sector-name").addEventListener("input", (event) => {
   sector.name = event.target.value;

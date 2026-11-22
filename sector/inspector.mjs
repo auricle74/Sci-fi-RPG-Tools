@@ -1,5 +1,5 @@
 import { profileFields, validHex } from "./sector-data.mjs";
-import { rerollTag, rollWorld } from "./swn.mjs";
+import { rerollTag, rollName, rollWorld } from "./swn.mjs";
 import { worldTagDetails } from "./world-tags.mjs";
 
 function node(tag, label) {
@@ -17,7 +17,7 @@ function action(label, run) {
 
 let nextFieldId = 0;
 
-function field(label, value, update, reroll) {
+function field(label, value, update, reroll, actionLabel = "Reroll") {
   const wrapper = node("div");
   wrapper.className = "edit-field";
   const caption = node("label", label);
@@ -28,12 +28,12 @@ function field(label, value, update, reroll) {
     wrapper.classList.add("has-reroll");
     input.id = `inspector-field-${++nextFieldId}`;
     caption.htmlFor = input.id;
-    const button = action("Reroll", () => {
+    const button = action(actionLabel, () => {
       input.value = reroll();
       update(input.value);
     });
     button.className = "reroll-action";
-    button.setAttribute("aria-label", `Reroll ${label.toLowerCase()}`);
+    button.setAttribute("aria-label", actionLabel === "Reroll" ? `Reroll ${label.toLowerCase()}` : `New name for ${label.toLowerCase()}`);
     wrapper.append(caption, button, input);
   } else {
     caption.append(input);
@@ -88,16 +88,29 @@ function disclosure(title, className = "inspector-group") {
 
 export function showInspector(section, sector, system, { save, render, roll }) {
   const makeId = () => crypto.randomUUID();
+  function collectNames(record, names) {
+    if (record.name) names.add(record.name.trim());
+    if (record.mainWorld) collectNames(record.mainWorld, names);
+    for (const child of [...(record.worlds ?? []), ...(record.locations ?? []), ...(record.children ?? [])]) {
+      collectNames(child, names);
+    }
+  }
+  function generateName(draft) {
+    const names = new Set();
+    for (const entry of sector.systems) collectNames(entry, names);
+    if (draft) collectNames(draft, names);
+    return rollName(roll, names);
+  }
   const newWorld = () => ({
-    id: makeId(), name: "New world", description: "", ruleset: { ...sector.ruleset },
+    id: makeId(), name: "", description: "", ruleset: { ...sector.ruleset },
     profile: Object.fromEntries(profileFields.map(key => [key, ""])), tags: ["", ""],
   });
-  const newLocation = () => ({ id: makeId(), name: "New location", type: "", description: "" });
+  const newLocation = () => ({ id: makeId(), name: "", type: "", description: "" });
   section.replaceChildren();
   if (!system) {
     section.append(action("Add system", () => {
       sector.systems.push({
-        id: makeId(), ...sector.selectedHex, name: "New system", ruleset: { ...sector.ruleset },
+        id: makeId(), ...sector.selectedHex, name: generateName(), ruleset: { ...sector.ruleset },
         mainWorld: null,
       });
       render();
@@ -229,7 +242,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
     const fields = disclosure("Attributes");
     const edit = (label, target, key, reroll) => field(label, target[key] ?? "", value => {
       target[key] = value;
-    }, reroll);
+    }, key === "name" ? () => generateName(draft) : reroll, key === "name" ? "New name" : "Reroll");
     fields.append(edit(`${record.profile ? "World" : kind === "System" ? "System" : "Location"} name`, draft, "name"));
     if (record.type !== undefined) fields.append(edit("Location type", draft, "type"));
     if (record.description !== undefined) fields.append(edit("Description", draft, "description"));
@@ -259,6 +272,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
     const addEntry = (label, create, once = false) => {
       const button = action(label, () => {
         const entry = create();
+        entry.name = generateName(draft);
         const added = edit("Name", entry, "name");
         additions.insertBefore(added, button);
         if (entry.type !== undefined) additions.insertBefore(edit("Location type", entry, "type"), button);
