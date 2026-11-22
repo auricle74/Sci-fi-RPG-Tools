@@ -14,7 +14,7 @@ test("each system and point-of-interest type has 100 complete starter tags", () 
     for (const tag of tags) {
       assert.ok(tag.description);
       assert.deepEqual(Object.keys(tag.hooks), hookNames);
-      assert.ok(Object.values(tag.hooks).every(list => list.length && list.every(Boolean)));
+      assert.ok(Object.values(tag.hooks).every(list => list.length >= 3 && new Set(list).size === list.length && list.every(Boolean)));
     }
   }
 });

@@ -134,6 +134,80 @@ const pressures = [
     "A sponsor pressing for a favourable result regardless of cost", "A test lead willing to share the unedited observations", "A trial adjustment also changes a service that other crews rely on", "A prototype control module with a disputed change log"],
 ];
 
+// Additional hooks follow the same pressure order as the entries above.
+const extraHooks = [
+  [
+    "An archivist selling selective copies of the evidence",
+    "A witness who remembers how access worked before the dispute",
+    "A third claimant arrives with custody of the original records",
+    "A route chart annotated with competing boundaries",
+    "A neutral meeting berth with separate entrances"
+  ],
+  [
+    "A scavenger stripping emergency equipment before it can be requisitioned",
+    "A retired operator with a working set of older tools",
+    "A temporary workaround draws capacity away from an unrelated service",
+    "A labelled spare that fits only the oldest equipment",
+    "An abandoned service depot with usable stock"
+  ],
+  [
+    "A fixer threatening to expose anyone who refuses to cooperate",
+    "A supply runner who can identify the unlisted beneficiaries",
+    "A scheduled inspection overlaps with an urgent unofficial delivery",
+    "A cargo seal issued to a defunct operator",
+    "An overlooked transfer point outside the usual watch"
+  ],
+  [
+    "A dispatcher who blocks access based on an obsolete timetable",
+    "A relief pilot who has mapped an alternate approach",
+    "An expected lull coincides with the arrival of stranded travellers",
+    "A recorder carrying observations from the last irregular cycle",
+    "A refuge used when the regular route closes"
+  ],
+  [
+    "A creditor trying to transfer a disputed debt to newcomers",
+    "A former debtor collecting testimony from other workers",
+    "A guarantor has vanished just as a payment comes due",
+    "A ledger that records who actually received the payments",
+    "A disused office where crews once negotiated their contracts"
+  ],
+  [
+    "An investigator trying to destroy evidence of their own surveillance",
+    "An inspector preserving records ahead of an audit",
+    "An innocent visitor has been linked to someone using a copied identity",
+    "A seal that verifies the origin of a contested log",
+    "A booth from which local observers can compare independent records"
+  ],
+  [
+    "A trustee auctioning off rights that were never theirs",
+    "An apprentice who has documented the neglected obligations",
+    "A provision in the original agreement takes effect when ownership changes",
+    "A marked equipment plate identifying its first custodian",
+    "A memorial site where surviving witnesses still meet"
+  ],
+  [
+    "A reseller buying up reservations with false identities",
+    "A quartermaster tracking unused allocations",
+    "An emergency allocation has already been promised to two crews",
+    "A set of unused permits signed before rationing began",
+    "A waiting area where people trade queue positions"
+  ],
+  [
+    "A go-between trying to make one party appear in default",
+    "A former courier keeping independent records of deliveries",
+    "Either side can honour its promise only by asking the other for help",
+    "A receipt naming a substitute who was never told",
+    "A handover site built so neither party has to cross the other's boundary"
+  ],
+  [
+    "A competitor trying to discredit the trial by tampering with its records",
+    "A safety observer who can arrange an independent demonstration",
+    "Two monitoring teams disagree on when the trial actually began",
+    "A baseline recording taken before the equipment was switched on",
+    "A backup observation point the sponsor has never used"
+  ]
+];
+
 export const starterTags = Object.entries(features).flatMap(([type, rows]) =>
   rows.flatMap(([feature, context, question], featureIndex) =>
     pressures.map(([modifier, stakes, enemy, friend, complication, thing], pressureIndex) => ({
@@ -142,11 +216,11 @@ export const starterTags = Object.entries(features).flatMap(([type, rows]) =>
       name: `${modifier} ${feature}`,
       description: `The ${feature.toLowerCase()} is ${context}. ${stakes} ${question}`,
       hooks: {
-        Enemies: [enemy, `A rival crew trying to control the ${feature.toLowerCase()} before anyone can settle the issue`],
-        Friends: [friend, `A regular user of the ${feature.toLowerCase()} willing to trade local knowledge for a favour`],
-        Complications: [complication, question],
-        Things: [thing, `A log of recent changes at the ${feature.toLowerCase()}`],
-        Places: [`A vantage point overlooking the ${feature.toLowerCase()}`, `The nearest place where crews gather before approaching the ${feature.toLowerCase()}`],
+        Enemies: [enemy, `A rival crew trying to control the ${feature.toLowerCase()} before anyone can settle the issue`, extraHooks[pressureIndex][0]],
+        Friends: [friend, `A regular user of the ${feature.toLowerCase()} willing to trade local knowledge for a favour`, extraHooks[pressureIndex][1]],
+        Complications: [complication, question, extraHooks[pressureIndex][2]],
+        Things: [thing, `A log of recent changes at the ${feature.toLowerCase()}`, extraHooks[pressureIndex][3]],
+        Places: [`A vantage point overlooking the ${feature.toLowerCase()}`, `The nearest place where crews gather before approaching the ${feature.toLowerCase()}`, extraHooks[pressureIndex][4]],
       },
     })),
   ),
