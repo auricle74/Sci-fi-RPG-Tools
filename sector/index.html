@@ -53,10 +53,16 @@
   <section class="sector-map" aria-labelledby="map-title">
     <header class="sector-map-header">
       <h2 id="map-title">Sector map</h2>
-      <p id="map-help">Select a hex to inspect it. Use the arrow keys to move between hexes.</p>
+      <p id="map-help">Select a hex to inspect it. Use arrow keys to move and the mouse wheel or map buttons to zoom.</p>
     </header>
-    <div class="map-window">
-      <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="map-stage">
+      <div class="map-window">
+        <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="map-zoom" role="group" aria-label="Map zoom">
+        <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+        <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+      </div>
     </div>
   </section>
   <aside class="sector-details" aria-labelledby="details-title">

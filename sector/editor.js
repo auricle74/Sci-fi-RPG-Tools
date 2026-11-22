@@ -13,6 +13,15 @@ const size = element("size");
 const widthInput = element("width");
 const heightInput = element("height");
 const map = element("map");
+const mapWindow = map.parentElement;
+const zoomIn = element("zoom-in");
+const zoomOut = element("zoom-out");
+const minZoom = 0.5;
+const maxZoom = 3;
+const zoomStep = 1.2;
+let zoom = 1;
+let mapWidth;
+let mapHeight;
 const density = element("density");
 const replaceSector = element("replace-sector");
 const generationStatus = element("generation-status");
@@ -131,8 +140,8 @@ function renderMap() {
       group.append(svgElement("polygon", {
         points: `${-radius},0 ${-radius / 2},${-halfHeight} ${radius / 2},${-halfHeight} ${radius},0 ${radius / 2},${halfHeight} ${-radius / 2},${halfHeight}`,
       }));
-      if (system) group.append(svgElement("circle", { cy: -10, r: 4, "aria-hidden": "true" }));
-      const label = svgElement("text", { y: system ? 8 : 0, "aria-hidden": "true" });
+      if (system) group.append(svgElement("circle", { r: 4, "aria-hidden": "true" }));
+      const label = svgElement("text", { y: halfHeight - 7, "aria-hidden": "true" });
       label.textContent = code;
       group.append(label);
       fragment.append(group);
@@ -140,12 +149,47 @@ function renderMap() {
     }
   }
 
-  map.setAttribute("width", 2 * radius + 16 + (width - 1) * columnStep);
-  map.setAttribute("height", 16 + 2 * height * halfHeight + (width > 1 ? halfHeight : 0));
+  mapWidth = 2 * radius + 16 + (width - 1) * columnStep;
+  mapHeight = 16 + 2 * height * halfHeight + (width > 1 ? halfHeight : 0);
+  map.setAttribute("viewBox", `0 0 ${mapWidth} ${mapHeight}`);
+  sizeMap();
   map.replaceChildren(fragment);
   element("map-title").textContent = `Sector map · ${width} × ${height}`;
   selectHex(sector.selectedHex.column, sector.selectedHex.row);
 }
+
+function sizeMap() {
+  map.setAttribute("width", mapWidth * zoom);
+  map.setAttribute("height", mapHeight * zoom);
+  zoomIn.disabled = zoom >= maxZoom;
+  zoomOut.disabled = zoom <= minZoom;
+}
+
+function zoomMap(factor, clientX, clientY) {
+  const nextZoom = Math.min(maxZoom, Math.max(minZoom, zoom * factor));
+  if (nextZoom === zoom) return;
+  const before = map.getBoundingClientRect();
+  const x = (clientX - before.left) / before.width;
+  const y = (clientY - before.top) / before.height;
+  zoom = nextZoom;
+  sizeMap();
+  const after = map.getBoundingClientRect();
+  mapWindow.scrollLeft += after.left + x * after.width - clientX;
+  mapWindow.scrollTop += after.top + y * after.height - clientY;
+}
+
+function zoomAtCentre(factor) {
+  const bounds = mapWindow.getBoundingClientRect();
+  zoomMap(factor, bounds.left + mapWindow.clientWidth / 2, bounds.top + mapWindow.clientHeight / 2);
+}
+
+zoomIn.addEventListener("click", () => zoomAtCentre(zoomStep));
+zoomOut.addEventListener("click", () => zoomAtCentre(1 / zoomStep));
+mapWindow.addEventListener("wheel", (event) => {
+  if (event.ctrlKey || event.deltaY === 0) return;
+  event.preventDefault();
+  zoomMap(event.deltaY < 0 ? zoomStep : 1 / zoomStep, event.clientX, event.clientY);
+}, { passive: false });
 
 map.addEventListener("click", (event) => {
   const hex = event.target.closest(".hex");
