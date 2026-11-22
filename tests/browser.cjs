@@ -24,6 +24,7 @@ async function main() {
     const names = await systemTags.locator("h4").allTextContents();
     assert.equal(names.length, 2);
     assert.equal(new Set(names).size, 2);
+    assert.equal(await page.locator("#world .inspector-attributes dd").last().innerText(), names.join(", "));
     const panel = page.locator("#world");
     await panel.getByRole("button", { name: "Edit", exact: true }).click();
     await panel.getByRole("button", { name: "Add planet", exact: true }).click();
