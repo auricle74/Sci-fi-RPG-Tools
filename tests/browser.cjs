@@ -53,7 +53,8 @@ async function main() {
     const nextType = (await locationType.inputValue()) === "Research base" ? "Asteroid belt" : "Research base";
     await locationType.selectOption(nextType);
     assert.equal(await firstTag.inputValue(), "");
-    const replacement = await firstTag.locator("option").nth(1).getAttribute("value");
+    const replacement = await firstTag.locator("option").nth(1).evaluate(option => option.value);
+    assert.ok(replacement);
     await firstTag.selectOption(replacement);
     await panel.getByRole("button", { name: "Save", exact: true }).click();
     assert.deepEqual(await panel.locator(".planet-tags h4").allTextContents(), [replacement]);
