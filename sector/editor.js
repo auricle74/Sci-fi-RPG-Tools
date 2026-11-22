@@ -98,10 +98,9 @@ function selectHex(column, row, focus = false) {
   target.setAttribute("aria-pressed", "true");
   sector.selectedHex = { column, row };
   const system = systems.get(code);
-  element("selection").textContent = `Hex ${code} · ${system?.name ?? "Empty"}`;
+  element("selection").textContent = system ? `Hex ${code}` : `Hex ${code} · Empty`;
   showInspector(element("world"), sector, system, {
     save() {
-      element("selection").textContent = `Hex ${code} · ${system?.name ?? "Empty"}`;
       if (system) target.setAttribute("aria-label", `Hex ${code}, ${system.name}`);
       saveSector();
     }, render: renderMap, roll,

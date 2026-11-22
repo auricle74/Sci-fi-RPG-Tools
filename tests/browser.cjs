@@ -11,17 +11,25 @@ async function main() {
     await page.goto("http://127.0.0.1:8000");
     await page.getByRole("link", { name: /Sector Generator/ }).click();
     const generate = page.getByRole("button", { name: "Generate sector", exact: true });
+    await page.getByLabel("Add System Points of Interest?").selectOption("4");
     await generate.click();
     assert.equal(await page.locator(".hex").count(), 80);
     const count = await page.locator(".hex.occupied").count();
     assert.ok(count >= 21 && count <= 30);
     assert.equal(await page.locator(".hex.occupied[aria-pressed=true]").count(), 1);
     assert.match(await page.locator("#generation-status").innerText(), new RegExp(`Generated ${count} systems`));
+    const mainWorld = page.locator(".inspector-group").filter({ hasText: "Main world" }).getByRole("button");
+    assert.equal(await page.getByLabel("World name").count(), 0);
+    await page.locator(".inspector-entry").nth(1).click();
+    assert.match(await page.getByLabel("Description").inputValue(), /Occupants:[\s\S]+Situation:/);
+    await page.getByRole("button", { name: "Back to system" }).click();
+    await mainWorld.click();
     await page.getByLabel("World name").fill("New Horizon");
     await page.getByLabel("Tag 1").fill("Handwritten tag");
     await page.getByRole("button", { name: "Reroll atmosphere" }).click();
     assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
     await page.reload();
+    await mainWorld.click();
     assert.equal(await page.getByLabel("World name").inputValue(), "New Horizon");
     assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
 
@@ -61,6 +69,7 @@ async function main() {
     page.once("dialog", (dialog) => dialog.accept());
     await input.setInputFiles({ name: "sector.json", mimeType: "application/json", buffer: exported });
     await page.getByText("Sector imported.").waitFor();
+    await mainWorld.click();
     assert.equal(await page.locator(".hex").count(), 80);
     assert.equal(await page.getByLabel("World name").inputValue(), "New Horizon");
     assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
