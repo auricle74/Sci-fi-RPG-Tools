@@ -46,6 +46,17 @@ async function main() {
     assert.equal(new Set(locationTags).size, 2);
     assert.equal(await panel.locator(".planet-tags h5").count(), 10);
     assert.match(await page.locator(".inspector-description").innerText(), /Occupants:[\s\S]+Situation:/);
+    await panel.getByRole("button", { name: "Edit", exact: true }).click();
+    const locationType = panel.getByRole("combobox", { name: "Location type", exact: true });
+    const firstTag = panel.getByRole("combobox", { name: "Location tag 1", exact: true });
+    assert.equal(await firstTag.inputValue(), locationTags[0]);
+    const nextType = (await locationType.inputValue()) === "Research base" ? "Asteroid belt" : "Research base";
+    await locationType.selectOption(nextType);
+    assert.equal(await firstTag.inputValue(), "");
+    const replacement = await firstTag.locator("option").nth(1).getAttribute("value");
+    await firstTag.selectOption(replacement);
+    await panel.getByRole("button", { name: "Save", exact: true }).click();
+    assert.deepEqual(await panel.locator(".planet-tags h4").allTextContents(), [replacement]);
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await mainWorld.click();
     assert.equal(await page.locator(".planet-tags article").count(), 2);
