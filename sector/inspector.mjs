@@ -1,6 +1,6 @@
 import { profileFields, validHex } from "./sector-data.mjs";
 import { rerollTag, rollName, rollWorld } from "./swn.mjs";
-import { planetTagDetails } from "./tag-catalogue.mjs";
+import { planetTagDetails, systemTagDetails } from "./tag-catalogue.mjs";
 
 function node(tag, label) {
   const element = document.createElement(tag);
@@ -44,6 +44,7 @@ function field(label, value, update, reroll, actionLabel = "Reroll") {
 
 const hexCode = ({ column, row }) => [column, row].map(n => String(n).padStart(2, "0")).join("");
 const tagNames = (record) => (record.tags ?? []).map(tag => tag.trim()).filter(Boolean);
+const tagDetails = (record, name) => record.column ? systemTagDetails(name) : planetTagDetails(name);
 const titleText = (value) => value.replace(/\s+/g, " ").trim().replace(/[\\`*_{}\[\]<>#!|]/g, "\\$&");
 
 function attributes(record) {
@@ -61,7 +62,7 @@ function objectMarkdown(record, kind, depth = 1) {
   if (record.description?.trim()) lines.push("", record.description.trim());
   for (const name of tagNames(record)) {
     lines.push("", `${"#".repeat(Math.min(depth + 1, 6))} ${titleText(name)}`);
-    const tag = planetTagDetails(name);
+    const tag = tagDetails(record, name);
     if (!tag) continue;
     lines.push("", tag.description);
     for (const [label, hooks] of Object.entries(tag.hooks)) {
@@ -171,14 +172,14 @@ export function showInspector(section, sector, system, { save, render, roll }) {
       openObject(location, location.type.trim() || "Location", back, () =>
         locations.splice(locations.indexOf(location), 1));
     });
-    if (record.profile) {
-      const group = disclosure("Planet Tags", "planet-tags");
+    if (record.profile || tagNames(record).length) {
+      const group = disclosure(record.profile ? "Planet Tags" : "System Tags", "planet-tags");
       const names = tagNames(record);
       if (!names.length) group.append(node("p", "No tags assigned."));
       for (const name of names) {
         const article = node("article");
         article.append(node("h4", name));
-        const details = planetTagDetails(name);
+        const details = tagDetails(record, name);
         if (details) {
           article.append(node("p", details.description));
           for (const [label, hooks] of Object.entries(details.hooks)) {

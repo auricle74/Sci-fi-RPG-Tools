@@ -19,6 +19,11 @@ async function main() {
     assert.ok(count >= 21 && count <= 30);
     assert.equal(await page.locator(".hex.occupied[aria-pressed=true]").count(), 1);
     assert.match(await page.locator("#generation-status").innerText(), new RegExp(`Generated ${count} systems`));
+    const systemTags = page.locator("#world .planet-tags");
+    assert.equal(await systemTags.getByText("System Tags", { exact: true }).count(), 1);
+    const names = await systemTags.locator("h4").allTextContents();
+    assert.equal(names.length, 2);
+    assert.equal(new Set(names).size, 2);
     const mainWorld = page.locator(".inspector-group").filter({ hasText: "Main world" }).getByRole("button");
     assert.equal(await page.getByRole("textbox", { name: "World name", exact: true }).count(), 0);
     await page.locator(".inspector-entry").nth(1).click();
