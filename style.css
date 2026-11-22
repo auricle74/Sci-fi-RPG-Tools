@@ -204,3 +204,20 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #world .planet-tags p, #world .planet-tags ul { line-height: 1.55; margin: .35rem 0 .65rem; }
 #world .planet-tags ul { padding-inline-start: 1.35rem; }
 #world .planet-tags li + li { margin-block-start: .2rem; }
+
+#world .edit-field.has-reroll {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: .2rem .55rem;
+}
+#world .has-reroll input { grid-column: 1 / -1; min-width: 0; }
+#world .reroll-action {
+  justify-self: start;
+  padding: .15rem .35rem;
+  color: #92a3b3;
+  font-size: .75rem;
+  font-weight: 400;
+}
+#world .reroll-action:hover,
+#world .reroll-action:focus-visible { color: #edf4fb; }

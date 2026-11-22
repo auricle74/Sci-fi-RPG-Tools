@@ -15,6 +15,8 @@ function action(label, run) {
   return button;
 }
 
+let nextFieldId = 0;
+
 function field(label, value, update, reroll) {
   const wrapper = node("div");
   wrapper.className = "edit-field";
@@ -22,12 +24,21 @@ function field(label, value, update, reroll) {
   const input = node(label === "Description" ? "textarea" : "input");
   input.value = value;
   input.addEventListener("input", () => update(input.value));
-  caption.append(input);
-  wrapper.append(caption);
-  if (reroll) wrapper.append(action(`Reroll ${label.toLowerCase()}`, () => {
-    input.value = reroll();
-    update(input.value);
-  }));
+  if (reroll) {
+    wrapper.classList.add("has-reroll");
+    input.id = `inspector-field-${++nextFieldId}`;
+    caption.htmlFor = input.id;
+    const button = action("Reroll", () => {
+      input.value = reroll();
+      update(input.value);
+    });
+    button.className = "reroll-action";
+    button.setAttribute("aria-label", `Reroll ${label.toLowerCase()}`);
+    wrapper.append(caption, button, input);
+  } else {
+    caption.append(input);
+    wrapper.append(caption);
+  }
   return wrapper;
 }
 
