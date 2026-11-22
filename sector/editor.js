@@ -1,3 +1,5 @@
+import { bookTags, catalogueTags } from "./tag-catalogue.mjs";
+import { findTradeRoutes } from "./trade-routes.mjs";
 import { generateSystems, rollName, starCount } from "./swn.mjs";
 import { presets, readSector, validDimension } from "./sector-data.mjs";
 import { showInspector } from "./inspector.mjs";
@@ -50,6 +52,7 @@ function loadSector() {
 
 let sector = loadSector() ?? createSector("swn-revised", "swn", 8, 10);
 const hexes = new Map();
+const hexCentres = new Map();
 let systems = new Map();
 
 function saveSector() {
@@ -102,6 +105,7 @@ function selectHex(column, row, focus = false) {
   showInspector(element("world"), sector, system, {
     save() {
       if (system) target.setAttribute("aria-label", `Hex ${code}, ${system.name}`);
+      renderTradeRoutes();
       saveSector();
     }, render: renderMap, roll,
   });
@@ -115,6 +119,22 @@ function svgElement(name, attributes) {
   return node;
 }
 
+const tradeRoutes = svgElement("g", { class: "trade-routes", "aria-hidden": "true" });
+
+function renderTradeRoutes() {
+  const routes = sector.generateTradeRoutes
+    ? findTradeRoutes(sector.systems, [...catalogueTags(), ...bookTags])
+    : [];
+  tradeRoutes.replaceChildren(...routes.map(([first, second]) => {
+    const [x1, y1] = hexCentres.get(coordinate(first.column, first.row));
+    const [x2, y2] = hexCentres.get(coordinate(second.column, second.row));
+    return svgElement("line", { x1, y1, x2, y2 });
+  }));
+  const key = element("trade-route-key");
+  key.hidden = !sector.generateTradeRoutes;
+  key.textContent = `${routes.length} trade ${routes.length === 1 ? "route" : "routes"} · dashed gold lines`;
+}
+
 function renderMap() {
   const { width, height } = sector.grid;
   const radius = 32;
@@ -122,6 +142,7 @@ function renderMap() {
   const columnStep = radius * 1.5;
   const fragment = document.createDocumentFragment();
   hexes.clear();
+  hexCentres.clear();
   systems = new Map(sector.systems.map((system) => [coordinate(system.column, system.row), system]));
 
   for (let column = 1; column <= width; column += 1) {
@@ -130,6 +151,7 @@ function renderMap() {
       const y = halfHeight + 8 + (row - 1) * halfHeight * 2 + (column % 2 === 0 ? halfHeight : 0);
       const code = coordinate(column, row);
       const system = systems.get(code);
+      hexCentres.set(code, [x, y]);
       const group = svgElement("g", {
         class: system ? "hex occupied" : "hex", role: "button",
         "aria-label": system ? `Hex ${code}, ${system.name}` : `Hex ${code}`,
@@ -152,7 +174,8 @@ function renderMap() {
   mapHeight = 16 + 2 * height * halfHeight + (width > 1 ? halfHeight : 0);
   map.setAttribute("viewBox", `0 0 ${mapWidth} ${mapHeight}`);
   sizeMap();
-  map.replaceChildren(fragment);
+  map.replaceChildren(fragment, tradeRoutes);
+  renderTradeRoutes();
   element("map-title").textContent = `Sector map · ${width} × ${height}`;
   selectHex(sector.selectedHex.column, sector.selectedHex.row);
 }
@@ -280,6 +303,7 @@ function generateSector() {
     next = createSector(rules.value, size.value, width, height);
     next.name = rollName(roll, new Set([sector.name?.trim()]));
     next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
+    next.generateTradeRoutes = element("generate-trade-routes").value === "yes";
     next.systemPointDie = Number(element("system-point-die").value);
     next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
   } catch (error) {
@@ -312,6 +336,7 @@ function activateSector(next) {
   heightInput.value = sector.grid.height;
   density.value = sector.starCountPolicy ?? "fixed";
   element("system-point-die").value = sector.systemPointDie ?? 0;
+  element("generate-trade-routes").value = sector.generateTradeRoutes ? "yes" : "no";
   syncCustomInputs();
   renderMap();
 }
