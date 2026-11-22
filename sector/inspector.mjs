@@ -268,23 +268,50 @@ export function showInspector(section, sector, system, { save, render, roll }) {
 
       locationTags = disclosure("Location Tags");
       const picks = [1, 2].map(number => {
+        const row = node("div");
+        row.className = "edit-field has-reroll";
         const label = node("label", `Location tag ${number}`);
         const select = node("select");
-        label.append(select);
-        locationTags.append(label);
-        return select;
+        select.id = `inspector-field-${++nextFieldId}`;
+        label.htmlFor = select.id;
+        const reroll = action("Reroll", () => {
+          const pool = rerollPool(number - 1);
+          if (!pool.length) return;
+          select.value = pool[roll(pool.length) - 1];
+          saveTagChoices();
+        });
+        reroll.className = "reroll-action";
+        reroll.setAttribute("aria-label", `Reroll location tag ${number}`);
+        row.append(label, reroll, select);
+        locationTags.append(row);
+        return { select, reroll };
       });
       const assignments = new Map([[currentType.toLowerCase(), [...(draft.tags ?? [])]]]);
+      function rerollPool(index) {
+        const key = typeSelect.value.toLowerCase();
+        const assigned = assignments.get(key) ?? [];
+        return (catalogue.get(key) ?? []).filter(name =>
+          name !== assigned[index] && name !== assigned[1 - index]);
+      }
+
+      function saveTagChoices() {
+        const key = typeSelect.value.toLowerCase();
+        draft.tags = picks.map(({ select }) => select.value);
+        assignments.set(key, draft.tags);
+        refreshTagOptions();
+      }
+
       function refreshTagOptions() {
         const key = typeSelect.value.toLowerCase();
         const assigned = assignments.get(key) ?? [];
         const names = catalogue.get(key) ?? [];
-        for (const [index, select] of picks.entries()) {
+        for (const [index, { select, reroll }] of picks.entries()) {
           const current = assigned[index] ?? "";
           const other = assigned[1 - index] ?? "";
           const options = Array.from(new Set([...names, current])).filter(name => name && (name === current || name !== other));
           select.replaceChildren(new Option("No tag", ""), ...options.sort().map(name => new Option(name)));
           select.value = current;
+          reroll.disabled = rerollPool(index).length === 0;
         }
       }
       typeSelect.addEventListener("change", () => {
@@ -292,15 +319,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
         draft.tags = assignments.get(draft.type.toLowerCase()) ?? [];
         refreshTagOptions();
       });
-      for (const select of picks) {
-        select.addEventListener("change", () => {
-          const key = typeSelect.value.toLowerCase();
-          const assigned = picks.map(pick => pick.value);
-          assignments.set(key, assigned);
-          draft.tags = assigned;
-          refreshTagOptions();
-        });
-      }
+      for (const { select } of picks) select.addEventListener("change", saveTagChoices);
       refreshTagOptions();
     }
     if (record === system || record.description !== undefined) fields.append(edit("Description", draft, "description"));

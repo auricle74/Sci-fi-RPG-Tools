@@ -50,6 +50,15 @@ async function main() {
     const locationType = panel.getByRole("combobox", { name: "Location type", exact: true });
     const firstTag = panel.getByRole("combobox", { name: "Location tag 1", exact: true });
     assert.equal(await firstTag.inputValue(), locationTags[0]);
+    const secondTag = panel.getByRole("combobox", { name: "Location tag 2", exact: true });
+    await panel.getByRole("button", { name: "Reroll location tag 1", exact: true }).click();
+    const rerolled = await firstTag.inputValue();
+    assert.ok(rerolled && !locationTags.includes(rerolled));
+    assert.equal(await secondTag.inputValue(), locationTags[1]);
+    await panel.getByRole("button", { name: "Reroll location tag 2", exact: true }).click();
+    const secondReroll = await secondTag.inputValue();
+    assert.ok(secondReroll && secondReroll !== rerolled && secondReroll !== locationTags[1]);
+    assert.equal(await firstTag.inputValue(), rerolled);
     const nextType = (await locationType.inputValue()) === "Research base" ? "Asteroid belt" : "Research base";
     await locationType.selectOption(nextType);
     assert.equal(await firstTag.inputValue(), "");
