@@ -1,0 +1,43 @@
+.tag-editor { max-width: 70rem; }
+.tag-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(13rem, 1fr) minmax(0, 2fr);
+  gap: 1.5rem;
+}
+.tag-editor-layout section { min-width: 0; }
+#tag-list {
+  max-height: 65vh;
+  overflow: auto;
+  padding: 0;
+  list-style: none;
+}
+.tag-editor button {
+  margin-block: .4rem;
+  border: 0;
+  background: transparent;
+  color: #9de7e1;
+  cursor: pointer;
+}
+.tag-editor button:hover, .tag-editor button[aria-pressed="true"] { background: #243e51; }
+#tag-list button { width: 100%; text-align: start; overflow-wrap: anywhere; }
+#tag-fields { display: grid; min-width: 0; padding: 1rem; }
+#tag-fields input { width: 100%; }
+#tag-fields :disabled { opacity: 1; color: #edf4fb; }
+.tag-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: .55rem .7rem;
+  background: #131f2d;
+  color: inherit;
+  border: 1px solid #647991;
+  border-radius: .4rem;
+  font: inherit;
+  resize: vertical;
+}
+#tag-hooks, #ai-draft { display: grid; gap: .65rem; }
+#ai-draft summary { cursor: pointer; color: #9de7e1; }
+#tag-status { min-height: 1.5em; }
+@media (max-width: 42rem) {
+  .tag-editor-layout { grid-template-columns: 1fr; }
+  #tag-list { max-height: 35vh; }
+}

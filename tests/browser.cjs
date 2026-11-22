@@ -89,6 +89,25 @@ async function main() {
     assert.equal(await page.locator(".hex").count(), 80);
     assert.equal(await inspector.locator("h3").innerText(), "New Horizon");
     assert.equal(await inspector.locator(".planet-tags h4").first().innerText(), "Handwritten tag");
+    const popupReady = page.waitForEvent("popup");
+    await page.getByRole("link", { name: /Tag editor/ }).click();
+    const tags = await popupReady;
+    await tags.getByRole("button", { name: "Abandoned Colony · Planet · Book", exact: true }).click();
+    assert.equal(await tags.getByRole("textbox", { name: "Name", exact: true }).isEnabled(), false);
+    assert.equal(await tags.getByRole("button", { name: "Save tag" }).isVisible(), false);
+    await tags.getByRole("combobox", { name: "Filter by tag type" }).selectOption("Moon");
+    await tags.getByRole("button", { name: "New tag" }).click();
+    assert.equal(await tags.getByLabel("Tag type", { exact: true }).inputValue(), "Moon");
+    await tags.getByRole("textbox", { name: "Name", exact: true }).fill("Signal Dunes");
+    await tags.getByRole("textbox", { name: "Enemies", exact: true }).fill("A rival survey team");
+    await tags.getByRole("button", { name: "Save tag" }).click();
+    await tags.getByText("Tag saved.", { exact: true }).waitFor();
+    await tags.reload();
+    await tags.getByRole("button", { name: "Signal Dunes · Moon", exact: true }).click();
+    assert.equal(await tags.getByRole("textbox", { name: "Enemies", exact: true }).inputValue(), "A rival survey team");
+    tags.once("dialog", dialog => dialog.accept());
+    await tags.getByRole("button", { name: "Delete tag" }).click();
+    await tags.getByText("Tag deleted.", { exact: true }).waitFor();
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();
