@@ -1,7 +1,8 @@
+import { systemPointTypes } from "./system-points.mjs";
 import { worldTagDetails } from "./world-tags.mjs";
 
 export const hookNames = ["Enemies", "Friends", "Complications", "Things", "Places"];
-export const tagTypes = ["Planet", "System", "Moon", "Station"];
+export const tagTypes = ["Planet", "System", "Moon", "Station", ...systemPointTypes];
 const storageKey = "sci-fi-rpg-tools.custom-tags";
 export const bookTags = Array.from(worldTagDetails, ([name, details]) => ({
   ...details, name, type: "Planet", readOnly: true,

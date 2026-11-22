@@ -43,6 +43,8 @@ const points = [
   },
 ];
 
+export const systemPointTypes = points.map(point => point.type);
+
 export function rollSystemPoint(name, roll, makeId) {
   const { type, occupants, situations } = points[roll(8) - 1];
   const occupant = occupants[Math.floor((roll(10) - 1) / 2)];

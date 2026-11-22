@@ -41,3 +41,5 @@
   .tag-editor-layout { grid-template-columns: 1fr; }
   #tag-list { max-height: 35vh; }
 }
+
+#custom-type-label[hidden] { display: none; }

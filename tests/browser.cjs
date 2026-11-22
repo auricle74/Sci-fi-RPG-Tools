@@ -98,7 +98,7 @@ async function main() {
     assert.equal(await tags.getByRole("button", { name: "Save tag" }).isVisible(), false);
     await tags.getByRole("combobox", { name: "Filter by tag type" }).selectOption("Moon");
     await tags.getByRole("button", { name: "New tag" }).click();
-    assert.equal(await tags.getByLabel("Tag type", { exact: true }).inputValue(), "Moon");
+    assert.equal(await tags.getByRole("combobox", { name: "Tag type", exact: true }).inputValue(), "Moon");
     await tags.getByRole("textbox", { name: "Name", exact: true }).fill("Signal Dunes");
     await tags.getByRole("textbox", { name: "Enemies", exact: true }).fill("A rival survey team");
     await tags.getByRole("button", { name: "Save tag" }).click();
@@ -106,6 +106,14 @@ async function main() {
     await tags.reload();
     await tags.getByRole("button", { name: "Signal Dunes · Moon", exact: true }).click();
     assert.equal(await tags.getByRole("textbox", { name: "Enemies", exact: true }).inputValue(), "A rival survey team");
+    const tagType = tags.getByRole("combobox", { name: "Tag type", exact: true });
+    for (const type of ["Deep-space station", "Asteroid base", "Remote moon base", "Ancient orbital ruin", "Research base", "Asteroid belt", "Gas giant mine", "Refuelling station"]) {
+      assert.equal(await tagType.getByRole("option", { name: type, exact: true }).count(), 1);
+    }
+    await tagType.selectOption("");
+    await tags.getByRole("textbox", { name: "Custom tag type" }).fill("Anomaly");
+    await tags.getByRole("button", { name: "Save tag" }).click();
+    await tags.getByRole("button", { name: "Signal Dunes · Anomaly", exact: true }).waitFor();
     tags.once("dialog", dialog => dialog.accept());
     await tags.getByRole("button", { name: "Delete tag" }).click();
     await tags.getByText("Tag deleted.", { exact: true }).waitFor();
