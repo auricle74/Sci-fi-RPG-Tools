@@ -20,8 +20,8 @@
       <form id="tag-form" hidden>
         <fieldset id="tag-fields">
           <label>Name <input id="tag-name" required></label>
-          <label>Tag type <input id="tag-type" list="tag-types" required></label>
-          <datalist id="tag-types"></datalist>
+          <label>Tag type <select id="tag-type"></select></label>
+          <label id="custom-type-label" hidden>Custom tag type <input id="custom-type" required disabled></label>
           <label>Description <textarea id="tag-description" rows="5"></textarea></label>
           <p>Enter one hook per line.</p>
           <div id="tag-hooks"></div>

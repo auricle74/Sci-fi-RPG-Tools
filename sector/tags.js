@@ -5,6 +5,9 @@ const filter = element("filter");
 const list = element("tag-list");
 const form = element("tag-form");
 const typeField = element("tag-type");
+const customType = element("custom-type");
+typeField.replaceChildren(...tagTypes.map(type => new Option(type)), new Option("Custom type…", ""));
+const selectedType = () => typeField.value || customType.value.trim();
 const status = element("tag-status");
 const hookFields = new Map();
 let selected;
@@ -21,7 +24,7 @@ for (const name of hookNames) {
 }
 
 function updatePrompt() {
-  const type = typeField.value.trim() || filter.value || "Planet";
+  const type = selectedType() || filter.value || "Planet";
   const example = {
     name: "", type, description: "",
     hooks: Object.fromEntries(hookNames.map(name => [name, ["", "", ""]])),
@@ -38,7 +41,6 @@ function renderList() {
   const previous = filter.value;
   filter.replaceChildren(new Option("All types", ""), ...types.map(type => new Option(type)));
   filter.value = types.find(type => type.toLowerCase() === previous.toLowerCase()) ?? "";
-  element("tag-types").replaceChildren(...types.map(type => new Option(type)));
   list.replaceChildren();
   const visible = tags.filter(tag => !filter.value || tag.type.toLowerCase() === filter.value.toLowerCase());
   for (const tag of visible.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -75,7 +77,10 @@ function showTag(tag = {}) {
   element("delete-tag").hidden = !tag.id;
   element("tag-title").textContent = tag.readOnly ? "Book tag (read-only)" : tag.id ? "Edit custom tag" : "New custom tag";
   element("tag-name").value = tag.name ?? "";
-  typeField.value = tag.type ?? (filter.value || "Planet");
+  const type = tag.type ?? (filter.value || "Planet");
+  typeField.value = tagTypes.find(entry => entry.toLowerCase() === type.toLowerCase()) ?? "";
+  customType.value = typeField.value ? "" : type;
+  syncCustomType();
   element("tag-description").value = tag.description ?? "";
   for (const [name, input] of hookFields) input.value = (tag.hooks?.[name] ?? []).join("\n");
   status.textContent = "";
@@ -91,14 +96,24 @@ element("new-tag").addEventListener("click", () => {
   if (canLeave()) showTag();
 });
 form.addEventListener("input", () => { dirty = true; });
-typeField.addEventListener("input", updatePrompt);
+function syncCustomType() {
+  const isCustom = typeField.value === "";
+  element("custom-type-label").hidden = !isCustom;
+  customType.disabled = !isCustom;
+}
+
+typeField.addEventListener("input", () => {
+  syncCustomType();
+  updatePrompt();
+});
+customType.addEventListener("input", updatePrompt);
 form.addEventListener("submit", event => {
   event.preventDefault();
   if (selected?.readOnly) return;
   try {
     const tag = saveCustomTag(selected?.id, {
       name: element("tag-name").value,
-      type: typeField.value,
+      type: selectedType(),
       description: element("tag-description").value,
       hooks: Object.fromEntries(Array.from(hookFields, ([name, input]) => [name, input.value.split("\n")])),
     });
