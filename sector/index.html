@@ -5,59 +5,64 @@
 <title>Sector Generator · Sci-fi-RPG-Tools</title>
 <link rel="stylesheet" href="../style.css">
 <script type="module" src="editor.js"></script>
-<main>
-  <nav><a href="../">← Sci-fi-RPG-Tools</a></nav>
-  <h1>Sector Generator</h1>
-  <form id="setup" class="panel">
-    <label>Generation rules
-      <select id="rules"><option value="swn-revised">Stars Without Number Revised</option></select>
-    </label>
-    <label>Sector size
-      <select id="size">
-        <option value="swn">Stars Without Number · 8 × 10</option>
-        <option value="traveller">Traveller subsector · 8 × 10</option>
-        <option value="void">The Perilous Void · 10 × 10</option>
-        <option value="custom">Custom</option>
-      </select>
-    </label>
-    <fieldset id="custom" hidden aria-describedby="limits">
-      <legend>Custom size</legend>
-      <label>Width <input id="width" type="number" min="1" max="64" step="1" value="8" required></label>
-      <label>Height <input id="height" type="number" min="1" max="64" step="1" value="10" required></label>
-      <small id="limits">1–64 whole hexes per side.</small>
-    </fieldset>
-    <label id="density-control" hidden>Star count
-      <select id="density" aria-describedby="density-help">
-        <option value="fixed">Fixed · 21–30 stars</option>
-        <option value="scaled">Standard SWN density · scale to map size</option>
-      </select>
-      <small id="density-help"></small>
-    </label>
-    <button type="submit" id="generate-sector">Generate sector</button>
-    <div id="replace-sector" hidden>
-      <p>Replace the current sector with a new one?</p>
-      <button type="button" id="confirm-generate">Replace and generate</button>
-      <button type="button" id="cancel-generate">Cancel</button>
+<main class="sector-workspace">
+  <aside class="sector-options" aria-labelledby="sector-title">
+    <nav><a href="../">← Sci-fi RPG Tools</a></nav>
+    <h1 id="sector-title">Sector Generator</h1>
+    <form id="setup" class="panel">
+      <label>Generation rules
+        <select id="rules"><option value="swn-revised">Stars Without Number Revised</option></select>
+      </label>
+      <label>Sector size
+        <select id="size">
+          <option value="swn">Stars Without Number · 8 × 10</option>
+          <option value="traveller">Traveller subsector · 8 × 10</option>
+          <option value="void">The Perilous Void · 10 × 10</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <fieldset id="custom" hidden aria-describedby="limits">
+        <legend>Custom size</legend>
+        <label>Width <input id="width" type="number" min="1" max="64" step="1" value="8" required></label>
+        <label>Height <input id="height" type="number" min="1" max="64" step="1" value="10" required></label>
+        <small id="limits">1–64 whole hexes per side.</small>
+      </fieldset>
+      <label id="density-control" hidden>Star count
+        <select id="density" aria-describedby="density-help">
+          <option value="fixed">Fixed · 21–30 stars</option>
+          <option value="scaled">Standard SWN density · scale to map size</option>
+        </select>
+        <small id="density-help"></small>
+      </label>
+      <button type="submit" id="generate-sector">Generate sector</button>
+      <div id="replace-sector" hidden>
+        <p>Replace the current sector with a new one?</p>
+        <button type="button" id="confirm-generate">Replace and generate</button>
+        <button type="button" id="cancel-generate">Cancel</button>
+      </div>
+      <p id="generation-status" role="status"></p>
+    </form>
+    <div class="panel sector-files">
+      <label>Sector name <input id="sector-name"></label>
+      <button type="button" id="export-sector">Export JSON</button>
+      <label>Import JSON <input id="import-sector" type="file" accept=".json,application/json"></label>
+      <p id="file-status" role="status"></p>
     </div>
-    <p id="generation-status" role="status"></p>
-  </form>
-  <div class="panel sector-files">
-    <label>Sector name <input id="sector-name"></label>
-    <button type="button" id="export-sector">Export JSON</button>
-    <label>Import JSON <input id="import-sector" type="file" accept=".json,application/json"></label>
-    <p id="file-status" role="status"></p>
-  </div>
-  <section class="map-section" aria-labelledby="map-title">
-    <div class="map-header">
+    <p id="storage-message" role="status" hidden>Browser storage is unavailable. Your map may reset when you reload.</p>
+  </aside>
+  <section class="sector-map" aria-labelledby="map-title">
+    <header class="sector-map-header">
       <h2 id="map-title">Sector map</h2>
-      <output id="selection" aria-live="polite"></output>
-    </div>
-    <p id="map-help">Click a hex or use Tab to enter the map and the arrow keys to move between coordinates.</p>
+      <p id="map-help">Select a hex to inspect it. Use the arrow keys to move between hexes.</p>
+    </header>
     <div class="map-window">
       <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
-    <section id="world" aria-label="Selected hex editor"></section>
-    <p id="storage-message" role="status" hidden>Browser storage is unavailable. Your map may reset when you reload.</p>
   </section>
+  <aside class="sector-details" aria-labelledby="details-title">
+    <h2 id="details-title">System details</h2>
+    <output id="selection" aria-live="polite"></output>
+    <section id="world" aria-label="Selected hex editor"></section>
+  </aside>
 </main>
 </html>
