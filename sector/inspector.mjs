@@ -1,6 +1,6 @@
 import { profileFields, validHex } from "./sector-data.mjs";
 import { rerollTag, rollName, rollWorld } from "./swn.mjs";
-import { worldTagDetails } from "./world-tags.mjs";
+import { planetTagDetails } from "./tag-catalogue.mjs";
 
 function node(tag, label) {
   const element = document.createElement(tag);
@@ -61,7 +61,7 @@ function objectMarkdown(record, kind, depth = 1) {
   if (record.description?.trim()) lines.push("", record.description.trim());
   for (const name of tagNames(record)) {
     lines.push("", `${"#".repeat(Math.min(depth + 1, 6))} ${titleText(name)}`);
-    const tag = worldTagDetails.get(name);
+    const tag = planetTagDetails(name);
     if (!tag) continue;
     lines.push("", tag.description);
     for (const [label, hooks] of Object.entries(tag.hooks)) {
@@ -178,7 +178,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
       for (const name of names) {
         const article = node("article");
         article.append(node("h4", name));
-        const details = worldTagDetails.get(name);
+        const details = planetTagDetails(name);
         if (details) {
           article.append(node("p", details.description));
           for (const [label, hooks] of Object.entries(details.hooks)) {

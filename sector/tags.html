@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tag editor · Sci-fi RPG Tools</title>
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="tags.css">
+<script type="module" src="tags.js"></script>
+<main class="tag-editor">
+  <h1>Tag editor</h1>
+  <p>Custom tags are saved in this browser. Book tags are read-only.</p>
+  <div class="tag-editor-layout">
+    <section aria-label="Tag catalogue">
+      <label>Filter by tag type <select id="filter"></select></label>
+      <button type="button" id="new-tag">New tag</button>
+      <ul id="tag-list"></ul>
+    </section>
+    <section aria-labelledby="tag-title">
+      <h2 id="tag-title">Tag details</h2>
+      <form id="tag-form" hidden>
+        <fieldset id="tag-fields">
+          <label>Name <input id="tag-name" required></label>
+          <label>Tag type <input id="tag-type" list="tag-types" required></label>
+          <datalist id="tag-types"></datalist>
+          <label>Description <textarea id="tag-description" rows="5"></textarea></label>
+          <p>Enter one hook per line.</p>
+          <div id="tag-hooks"></div>
+        </fieldset>
+        <div id="tag-actions">
+          <button type="submit">Save tag</button>
+          <button type="button" id="delete-tag">Delete tag</button>
+        </div>
+      </form>
+      <p id="tag-status" role="status"></p>
+      <details id="ai-draft">
+        <summary>Draft a tag with AI</summary>
+        <p>Copy the prompt into ChatGPT or another AI tool, then paste its JSON response here. Review the draft before saving.</p>
+        <label>Prompt <textarea id="ai-prompt" rows="5" readonly></textarea></label>
+        <button id="copy-prompt" type="button">Copy prompt</button>
+        <label>AI response <textarea id="ai-response" rows="6"></textarea></label>
+        <button id="load-draft" type="button">Load as new draft</button>
+      </details>
+    </section>
+  </div>
+</main>
+</html>
