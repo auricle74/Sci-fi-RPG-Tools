@@ -1,7 +1,7 @@
 import { systemPointTypes } from "./system-points.mjs";
 import { profileFields, validHex } from "./sector-data.mjs";
 import { rerollTag, rollName, rollWorld } from "./swn.mjs";
-import { planetTagDetails, systemTagDetails, systemTagNames } from "./tag-catalogue.mjs";
+import { planetTagDetails, catalogueTagDetails, systemTagNames } from "./tag-catalogue.mjs";
 
 function node(tag, label) {
   const element = document.createElement(tag);
@@ -45,7 +45,7 @@ function field(label, value, update, reroll, actionLabel = "Reroll") {
 
 const hexCode = ({ column, row }) => [column, row].map(n => String(n).padStart(2, "0")).join("");
 const tagNames = (record) => (record.tags ?? []).map(tag => tag.trim()).filter(Boolean);
-const tagDetails = (record, name) => record.column ? systemTagDetails(name) : planetTagDetails(name);
+const tagDetails = (record, name) => record.profile ? planetTagDetails(name) : catalogueTagDetails(record.column ? "System" : record.type, name);
 const titleText = (value) => value.replace(/\s+/g, " ").trim().replace(/[\\`*_{}\[\]<>#!|]/g, "\\$&");
 
 function attributes(record) {
@@ -174,7 +174,7 @@ export function showInspector(section, sector, system, { save, render, roll }) {
         locations.splice(locations.indexOf(location), 1));
     });
     if (record.profile || tagNames(record).length) {
-      const group = disclosure(record.profile ? "Planet Tags" : "System Tags", "planet-tags");
+      const group = disclosure(record.profile ? "Planet Tags" : record.column ? "System Tags" : "Location Tags", "planet-tags");
       const names = tagNames(record);
       if (!names.length) group.append(node("p", "No tags assigned."));
       for (const name of names) {

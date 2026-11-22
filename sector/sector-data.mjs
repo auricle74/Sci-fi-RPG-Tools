@@ -24,6 +24,9 @@ export function readSector(json) {
       identify(location);
       check(typeof location.name === "string" && typeof location.type === "string" &&
         typeof location.description === "string");
+      if (location.tags !== undefined) {
+        check(Array.isArray(location.tags) && location.tags.every(tag => typeof tag === "string"));
+      }
       if (location.children !== undefined) locations(location.children);
     }
   }

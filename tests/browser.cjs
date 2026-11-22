@@ -41,7 +41,10 @@ async function main() {
     assert.equal(await panel.getByRole("button", { name: "Outer Reach", exact: true }).count(), 1);
     const mainWorld = page.locator(".inspector-group").filter({ hasText: "Main world" }).getByRole("button");
     assert.equal(await page.getByRole("textbox", { name: "World name", exact: true }).count(), 0);
-    await page.locator(".inspector-entry").nth(2).click();
+    await page.locator(".inspector-entry").filter({ has: page.locator("small") }).nth(1).click();
+    const locationTags = await panel.locator(".planet-tags h4").allTextContents();
+    assert.equal(new Set(locationTags).size, 2);
+    assert.equal(await panel.locator(".planet-tags h5").count(), 10);
     assert.match(await page.locator(".inspector-description").innerText(), /Occupants:[\s\S]+Situation:/);
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await mainWorld.click();
