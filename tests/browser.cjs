@@ -11,6 +11,7 @@ async function main() {
     await page.goto("http://127.0.0.1:8000");
     await page.getByRole("link", { name: /Sector Generator/ }).click();
     const generate = page.getByRole("button", { name: "Generate sector", exact: true });
+    await page.locator(".hex").first().waitFor();
     await page.getByLabel("Add System Points of Interest?").selectOption("4");
     await generate.click();
     assert.equal(await page.locator(".hex").count(), 80);
