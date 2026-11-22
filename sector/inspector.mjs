@@ -1,5 +1,6 @@
 import { profileFields, validHex } from "./sector-data.mjs";
 import { rerollTag, rollWorld } from "./swn.mjs";
+import { worldTagDetails } from "./world-tags.mjs";
 
 function node(tag, label) {
   const element = document.createElement(tag);
@@ -123,9 +124,41 @@ export function showInspector(section, sector, system, { save, render, roll }) {
       for (const key of profileFields) {
         body.append(edit(key, world.profile, key, () => rollWorld(roll).profile[key]));
       }
-      for (const index of [0, 1]) {
-        body.append(edit(`Tag ${index + 1}`, world.tags, index, () => rerollTag(world.tags[1 - index], roll)));
+      const tags = node("details");
+      tags.className = "planet-tags";
+      tags.open = true;
+      const reference = node("div");
+      const controls = node("details");
+      controls.append(node("summary", "Edit tags"));
+      function renderTags() {
+        reference.replaceChildren();
+        const names = world.tags.map((tag) => tag.trim()).filter(Boolean);
+        if (!names.length) reference.append(node("p", "No tags assigned."));
+        for (const name of names) {
+          const article = node("article");
+          article.append(node("h4", name));
+          const details = worldTagDetails.get(name);
+          if (details) {
+            article.append(node("p", details.description));
+            for (const [label, hooks] of Object.entries(details.hooks)) {
+              const list = node("ul");
+              for (const hook of hooks) list.append(node("li", hook));
+              article.append(node("h5", label), list);
+            }
+          }
+          reference.append(article);
+        }
       }
+      for (const index of [0, 1]) {
+        controls.append(field(`Tag ${index + 1}`, world.tags[index], (value) => {
+          world.tags[index] = value;
+          save();
+          renderTags();
+        }, () => rerollTag(world.tags[1 - index], roll)));
+      }
+      renderTags();
+      tags.append(node("summary", "Planet Tags"), controls, reference);
+      body.append(tags);
       locationList(body, world, "locations", { label: "Back to world", open: () => openWorld(world, main) });
       body.append(action("Remove world", () => {
         if (!confirm("Remove this world and its locations?")) return;

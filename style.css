@@ -195,3 +195,14 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 }
 #world .inspector-fields { min-width: 0; width: 100%; }
 #world .inspector-fields > button { margin: .4rem .4rem .4rem 0; }
+
+#world .planet-tags { margin: 1rem 0; }
+#world .planet-tags article + article {
+  border-block-start: 1px solid #34495c;
+  margin-block-start: 1rem;
+}
+#world .planet-tags h4 { margin: .8rem 0 .4rem; font-size: 1.1rem; }
+#world .planet-tags h5 { margin: .85rem 0 .25rem; font-size: .9rem; }
+#world .planet-tags p, #world .planet-tags ul { line-height: 1.55; margin: .35rem 0 .65rem; }
+#world .planet-tags ul { padding-inline-start: 1.35rem; }
+#world .planet-tags li + li { margin-block-start: .2rem; }
