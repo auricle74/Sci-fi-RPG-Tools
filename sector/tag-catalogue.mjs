@@ -30,20 +30,28 @@ export function readCustomTags() {
   return catalogue(readTagChanges());
 }
 
-export function systemTagNames() {
-  try {
-    return readCustomTags().filter(tag => normalise(tag.type) === "system").map(tag => tag.name);
-  } catch {
-    return starterTags.filter(tag => tag.type === "System").map(tag => tag.name);
+export function tagsByType() {
+  let tags;
+  try { tags = readCustomTags(); } catch { tags = starterTags; }
+  const groups = new Map();
+  for (const {type, name} of tags) {
+    const key = normalise(type);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(name);
   }
+  return groups;
 }
 
-export function systemTagDetails(name) {
+export function systemTagNames() {
+  return tagsByType().get("system") ?? [];
+}
+
+export function catalogueTagDetails(type, name) {
   try {
-    return readCustomTags().find(tag => normalise(tag.type) === "system" &&
+    return readCustomTags().find(tag => normalise(tag.type) === normalise(type) &&
       normalise(tag.name) === normalise(name));
   } catch {
-    return starterTags.find(tag => tag.type === "System" && normalise(tag.name) === normalise(name));
+    return starterTags.find(tag => normalise(tag.type) === normalise(type) && normalise(tag.name) === normalise(name));
   }
 }
 

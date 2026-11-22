@@ -1,4 +1,4 @@
-import { systemTagNames } from "./tag-catalogue.mjs";
+import { tagsByType } from "./tag-catalogue.mjs";
 import { rollSystemPoint } from "./system-points.mjs";
 
 const tags = [
@@ -240,6 +240,14 @@ export function generateSystems(sector, policy, roll, makeId) {
       },
     };
   });
+  const catalogue = tagsByType();
+  function assignTags(record, type) {
+    const pool = [...(catalogue.get(type.toLowerCase()) ?? [])];
+    record.tags = [];
+    for (let index = 0; index < 2 && pool.length; index += 1) {
+      record.tags.push(pool.splice(roll(pool.length) - 1, 1)[0]);
+    }
+  }
   if (sector.systemPointDie) {
     for (const system of systems) {
       const pointCount = roll(sector.systemPointDie);
@@ -247,13 +255,9 @@ export function generateSystems(sector, policy, roll, makeId) {
         rollSystemPoint(rollName(roll, usedNames), roll, makeId));
     }
   }
-  const availableTags = systemTagNames();
+  for (const system of systems) assignTags(system, "System");
   for (const system of systems) {
-    const pool = [...availableTags];
-    system.tags = ["", ""];
-    for (let index = 0; index < 2 && pool.length; index += 1) {
-      system.tags[index] = pool.splice(roll(pool.length) - 1, 1)[0];
-    }
+    for (const location of system.locations ?? []) assignTags(location, location.type);
   }
   return systems;
 }
