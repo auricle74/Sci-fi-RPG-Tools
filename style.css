@@ -38,7 +38,7 @@ svg { display: block; }
 .hex text { fill: #c7d6e4; font-size: 9px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .hex:hover polygon { fill: #243e51; }
 .hex[aria-pressed="true"] polygon { fill: #234e56; stroke: #9de7e1; stroke-width: 2; }
-.hex:focus-visible { outline: none; }
+#map .hex:focus { outline: none; }
 .hex:focus-visible polygon { stroke: #ffe1a0; stroke-width: 3; }
 
 #density-control[hidden] { display: none; }
