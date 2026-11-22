@@ -16,6 +16,32 @@ const widthInput = element("width");
 const heightInput = element("height");
 const map = element("map");
 const mapWindow = map.parentElement;
+const showTradeRoutes = element("show-trade-routes");
+const showSystemNames = element("show-system-names");
+const routeKey = element("trade-route-key");
+
+function syncVisibility() {
+  map.classList.toggle("hide-trade-routes", !showTradeRoutes.checked);
+  map.classList.toggle("hide-system-names", !showSystemNames.checked);
+  routeKey.hidden = !sector.generateTradeRoutes || !showTradeRoutes.checked;
+}
+
+for (const control of [showTradeRoutes, showSystemNames]) {
+  const key = `${storageKey}.${control.id}`;
+  try {
+    control.checked = localStorage.getItem(key) !== "false";
+  } catch {
+    // Use the default when storage is unavailable.
+  }
+  control.addEventListener("change", () => {
+    syncVisibility();
+    try {
+      localStorage.setItem(key, String(control.checked));
+    } catch {
+      // Visibility still applies until the page is reloaded.
+    }
+  });
+}
 const zoomIn = element("zoom-in");
 const zoomOut = element("zoom-out");
 const minZoom = 0.5;
@@ -104,7 +130,10 @@ function selectHex(column, row, focus = false) {
   element("selection").textContent = system ? `Hex ${code}` : `Hex ${code} · Empty`;
   showInspector(element("world"), sector, system, {
     save() {
-      if (system) target.setAttribute("aria-label", `Hex ${code}, ${system.name}`);
+      if (system) {
+        target.setAttribute("aria-label", `Hex ${code}, ${system.name}`);
+        target.querySelector(".hex-system-name div").textContent = system.name;
+      }
       renderTradeRoutes();
       saveSector();
     }, render: renderMap, roll,
@@ -130,9 +159,8 @@ function renderTradeRoutes() {
     const [x2, y2] = hexCentres.get(coordinate(second.column, second.row));
     return svgElement("line", { x1, y1, x2, y2 });
   }));
-  const key = element("trade-route-key");
-  key.hidden = !sector.generateTradeRoutes;
-  key.textContent = `${routes.length} trade ${routes.length === 1 ? "route" : "routes"} · dashed gold lines`;
+  syncVisibility();
+  routeKey.textContent = `${routes.length} trade ${routes.length === 1 ? "route" : "routes"} · dashed gold lines`;
 }
 
 function renderMap() {
@@ -161,7 +189,16 @@ function renderMap() {
       group.append(svgElement("polygon", {
         points: `${-radius},0 ${-radius / 2},${-halfHeight} ${radius / 2},${-halfHeight} ${radius},0 ${radius / 2},${halfHeight} ${-radius / 2},${halfHeight}`,
       }));
-      if (system) group.append(svgElement("circle", { r: 4, "aria-hidden": "true" }));
+      if (system) {
+        const nameBox = svgElement("foreignObject", {
+          class: "hex-system-name", x: -22, y: -halfHeight + 8,
+          width: 44, height: 11, "aria-hidden": "true",
+        });
+        const name = document.createElement("div");
+        name.textContent = system.name;
+        nameBox.append(name);
+        group.append(nameBox, svgElement("circle", { r: 4, "aria-hidden": "true" }));
+      }
       const label = svgElement("text", { y: halfHeight - 7, "aria-hidden": "true" });
       label.textContent = code;
       group.append(label);
