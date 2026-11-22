@@ -221,3 +221,18 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 }
 #world .reroll-action:hover,
 #world .reroll-action:focus-visible { color: #edf4fb; }
+
+.sector-details > h2 {
+  color: #b5c5d4;
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.sector-details #selection { font-size: .85rem; }
+#world h3 { font-size: 1.65rem; line-height: 1.2; }
+#world .inspector-group summary span { font-size: 1.05rem; font-weight: 700; }
+#world .inspector-group summary small { font-size: .75rem; }
+#world .inspector-entry { font-size: .94rem; font-weight: 400; }
+#world .inspector-entry small { font-size: .78rem; }
+#world .inspector-controls > summary { font-size: .88rem; }

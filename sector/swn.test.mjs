@@ -61,3 +61,13 @@ test("Large custom-map generation remains unique under repeated coordinate rolls
   assert.equal(new Set(systems.map(({column, row}) => `${column},${row}`)).size, 336);
   assert.equal(new Set(systems.flatMap((system) => [system.id, system.mainWorld.id])).size, 672);
 });
+
+test("generated worlds and points have names distinct from their types and each other", () => {
+  let id = 0;
+  const sector = { grid: { width: 2, height: 1 }, ruleset: { id: "swn-revised" }, systemPointDie: 4 };
+  const systems = generateSystems(sector, "fixed", () => 1, () => String(++id));
+  const entries = systems.flatMap(system => [system.mainWorld, ...system.locations]);
+  assert.equal(entries.length, 4);
+  assert.equal(new Set(entries.map(entry => entry.name)).size, entries.length);
+  for (const entry of entries) assert.match(entry.name, /^Aelara(?: [2-4])?$/);
+});

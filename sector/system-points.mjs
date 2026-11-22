@@ -43,13 +43,13 @@ const points = [
   },
 ];
 
-export function rollSystemPoint(number, roll, makeId) {
+export function rollSystemPoint(name, roll, makeId) {
   const { type, occupants, situations } = points[roll(8) - 1];
   const occupant = occupants[Math.floor((roll(10) - 1) / 2)];
   const situation = situations[Math.floor((roll(10) - 1) / 2)];
   return {
     id: makeId(),
-    name: `${type} ${number}`,
+    name,
     type,
     description: `Occupants: ${occupant}.\nSituation: ${situation}.`,
   };
