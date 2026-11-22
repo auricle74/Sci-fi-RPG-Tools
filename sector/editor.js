@@ -14,6 +14,8 @@ const widthInput = element("width");
 const heightInput = element("height");
 const map = element("map");
 const density = element("density");
+const replaceSector = element("replace-sector");
+const generationStatus = element("generation-status");
 const roll = (sides) => 1 + Math.floor(Math.random() * sides);
 const dimensions = () => presets[size.value] ?? [widthInput.valueAsNumber, heightInput.valueAsNumber];
 
@@ -55,6 +57,11 @@ function syncCustomInputs() {
   widthInput.disabled = !custom;
   heightInput.disabled = !custom;
   syncDensity();
+}
+
+function closeReplacement() {
+  replaceSector.hidden = true;
+  element("generate-sector").hidden = false;
 }
 
 function syncDensity() {
@@ -161,17 +168,51 @@ map.addEventListener("keydown", (event) => {
 
 setup.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (!replaceSector.hidden) return;
+  generationStatus.textContent = "";
+  const { preset, width, height } = sector.grid;
+  if (sector.systems.length || sector.starCountPolicy || sector.name !== "Untitled sector" ||
+      preset !== "swn" || width !== 8 || height !== 10) {
+    replaceSector.hidden = false;
+    element("generate-sector").hidden = true;
+    element("confirm-generate").focus();
+    return;
+  }
+  generateSector();
+});
+
+function generateSector() {
+  if (!setup.reportValidity()) return;
   const [width, height] = dimensions();
   if (!validDimension(width) || !validDimension(height)) return;
-  if (!confirm("Replace the current sector with a new one?")) return;
-  const next = createSector(rules.value, size.value, width, height);
-  next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
-  next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
+  let next;
+  try {
+    next = createSector(rules.value, size.value, width, height);
+    next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
+    next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
+  } catch (error) {
+    console.error(error);
+    generationStatus.textContent = "Could not generate a sector. Please try again.";
+    return;
+  }
+  const firstSystem = next.systems[0];
+  next.selectedHex = { column: firstSystem.column, row: firstSystem.row };
   activateSector(next);
+  const count = next.systems.length;
+  generationStatus.textContent = `Generated ${count} ${count === 1 ? "system" : "systems"}.`;
+  hexes.get(coordinate(firstSystem.column, firstSystem.row)).focus();
+}
+
+element("confirm-generate").addEventListener("click", generateSector);
+element("cancel-generate").addEventListener("click", () => {
+  closeReplacement();
+  element("generate-sector").focus();
 });
 
 function activateSector(next) {
   sector = next;
+  closeReplacement();
+  generationStatus.textContent = "";
   element("sector-name").value = sector.name ?? "Untitled sector";
   rules.value = sector.ruleset.id;
   size.value = sector.grid.preset;

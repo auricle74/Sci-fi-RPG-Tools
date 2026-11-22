@@ -33,7 +33,13 @@
       </select>
       <small id="density-help"></small>
     </label>
-    <button type="submit">Generate sector</button>
+    <button type="submit" id="generate-sector">Generate sector</button>
+    <div id="replace-sector" hidden>
+      <p>Replace the current sector with a new one?</p>
+      <button type="button" id="confirm-generate">Replace and generate</button>
+      <button type="button" id="cancel-generate">Cancel</button>
+    </div>
+    <p id="generation-status" role="status"></p>
   </form>
   <div class="panel sector-files">
     <label>Sector name <input id="sector-name"></label>
