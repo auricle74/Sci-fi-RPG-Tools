@@ -1,3 +1,5 @@
+import { rollSystemPoint } from "./system-points.mjs";
+
 const tags = [
   "Abandoned Colony",
   "Alien Ruins",
@@ -213,7 +215,7 @@ export function generateSystems(sector, policy, roll, makeId) {
   const { width, height } = sector.grid;
   const count = starCount(width, height, policy, roll(10));
   const initialCount = policy === "scaled" ? Math.max(1, Math.round(width * height / 4)) : 20;
-  return placeStars(width, height, count, initialCount, roll).map(({column, row}) => {
+  const systems = placeStars(width, height, count, initialCount, roll).map(({column, row}) => {
     const prefix = ["Aster", "Cinder", "Dawn", "Ember", "Iris", "Lumen", "Meridian", "Vesper"][roll(8) - 1];
     const suffix = ["Reach", "Vale", "Haven", "Spur", "Drift", "Crown", "Gate", "Deep"][roll(8) - 1];
     const code = String(column).padStart(2, "0") + String(row).padStart(2, "0");
@@ -227,4 +229,12 @@ export function generateSystems(sector, policy, roll, makeId) {
       },
     };
   });
+  if (sector.systemPointDie) {
+    for (const system of systems) {
+      const pointCount = roll(sector.systemPointDie);
+      system.locations = Array.from({ length: pointCount }, (_, index) =>
+        rollSystemPoint(index + 1, roll, makeId));
+    }
+  }
+  return systems;
 }

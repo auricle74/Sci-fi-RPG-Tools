@@ -280,6 +280,7 @@ function generateSector() {
   try {
     next = createSector(rules.value, size.value, width, height);
     next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
+    next.systemPointDie = Number(element("system-point-die").value);
     next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
   } catch (error) {
     console.error(error);
@@ -310,6 +311,7 @@ function activateSector(next) {
   widthInput.value = sector.grid.width;
   heightInput.value = sector.grid.height;
   density.value = sector.starCountPolicy ?? "fixed";
+  element("system-point-die").value = sector.systemPointDie ?? 0;
   syncCustomInputs();
   renderMap();
 }
