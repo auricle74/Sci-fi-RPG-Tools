@@ -24,12 +24,16 @@ async function main() {
     assert.match(await page.getByLabel("Description").inputValue(), /Occupants:[\s\S]+Situation:/);
     await page.getByRole("button", { name: "Back to system" }).click();
     await mainWorld.click();
+    assert.equal(await page.locator(".planet-tags article").count(), 2);
+    await page.getByText("Edit tags", { exact: true }).click();
     await page.getByLabel("World name").fill("New Horizon");
     await page.getByLabel("Tag 1").fill("Handwritten tag");
     await page.getByRole("button", { name: "Reroll atmosphere" }).click();
     assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
     await page.reload();
     await mainWorld.click();
+    assert.equal(await page.locator(".planet-tags article").count(), 2);
+    await page.getByText("Edit tags", { exact: true }).click();
     assert.equal(await page.getByLabel("World name").inputValue(), "New Horizon");
     assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
 
@@ -70,6 +74,8 @@ async function main() {
     await input.setInputFiles({ name: "sector.json", mimeType: "application/json", buffer: exported });
     await page.getByText("Sector imported.").waitFor();
     await mainWorld.click();
+    assert.equal(await page.locator(".planet-tags article").count(), 2);
+    await page.getByText("Edit tags", { exact: true }).click();
     assert.equal(await page.locator(".hex").count(), 80);
     assert.equal(await page.getByLabel("World name").inputValue(), "New Horizon");
     assert.equal(await page.getByLabel("Tag 1").inputValue(), "Handwritten tag");
