@@ -1,3 +1,5 @@
+import { generateTpvSector, tpvDistance, tpvRules } from "./tpv.mjs";
+import { inspectTpv, renderChart } from "./tpv-view.mjs";
 import { bookTags, catalogueTags } from "./tag-catalogue.mjs";
 import { findTradeRoutes, validTradeRoutes } from "./trade-routes.mjs";
 import { generateSystems, rollName, starCount } from "./swn.mjs";
@@ -6,7 +8,7 @@ import { showInspector } from "./inspector.mjs";
 
 const schemaVersion = 1;
 const storageKey = "scifi-rpg-tools.sector";
-const rulesets = { "swn-revised": { id: "swn-revised", version: "revised" } };
+const rulesets = { [tpvRules.id]: tpvRules, "swn-revised": { id: "swn-revised", version: "revised" } };
 const svgNamespace = "http://www.w3.org/2000/svg";
 const element = (id) => document.getElementById(id);
 const setup = element("setup");
@@ -24,6 +26,7 @@ function syncVisibility() {
   map.classList.toggle("hide-trade-routes", !showTradeRoutes.checked);
   map.classList.toggle("hide-system-names", !showSystemNames.checked);
   routeKey.hidden = !sector.tradeRoutes.length || !showTradeRoutes.checked;
+  element("route-visibility-label").textContent = isTpv() ? "Jump Routes" : "Trade Routes";
 }
 
 for (const control of [showTradeRoutes, showSystemNames]) {
@@ -54,7 +57,9 @@ const density = element("density");
 const replaceSector = element("replace-sector");
 const generationStatus = element("generation-status");
 const roll = (sides) => 1 + Math.floor(Math.random() * sides);
-const dimensions = () => presets[size.value] ?? [widthInput.valueAsNumber, heightInput.valueAsNumber];
+const tpvSelected = () => rules.value === tpvRules.id;
+const isTpv = () => sector.ruleset.id === tpvRules.id;
+const dimensions = () => tpvSelected() ? presets.void : presets[size.value] ?? [widthInput.valueAsNumber, heightInput.valueAsNumber];
 
 function createSector(rulesetId, preset, width, height) {
   return {
@@ -90,7 +95,11 @@ function saveSector() {
 }
 
 function syncCustomInputs() {
-  const custom = size.value === "custom";
+  const tpv = tpvSelected();
+  size.disabled = tpv;
+  element("tpv-start-control").hidden = !tpv;
+  for (const input of setup.querySelectorAll("[data-swn-only]")) input.closest("label").hidden = tpv;
+  const custom = !tpv && size.value === "custom";
   element("custom").hidden = !custom;
   widthInput.disabled = !custom;
   heightInput.disabled = !custom;
@@ -105,7 +114,7 @@ function closeReplacement() {
 function syncDensity() {
   const [width, height] = dimensions();
   const valid = validDimension(width) && validDimension(height);
-  element("density-control").hidden = !valid || (width === 8 && height === 10);
+  element("density-control").hidden = tpvSelected() || !valid || (width === 8 && height === 10);
   if (!valid) return;
   const low = starCount(width, height, density.value, 1);
   const high = starCount(width, height, density.value, 10);
@@ -129,7 +138,15 @@ function selectHex(column, row, focus = false) {
   const system = systems.get(code);
   tradeRoutes.querySelector(".highlighted-route")?.classList.remove("highlighted-route");
   element("selection").textContent = system ? `Hex ${code}` : `Hex ${code} · Empty`;
-  showInspector(element("world"), sector, system, {
+  if (isTpv()) {
+    const usedNames = new Set([system?.name]);
+    inspectTpv(element("world"), element("tpv-profile"), sector, system, coordinate, roll,
+      () => rollName(roll, usedNames), () => { renderTradeRoutes(); saveSector(); }, () => {
+        setProfileOpen(false);
+        selectHex(column, row, true);
+      });
+    element("world").querySelector(".tpv-open-profile")?.addEventListener("click", () => setProfileOpen(true));
+  } else showInspector(element("world"), sector, system, {
     save() {
       if (system) {
         target.setAttribute("aria-label", `Hex ${code}, ${system.name}`);
@@ -157,20 +174,48 @@ function svgElement(name, attributes) {
 const tradeRoutes = svgElement("g", { class: "trade-routes", "aria-hidden": "true" });
 
 function renderTradeRoutes() {
-  sector.tradeRoutes = validTradeRoutes(sector.tradeRoutes, sector.systems);
+  const tpv = isTpv();
+  sector.tradeRoutes = validTradeRoutes(sector.tradeRoutes, tpv ? sector.systems.filter(system => system.stars) : sector.systems,
+    tpv ? tpvDistance : undefined);
   const routes = sector.tradeRoutes;
   const byId = new Map(sector.systems.map(system => [system.id, system]));
   tradeRoutes.replaceChildren(...routes.map(route => {
     const [first, second] = route.map(id => byId.get(id));
     const [x1, y1] = hexCentres.get(coordinate(first.column, first.row));
     const [x2, y2] = hexCentres.get(coordinate(second.column, second.row));
-    return svgElement("line", { x1, y1, x2, y2 });
+    if (!tpv) return svgElement("line", { x1, y1, x2, y2 });
+    const distance = tpvDistance(first, second);
+    if (distance !== 1) return svgElement("line", { x1, y1, x2, y2, class: `tpv-jump-${distance}` });
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.hypot(dx, dy);
+    const x = (x1 + x2) / 2;
+    const y = (y1 + y2) / 2;
+    const marks = svgElement("g", { class: "tpv-jump-1" });
+    for (const offset of [-3, 3]) {
+      const cx = x + offset * dx / length;
+      const cy = y + offset * dy / length;
+      marks.append(svgElement("line", { x1: cx - 6 * dy / length, y1: cy + 6 * dx / length,
+        x2: cx + 6 * dy / length, y2: cy - 6 * dx / length }));
+    }
+    return marks;
   }));
   syncVisibility();
-  routeKey.textContent = `${routes.length} trade ${routes.length === 1 ? "route" : "routes"} · dashed gold lines`;
+  routeKey.textContent = tpv ? "Jump routes · Safe: double marks · Unsafe: solid · Dangerous: dashed" : `${routes.length} trade ${routes.length === 1 ? "route" : "routes"} · dashed gold lines`;
+}
+
+function setProfileOpen(open) {
+  element("tpv-profile").hidden = !open;
+  element("tpv-chart").hidden = open || !isTpv();
+  map.closest(".map-stage").hidden = open;
+  element("map-title").parentElement.hidden = open;
 }
 
 function renderMap() {
+  setProfileOpen(false);
+  map.closest(".sector-map").classList.toggle("tpv-map", isTpv());
+  if (isTpv()) renderChart(element("tpv-chart"), sector.systems, coordinate, feature =>
+    selectHex(feature.column, feature.row, true));
   const { width, height } = sector.grid;
   const radius = 32;
   const halfHeight = Math.sqrt(3) * radius / 2;
@@ -178,12 +223,14 @@ function renderMap() {
   const fragment = document.createDocumentFragment();
   hexes.clear();
   hexCentres.clear();
+  const nebulaHexes = new Set(isTpv() ? sector.systems.flatMap(feature =>
+    (feature.coverage ?? []).map(cell => coordinate(cell.column, cell.row))) : []);
   systems = new Map(sector.systems.map((system) => [coordinate(system.column, system.row), system]));
 
   for (let column = 1; column <= width; column += 1) {
     for (let row = 1; row <= height; row += 1) {
       const x = radius + 8 + (column - 1) * columnStep;
-      const y = halfHeight + 8 + (row - 1) * halfHeight * 2 + (column % 2 === 0 ? halfHeight : 0);
+      const y = halfHeight + 8 + (row - 1) * halfHeight * 2 + (column % 2 === (isTpv() ? 1 : 0) ? halfHeight : 0);
       const code = coordinate(column, row);
       const system = systems.get(code);
       hexCentres.set(code, [x, y]);
@@ -193,6 +240,7 @@ function renderMap() {
         "aria-pressed": "false", tabindex: "-1",
         "data-column": column, "data-row": row, transform: `translate(${x} ${y})`,
       });
+      if (nebulaHexes.has(code)) group.classList.add("tpv-nebula-coverage");
       group.append(svgElement("polygon", {
         points: `${-radius},0 ${-radius / 2},${-halfHeight} ${radius / 2},${-halfHeight} ${radius},0 ${radius / 2},${halfHeight} ${-radius / 2},${halfHeight}`,
       }));
@@ -204,7 +252,12 @@ function renderMap() {
         const name = document.createElement("div");
         name.textContent = system.name;
         nameBox.append(name);
-        group.append(nameBox, svgElement("circle", { r: 4, "aria-hidden": "true" }));
+        group.append(nameBox);
+        if (isTpv()) {
+          const mark = svgElement("text", { class: "tpv-feature-mark", "aria-hidden": "true" });
+          mark.textContent = { star: "✦", nebula: "N", anomaly: "A" }[system.kind];
+          group.append(mark);
+        } else group.append(svgElement("circle", { r: 4, "aria-hidden": "true" }));
       }
       const label = svgElement("text", { y: halfHeight - 7, "aria-hidden": "true" });
       label.textContent = code;
@@ -220,7 +273,7 @@ function renderMap() {
   sizeMap();
   map.replaceChildren(fragment, tradeRoutes);
   renderTradeRoutes();
-  element("map-title").textContent = `Sector map · ${width} × ${height}`;
+  element("map-title").textContent = `${isTpv() ? "Sector Chart" : "Sector map"} · ${width} × ${height}`;
   selectHex(sector.selectedHex.column, sector.selectedHex.row);
 }
 
@@ -344,12 +397,18 @@ function generateSector() {
   if (!validDimension(width) || !validDimension(height)) return;
   let next;
   try {
-    next = createSector(rules.value, size.value, width, height);
+    next = createSector(rules.value, tpvSelected() ? "void" : size.value, width, height);
     next.name = rollName(roll, new Set([sector.name?.trim()]));
-    next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
-    next.generateTradeRoutes = element("generate-trade-routes").value === "yes";
-    next.systemPointDie = Number(element("system-point-die").value);
-    next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
+    if (tpvSelected()) {
+      const usedNames = new Set();
+      next.systems = generateTpvSector(roll, () => crypto.randomUUID(),
+        () => rollName(roll, usedNames), element("tpv-start").checked);
+    } else {
+      next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
+      next.generateTradeRoutes = element("generate-trade-routes").value === "yes";
+      next.systemPointDie = Number(element("system-point-die").value);
+      next.systems = generateSystems(next, next.starCountPolicy, roll, () => crypto.randomUUID());
+    }
   } catch (error) {
     console.error(error);
     generationStatus.textContent = "Could not generate a sector. Please try again.";
@@ -359,7 +418,7 @@ function generateSector() {
   next.selectedHex = { column: firstSystem.column, row: firstSystem.row };
   activateSector(next);
   const count = next.systems.length;
-  generationStatus.textContent = `Generated ${count} ${count === 1 ? "system" : "systems"}.`;
+  generationStatus.textContent = isTpv() ? `Generated ${count} subsectors of interest.` : `Generated ${count} ${count === 1 ? "system" : "systems"}.`;
   hexes.get(coordinate(firstSystem.column, firstSystem.row)).focus();
 }
 
@@ -430,6 +489,7 @@ element("import-sector").addEventListener("change", async (event) => {
   status.textContent = "Sector imported.";
 });
 
+rules.addEventListener("change", syncCustomInputs);
 size.addEventListener("change", syncCustomInputs);
 for (const control of [widthInput, heightInput, density]) control.addEventListener("input", syncDensity);
 activateSector(sector);
