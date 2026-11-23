@@ -15,9 +15,17 @@ test("planetary colonies use the developed planet's appearance instead of a stat
 
 test("gas giant rings are shown, and a station's gravity rings remain part of the station", () => {
   assert.equal(orbitalAppearance({ kind: "giant", features: ["4 rings"] }).rings, 4);
-  const station = orbitalAppearance({ kind: "station", type: "Orbital space station", development: {
-    worlds: [{ classification: "planet", notes: ["Ringed"] }], centre: { features: ["Rotational gravity rings"] },
+  const station = orbitalAppearance({ kind: "station", type: "Deep-space station", development: {
+    worlds: [], centre: { features: ["Rotational gravity rings"] },
   } });
   assert.equal(station.kind, "station");
   assert.equal(station.rings, 0);
+});
+
+test("an orbital space station uses its host planet's icon, while an orbital outpost uses a station", () => {
+  const world = { classification: "planet", size: "Tiny", atmosphere: "medium",
+    composition: "oxygen", notes: [] };
+  const station = { kind: "station", type: "Orbital space station", development: { worlds: [world] } };
+  assert.deepEqual(orbitalAppearance(station), { kind: "planet", size: "tiny", colour: "#518eed", rings: 0 });
+  assert.equal(orbitalAppearance({ kind: "station", type: "Orbital outpost" }).kind, "station");
 });
