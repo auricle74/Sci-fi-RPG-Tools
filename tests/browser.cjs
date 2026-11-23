@@ -224,6 +224,26 @@ async function main() {
     await page.reload();
     await page.getByText("No trade routes.", { exact: true }).waitFor();
     assert.deepEqual(errors, []);
+
+    const tpv = await browser.newPage();
+    const tpvErrors = [];
+    tpv.on("pageerror", error => tpvErrors.push(error.message));
+    await tpv.addInitScript(() => { Math.random = () => 0.75; });
+    await tpv.goto("http://127.0.0.1:8000/sector/");
+    await tpv.getByLabel("Generation rules").selectOption("perilous-void");
+    await tpv.getByRole("button", { name: "Generate sector", exact: true }).click();
+    assert.equal(await tpv.locator(".hex").count(), 100);
+    assert.equal(await tpv.locator("#tpv-chart tbody tr").count(), 20);
+    await tpv.getByLabel("System status").selectOption("Core");
+    await tpv.getByRole("button", { name: "Develop System" }).click();
+    await tpv.locator("#tpv-profile .tpv-orbits").waitFor();
+    assert.equal(await tpv.locator("#tpv-profile .tpv-orbits section").count(), 11);
+    await tpv.reload();
+    await tpv.getByRole("button", { name: "Open System Profile" }).click();
+    await tpv.locator("#tpv-profile .tpv-orbit-marker").first().waitFor();
+    await tpv.getByRole("button", { name: "Back to Sector Chart" }).click();
+    await tpv.locator("#tpv-chart").waitFor();
+    assert.deepEqual(tpvErrors, []);
   } finally {
     await browser.close();
   }
