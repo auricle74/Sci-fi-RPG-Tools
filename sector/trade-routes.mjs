@@ -77,3 +77,17 @@ export function findTradeRoutes(systems, tags) {
   }
   return routes;
 }
+
+export function validTradeRoutes(routes, systems) {
+  const byId = new Map(systems.map(system => [system.id, system]));
+  const seen = new Set();
+  return routes.filter(route => {
+    if (!Array.isArray(route) || route.length !== 2) return false;
+    const [first, second] = route.map(id => byId.get(id));
+    if (!first || !second || first === second || hexDistance(first, second) > 3) return false;
+    const key = JSON.stringify([...route].sort());
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
