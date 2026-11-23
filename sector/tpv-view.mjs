@@ -97,14 +97,6 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
     showProfile();
   });
   open.className = "tpv-open-profile";
-  const faction = node("input");
-  faction.value = feature.faction ?? "";
-  faction.addEventListener("change", () => {
-    feature.faction = faction.value.trim();
-    save();
-  });
-  const factionLabel = node("label", "Faction presence");
-  factionLabel.append(faction);
   const routes = node("section");
   function refreshRoutes() {
     routes.replaceChildren(node("h4", "Jump Routes"));
@@ -136,7 +128,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
     if (available.size) routes.append(label, add);
   }
   refreshRoutes();
-  inspector.append(statusLabel, factionLabel, open, routes);
+  inspector.append(statusLabel, open, routes);
 }
 
 function detailSection(title, rows = []) {
@@ -320,7 +312,7 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
 function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
-  const details = node("p", `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites${feature.faction ? ` · ${feature.faction}` : ""}`);
+  const details = node("p", `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites`);
   const orbits = node("div");
   orbits.className = "tpv-orbits";
   const star = node("section");
