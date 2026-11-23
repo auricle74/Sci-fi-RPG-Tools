@@ -303,7 +303,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .trade-route-actions button { font-size: .85rem; }
 
 .sector-options label[hidden], .tpv-map [hidden] { display: none; }
-#sector-chart-layout {
+#sector-chart-layout:not([hidden]) {
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
