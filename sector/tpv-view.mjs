@@ -236,6 +236,13 @@ export function moonName(host, index) {
   return `${host} ${letters}`;
 }
 
+function developedMoonName(body, index) {
+  // Lunar outposts and colonies represent off-world settlers; a populated moon
+  // alone does not identify its inhabitants or imply a human settlement.
+  if (index === 0 && /^lunar (outpost|colony)$/i.test(body.type)) return body.name;
+  return moonName(body.name, index);
+}
+
 function giantMoons(body) {
   const counts = body.features?.map(feature =>
     feature.match(/^\d+ moons · Moonlets per moon: (\d+(?:, \d+)*)$/)?.[1]).filter(Boolean) ?? [];
@@ -270,7 +277,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, redevelop)
         if (!data) return [];
         let moonIndex = 0;
         const worlds = data.worlds.map(world => worldNotation(
-          world.classification === "moon" ? moonName(body.name, moonIndex++) : body.name, world));
+          world.classification === "moon" ? developedMoonName(body, moonIndex++) :
+            /^lunar (outpost|colony)$/i.test(body.type) ? `${body.name} (host)` : body.name, world));
         if (data.centre) {
           const centre = data.centre;
           worlds.push(`${body.type} · ${centre.purposes.join(" / ")} · Population ${centre.population.toLocaleString()}`);
@@ -298,7 +306,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, redevelop)
         if (moons.length) {
           fields.append(node("h4", "Moon(s)"));
           for (const [index, moon] of moons.entries()) {
-            fields.append(node("h5", moonName(body.name, index)), ...worldDetails(moon), ...lifeformDetails(moon));
+            fields.append(node("h5", developedMoonName(body, index)), ...worldDetails(moon), ...lifeformDetails(moon));
           }
           if (centre && lunarCentre) fields.append(centreDetails(centre));
         }
