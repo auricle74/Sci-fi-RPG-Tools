@@ -1,3 +1,4 @@
+import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
 import { generateSociety } from "./tpv-societies.mjs";
 import { bearsLife, generateLifeforms } from "./tpv-lifeforms.mjs";
@@ -283,15 +284,18 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
     const name = input.value.trim();
     if (!name) { input.reportValidity(); return; }
     const generated = generateSociety({ id: crypto.randomUUID(), name, status: feature.status, indigenous, minimumTech, roll });
+    generated.faction = generateFactionProfile(roll, { place: homeName });
     (sector.societies ??= []).push(generated);
     link(generated.id);
   });
   if (!society) {
     const inputLabel = node("label", "New society name");
     input.required = true;
-    input.value = `${homeName} Collective`;
+    input.value = rollFactionName(roll, { place: homeName });
     inputLabel.append(input);
-    group.append(inputLabel, create);
+    group.append(inputLabel, button("New Name", () => {
+      input.value = rollFactionName(roll, { place: homeName });
+    }), create);
   } else group.append(button("Unlink society", () => {
     delete target.societyId;
     save();
@@ -303,6 +307,12 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
     const label = node("label", "Existing society");
     label.append(picker);
     group.append(label, button("Link Society", () => link(picker.value)));
+  }
+  if (society?.faction) {
+    const home = sector.systems.find(system => system.id === society.homeSystemId)?.name;
+    const faction = detailSection("Faction Profile", factionRows(society.faction, home));
+    faction.append(node("h4", "Faction Notation"), node("p", factionNotation(society.name, society.faction, home)));
+    group.append(faction);
   }
   return group;
 }

@@ -132,6 +132,13 @@ export function readSector(json) {
         Number.isInteger(society.tech) && society.tech >= 0 && society.tech <= 5 &&
         Number.isInteger(society.area) && society.area >= 0 && society.area <= 100 &&
         typeof society.condition === "string" && typeof society.politics === "string");
+      const faction = society.faction;
+      if (faction !== undefined) {
+        check(record(faction) && strings(faction.type) && strings(faction.assets) && strings(faction.complications) &&
+          ["reach", "base", "goal"].every(key => typeof faction[key] === "string") &&
+          record(faction.leader) && strings(faction.leader.traits) &&
+          ["name", "surname", "pronouns", "motivation"].every(key => typeof faction.leader[key] === "string"));
+      }
       check(society.homeSystemId === undefined || stars.has(society.homeSystemId));
       for (const key of ["coreSystems", "frontierSystems"]) {
         check(society[key] === undefined || Array.isArray(society[key]) && society[key].every(id => stars.has(id)));

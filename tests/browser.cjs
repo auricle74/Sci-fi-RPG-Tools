@@ -280,6 +280,21 @@ async function main() {
     await tpv.getByRole("button", { name: "Back to Sector Chart" }).click();
     await tpv.locator("#tpv-chart").waitFor();
     assert.ok(await tpv.locator(".map-stage").isVisible());
+    await tpv.getByRole("button", { name: "Setting Overview", exact: true }).click();
+    const factionName = tpv.getByLabel("New interstellar society name");
+    assert.ok(await factionName.inputValue());
+    await factionName.fill("The Silver Dawn");
+    await tpv.getByRole("button", { name: "Develop Interstellar Society" }).click();
+    const profile = tpv.locator(".tpv-setting-society");
+    await profile.getByRole("heading", { name: "The Silver Dawn" }).waitFor();
+    await profile.getByText("Interstellar", { exact: true }).waitFor();
+    assert.match(await profile.locator("p").last().innerText(), /^THE SILVER DAWN:.* B Unassigned, R Interstellar,/);
+    await profile.getByLabel("Faction name", { exact: true }).fill("Order of the Cinder Arc");
+    await profile.getByRole("button", { name: "Save Name" }).click();
+    await tpv.reload();
+    await tpv.getByRole("button", { name: "Setting Overview", exact: true }).click();
+    await profile.getByRole("heading", { name: "Order of the Cinder Arc" }).waitFor();
+    await profile.getByRole("heading", { name: "Faction Notation" }).waitFor();
     assert.deepEqual(tpvErrors, []);
   } finally {
     await browser.close();
