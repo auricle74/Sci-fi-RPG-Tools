@@ -84,7 +84,7 @@ export function readSector(json) {
     check(!coords.has(hex));
     coords.add(hex);
     if (tpv) {
-      check(system.faction === undefined || typeof system.faction === "string");
+      delete system.faction;
       check(["star", "nebula", "anomaly"].includes(system.kind) && typeof system.type === "string");
       if (system.kind === "star" || system.type === "Sentient star" || system.stars !== undefined) {
         check(Array.isArray(system.stars) && system.stars.length && system.stars.every(star =>
