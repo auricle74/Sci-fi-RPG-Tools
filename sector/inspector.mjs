@@ -305,7 +305,10 @@ export function showInspector(section, sector, system, { save, render, roll, hig
         refresh();
       });
       remove.setAttribute("aria-label", `Delete route to ${target.name}`);
-      row.append(preview, edit, remove);
+      const actions = node("div");
+      actions.className = "trade-route-actions";
+      actions.append(edit, remove);
+      row.append(preview, actions);
       list.append(row);
     }
 

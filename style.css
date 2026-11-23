@@ -298,4 +298,6 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 
 .trade-routes .highlighted-route { stroke: #ffe1a0; stroke-width: 4; }
 .inspector-trade-routes { list-style: none; padding: 0; }
-.inspector-trade-routes li { display: flex; flex-wrap: wrap; align-items: baseline; }
+.inspector-trade-routes li + li { margin-top: .45rem; }
+.trade-route-actions { display: flex; gap: .25rem; }
+.trade-route-actions button { font-size: .85rem; }
