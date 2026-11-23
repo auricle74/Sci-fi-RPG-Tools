@@ -1,3 +1,4 @@
+import { factionPresence } from "./tpv-factions.mjs";
 import { generateSociety } from "./tpv-societies.mjs";
 import { bearsLife, generateLifeforms } from "./tpv-lifeforms.mjs";
 import { orbitalAppearance } from "./tpv-graphics.mjs";
@@ -28,14 +29,16 @@ function table(headers) {
   return result;
 }
 
-export function renderChart(container, features, coordinate, select) {
+export function renderChart(container, features, coordinate, select, presence) {
   const chart = table(["Hex", "Contents"]);
   const body = chart.createTBody();
   for (const feature of features) {
     const row = body.insertRow();
     row.dataset.hex = coordinate(feature.column, feature.row);
     row.insertCell().append(button(row.dataset.hex, () => select(feature)));
-    row.insertCell().textContent = `${feature.name} · ${feature.type}`;
+    const details = row.insertCell();
+    details.textContent = `${feature.name} · ${feature.type}`;
+    for (const entry of presence(feature)) details.append(node("div", `${entry.role} · ${entry.name}`));
   }
   container.replaceChildren(node("h3", "Subsectors of interest"), chart);
 }
@@ -48,6 +51,9 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
     inspector.append(node("p", `Spans ${feature.coverage.length} hexes, including this hex.`));
   }
   if (!feature.stars) return;
+  const presence = factionPresence(sector, feature.id);
+  if (presence.length) inspector.append(detailSection("Society Presence",
+    presence.map(entry => [entry.role, entry.name])));
   const status = node("select");
   for (const option of ["Wild", "Frontier", "Core"]) status.add(new Option(option));
   status.value = feature.status ?? "Wild";
