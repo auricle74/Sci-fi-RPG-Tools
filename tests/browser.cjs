@@ -271,6 +271,13 @@ async function main() {
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await tpv.locator("#tpv-profile .tpv-orbit-marker").first().waitFor();
     assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
+    await tpv.getByLabel("System status", { exact: true }).selectOption("Frontier");
+    assert.match(await tpv.locator("#tpv-profile > p").innerText(), /· Frontier ·/);
+    assert.equal(await selectedSystem.getAttribute("data-system-status"), "Frontier");
+    assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
+    await tpv.reload();
+    assert.equal(await tpv.getByLabel("System status", { exact: true }).inputValue(), "Frontier");
+    await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await tpv.getByRole("button", { name: "Redevelop System", exact: true }).click();
     await tpv.getByLabel("New system status").selectOption("Wild");
     await tpv.locator("#tpv-profile").getByRole("button", { name: "Cancel", exact: true }).click();
