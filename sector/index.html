@@ -83,16 +83,19 @@
       <p id="map-help">Click a hex to inspect it. Drag to pan. Use the mouse wheel or + and − to zoom. Arrow keys move the selection.</p>
       <p id="trade-route-key" hidden></p>
     </header>
-    <div class="map-stage">
-      <div class="map-window">
-        <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="sector-chart-layout">
+      <div class="map-stage">
+        <div class="map-window">
+          <svg id="map" role="group" aria-labelledby="map-title" aria-describedby="map-help" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="map-zoom" role="group" aria-label="Map zoom">
+          <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+          <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+        </div>
       </div>
-      <div class="map-zoom" role="group" aria-label="Map zoom">
-        <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
-        <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
-      </div>
+      <div id="tpv-divider" role="separator" aria-label="Resize map and subsector list" aria-orientation="horizontal" aria-controls="tpv-chart" aria-valuemin="20" aria-valuemax="85" aria-valuenow="65" tabindex="0" hidden></div>
+      <section id="tpv-chart" hidden></section>
     </div>
-    <section id="tpv-chart" hidden></section>
     <section id="tpv-profile" hidden></section>
   </section>
   <aside class="sector-details" aria-labelledby="details-title">
