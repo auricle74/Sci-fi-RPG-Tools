@@ -301,3 +301,39 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .inspector-trade-routes li + li { margin-top: .45rem; }
 .trade-route-actions { display: flex; gap: .25rem; }
 .trade-route-actions button { font-size: .85rem; }
+
+.sector-options label[hidden], .tpv-map [hidden] { display: none; }
+.tpv-map { display: block; overflow: auto; }
+.tpv-map .map-stage { height: clamp(17rem, 64vh, 42rem); }
+.tpv-map .tpv-feature-mark { font-size: 14px; fill: #9de7e1; }
+#tpv-chart, #tpv-profile { padding: 1rem; }
+.tpv-map table { width: 100%; border-collapse: collapse; text-align: left; }
+.tpv-map td, .tpv-map th { border-bottom: 1px solid #34495c; padding: .4rem; }
+.tpv-orbits {
+  display: flex;
+  overflow-x: auto;
+  margin-block: 1rem;
+  background: radial-gradient(ellipse at left, #36285b, #0a111b 65%);
+}
+.tpv-orbits section { flex: 1 0 6.8rem; border-right: 1px dashed #52667e; padding: .5rem; }
+.tpv-orbits h3 { font-size: .85rem; margin: .25rem 0 .75rem; }
+.tpv-orbit-marker { display: grid; justify-items: center; gap: .35rem; width: 100%; overflow-wrap: anywhere; }
+.tpv-body { display: block; width: 2rem; aspect-ratio: 1; border-radius: 50%; }
+.tpv-planet, .tpv-moon {
+  background: radial-gradient(circle at 30% 25%, #b4e0ef, #518097 42%, #1f294b 75%);
+  box-shadow: inset -.2rem -.2rem .4rem #111827;
+}
+.tpv-size-tiny { width: .8rem; }
+.tpv-size-small { width: 1.15rem; }
+.tpv-size-medium { width: 1.65rem; }
+.tpv-size-large { width: 2.25rem; }
+.tpv-size-huge { width: 2.8rem; }
+.tpv-giant { width: 3.3rem; background: repeating-linear-gradient(15deg, #c28052, #f3c88c 5px, #6f484c 10px); }
+.tpv-station { border-radius: .25rem; aspect-ratio: 2; border: 3px double #9de7e1; background: #324b65; }
+.tpv-asteroid { background: radial-gradient(circle at 20% 30%, #8fa1ae 14%, transparent 16%),
+  radial-gradient(circle at 62% 46%, #8791a2 19%, transparent 21%),
+  radial-gradient(circle at 35% 72%, #586471 13%, transparent 15%); }
+.tpv-phenomenon { border: 3px dotted #bd9ff5; box-shadow: 0 0 .7rem #ac75e3; }
+.hex.tpv-nebula-coverage:not([aria-pressed="true"]) polygon { fill: #302452; }
+.tpv-orbit-star { background: radial-gradient(circle at 50% 75%, #bd713a, transparent 55%); }
+.trade-routes .tpv-jump-1 line, .trade-routes .tpv-jump-2 { stroke-dasharray: none; }
