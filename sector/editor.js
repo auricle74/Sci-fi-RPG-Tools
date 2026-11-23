@@ -173,6 +173,33 @@ function svgElement(name, attributes) {
 
 const tradeRoutes = svgElement("g", { class: "trade-routes", "aria-hidden": "true" });
 
+const starColours = {
+  O: "#8daaff", B: "#a2bfff", A: "#bedbff", F: "#e1efff",
+  G: "#ffe18b", K: "#ffae60", M: "#ff797f",
+};
+
+function tpvMarker(feature) {
+  const group = svgElement("g", { class: "tpv-feature-mark", "aria-hidden": "true" });
+  if (feature.kind === "star") {
+    const spectralType = feature.stars[0].type.match(/\(([OBAFGKM])\)$/)?.[1];
+    group.append(svgElement("path", {
+      d: "M0 -6 Q1 -1 6 0 Q1 1 0 6 Q-1 1 -6 0 Q-1 -1 0 -6Z",
+      fill: starColours[spectralType] ?? "#edf4fb",
+    }));
+  } else if (feature.kind === "nebula") {
+    group.append(svgElement("path", {
+      d: "M-6 3 A3 3 0 0 1 -6 -3 Q-5 -6 -2 -5 Q1 -8 4 -4 A4 4 0 0 1 5 4 Q2 6 -1 4 Q-4 6 -6 3Z",
+      fill: "#b29dec", stroke: "#e5d9ff", "stroke-width": 0.8,
+    }));
+    group.append(svgElement("circle", { cx: 1, cy: -1, r: 1.1, fill: "#f5efff" }));
+  } else {
+    group.append(svgElement("path", { d: "M0 -6.5 L6.5 0 L0 6.5 L-6.5 0Z",
+      fill: "none", stroke: "#ffc98c", "stroke-width": 1.3 }));
+    group.append(svgElement("circle", { r: 1.4, fill: "#ffc98c" }));
+  }
+  return group;
+}
+
 function renderTradeRoutes() {
   const tpv = isTpv();
   sector.tradeRoutes = validTradeRoutes(sector.tradeRoutes, tpv ? sector.systems.filter(system => system.stars) : sector.systems,
@@ -253,11 +280,8 @@ function renderMap() {
         name.textContent = system.name;
         nameBox.append(name);
         group.append(nameBox);
-        if (isTpv()) {
-          const mark = svgElement("text", { class: "tpv-feature-mark", "aria-hidden": "true" });
-          mark.textContent = { star: "✦", nebula: "N", anomaly: "A" }[system.kind];
-          group.append(mark);
-        } else group.append(svgElement("circle", { r: 4, "aria-hidden": "true" }));
+        if (isTpv()) group.append(tpvMarker(system));
+        else group.append(svgElement("circle", { r: 4, "aria-hidden": "true" }));
       }
       const label = svgElement("text", { y: halfHeight - 7, "aria-hidden": "true" });
       label.textContent = code;
