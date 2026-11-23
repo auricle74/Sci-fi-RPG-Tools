@@ -139,6 +139,7 @@ function selectHex(column, row, focus = false) {
   tradeRoutes.querySelector(".highlighted-route")?.classList.remove("highlighted-route");
   element("selection").textContent = system ? `Hex ${code}` : `Hex ${code} · Empty`;
   if (isTpv()) {
+    selectChartRow(code);
     const usedNames = new Set([system?.name]);
     inspectTpv(element("world"), element("tpv-profile"), sector, system, coordinate, roll,
       () => rollName(roll, usedNames), () => { renderTradeRoutes(); saveSector(); }, () => {
@@ -231,10 +232,51 @@ function renderTradeRoutes() {
   routeKey.textContent = tpv ? "Jump routes · Safe: double marks · Unsafe: solid · Dangerous: dashed" : `${routes.length} trade ${routes.length === 1 ? "route" : "routes"} · dashed gold lines`;
 }
 
+const chartLayout = element("sector-chart-layout");
+const chartList = element("tpv-chart");
+const chartDivider = element("tpv-divider");
+let mapShare = 65;
+
+function resizeChart(value) {
+  mapShare = Math.max(20, Math.min(85, Math.round(value)));
+  chartLayout.style.setProperty("--map-share", `${mapShare}fr`);
+  chartLayout.style.setProperty("--list-share", `${100 - mapShare}fr`);
+  chartDivider.setAttribute("aria-valuenow", mapShare);
+}
+
+chartDivider.addEventListener("pointerdown", event => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  chartDivider.setPointerCapture(event.pointerId);
+});
+chartDivider.addEventListener("pointermove", event => {
+  if (!chartDivider.hasPointerCapture(event.pointerId)) return;
+  const available = chartLayout.clientHeight - chartDivider.offsetHeight;
+  if (available > 0) resizeChart((event.clientY - chartLayout.getBoundingClientRect().top -
+    chartDivider.offsetHeight / 2) / available * 100);
+});
+chartDivider.addEventListener("keydown", event => {
+  const values = { ArrowUp: mapShare - 5, ArrowDown: mapShare + 5, Home: 20, End: 85 };
+  if (!Object.hasOwn(values, event.key)) return;
+  event.preventDefault();
+  resizeChart(values[event.key]);
+});
+
+function selectChartRow(code) {
+  chartList.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
+  const row = chartList.querySelector(`[data-hex="${code}"]`);
+  if (!row) return;
+  row.querySelector("button").setAttribute("aria-current", "true");
+  const bounds = row.getBoundingClientRect();
+  const viewport = chartList.getBoundingClientRect();
+  if (bounds.top < viewport.top) chartList.scrollTop += bounds.top - viewport.top;
+  if (bounds.bottom > viewport.bottom) chartList.scrollTop += bounds.bottom - viewport.bottom;
+}
+
 function setProfileOpen(open) {
   element("tpv-profile").hidden = !open;
-  element("tpv-chart").hidden = open || !isTpv();
-  map.closest(".map-stage").hidden = open;
+  chartList.hidden = !isTpv();
+  chartDivider.hidden = !isTpv();
+  chartLayout.hidden = open;
   element("map-title").parentElement.hidden = open;
 }
 
