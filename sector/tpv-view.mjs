@@ -58,8 +58,11 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   const status = node("select");
   for (const option of ["Wild", "Frontier", "Core"]) status.add(new Option(option));
   status.value = feature.status ?? "Wild";
-  const statusLabel = node("label", "System status");
-  statusLabel.append(status);
+  const statusLabel = node("label");
+  const statusText = node("span", "System status");
+  statusText.id = "tpv-system-status-label";
+  status.setAttribute("aria-labelledby", statusText.id);
+  statusLabel.append(statusText, status);
   status.addEventListener("change", () => {
     feature.status = status.value;
     save();
