@@ -358,3 +358,11 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .trade-routes .tpv-jump-1 line, .trade-routes .tpv-jump-2 { stroke-dasharray: none; }
 
 #tpv-divider[hidden] { display: none; }
+
+#world .tpv-detail-fields .inspector-group summary span { font-size: 1.15rem; }
+#world .tpv-detail-fields .inspector-group > small {
+  display: block;
+  margin-top: .45rem;
+  line-height: 1.45;
+}
+#world .tpv-detail-fields dd { overflow-wrap: anywhere; }
