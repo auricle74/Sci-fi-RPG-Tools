@@ -1,3 +1,5 @@
+import { validTradeRoutes } from "./trade-routes.mjs";
+
 export const presets = { swn: [8, 10], traveller: [8, 10], void: [10, 10] };
 export const profileFields = ["Atmosphere", "Temperature", "Biosphere", "Population", "Tech level"];
 export const validDimension = (value) => Number.isInteger(value) && value >= 1 && value <= 64;
@@ -70,6 +72,10 @@ export function readSector(json) {
       system.worlds.forEach(world);
     }
     if (system.locations !== undefined) locations(system.locations);
+  }
+  if (sector.tradeRoutes !== undefined) {
+    check(Array.isArray(sector.tradeRoutes) &&
+      validTradeRoutes(sector.tradeRoutes, sector.systems).length === sector.tradeRoutes.length);
   }
   return sector;
 }
