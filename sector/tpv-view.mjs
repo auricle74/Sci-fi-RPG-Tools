@@ -60,7 +60,10 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   status.value = feature.status ?? "Wild";
   const statusLabel = node("label", "System status");
   statusLabel.append(status);
-  if (feature.satellites) status.disabled = true;
+  status.addEventListener("change", () => {
+    feature.status = status.value;
+    save();
+  });
   const needsDetails = body => !body.development && canDevelopBody(body);
   const needsLifeforms = world => world.lifeforms === undefined && bearsLife(world.life);
   const complete = feature.satellites && !feature.satellites.some(body =>
@@ -76,13 +79,12 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
     });
     feature.status = systemStatus;
     status.value = systemStatus;
-    status.disabled = true;
     open.textContent = "Open System Profile";
     save();
   }
 
   function showProfile() {
-    renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, systemStatus => {
+    renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, status, systemStatus => {
       develop(systemStatus);
       inspector.replaceChildren(node("h3", feature.name), node("p", feature.type));
       showProfile();
@@ -309,10 +311,15 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
   return group;
 }
 
-function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, redevelop) {
+function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
-  const details = node("p", `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites`);
+  const details = node("p");
+  const updateDetails = () => {
+    details.textContent = `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites`;
+  };
+  updateDetails();
+  systemStatus.onchange = updateDetails;
   const orbits = node("div");
   orbits.className = "tpv-orbits";
   const star = node("section");
@@ -431,6 +438,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   const label = node("label", "New system status");
   label.append(status);
   const openForm = button("Redevelop System", () => {
+    status.value = feature.status;
     form.hidden = false;
     openForm.hidden = true;
     status.focus();
@@ -449,7 +457,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     event.preventDefault();
     redevelop(status.value);
   });
-  controls.append(button("Back to Sector Chart", back), openForm, form);
+  controls.append(button("Back to Sector Chart", back), statusLabel, openForm, form);
   profile.replaceChildren(controls, heading, details, orbits, entries);
   heading.focus();
 }
