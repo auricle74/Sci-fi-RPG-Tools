@@ -410,8 +410,19 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #tpv-divider[hidden] { display: none; }
 
 #world .tpv-detail-fields .inspector-group summary span { font-size: 1.15rem; }
-#world .tpv-detail-fields .tpv-settlement-places > details > summary > span { font-size: 1.05rem; }
-#world .tpv-detail-fields .tpv-settlement-places > details > details > summary > span { font-size: .95rem; }
+#world .tpv-detail-fields .tpv-settlement-places > .inspector-group,
+#world .tpv-detail-fields .tpv-settlement-places > .inspector-group > .inspector-group {
+  margin-inline-start: .35rem;
+  padding-inline-start: .65rem;
+  border-inline-start: 1px solid #52667e;
+}
+#world .tpv-detail-fields .tpv-settlement-places > details > summary > span {
+  font-size: 1rem;
+  color: #9de7e1;
+}
+#world .tpv-detail-fields .tpv-settlement-places > details > details > summary > span {
+  font-size: .9rem;
+}
 #world .tpv-detail-fields dd > small {
   display: block;
   margin-top: .25rem;
