@@ -31,9 +31,11 @@ const bounds = {
   Wild: [20, 30, 55, 85, 95, 100],
 };
 
-export function generateSociety({ id, name, status, indigenous = false, roll }) {
-  const techRoll = roll(100);
-  const tech = [10, 25, 45, 70, 99, 100].findIndex(limit => techRoll <= limit);
+export function generateSociety({ id, name, status, indigenous = false, minimumTech = 0, roll }) {
+  const techBounds = [10, 25, 45, 70, 99, 100];
+  const excluded = techBounds[minimumTech - 1] ?? 0;
+  const techRoll = excluded + roll(100 - excluded);
+  const tech = techBounds.findIndex(limit => techRoll <= limit);
   const conditionRoll = roll(100);
   const condition = (bounds[indigenous ? "Core" : status] ?? bounds.Wild).findIndex(limit => conditionRoll <= limit);
   const die = () => roll(10);

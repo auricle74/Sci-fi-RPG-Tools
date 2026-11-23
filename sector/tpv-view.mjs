@@ -257,11 +257,16 @@ function giantMoons(body) {
 function societyDetails(sector, feature, target, homeName, indigenous, roll, save, refresh) {
   const societies = sector.societies ?? [];
   const society = societies.find(item => item.id === target.societyId);
+  const minimumTech = ["Station", "Outpost"].includes(target.type) ? 3 : 0;
+  const eligible = societies.filter(item => item.tech >= minimumTech);
   const group = detailSection("Society", society ? [
     ["Name", society.name], ["Tech level", `TL${society.tech}`],
     ["Condition", society.condition], ["Political system", society.politics],
     ...(target.classification ? [["Populated area", `${society.area}% of habitable territory`]] : []),
   ] : []);
+  if (society && society.tech < minimumTech) {
+    group.append(node("p", "This society is below TL3. Unlink it to develop or choose a spacefaring society."));
+  }
   const link = id => {
     target.societyId = id;
     save();
@@ -271,7 +276,7 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
   const create = button("Develop Society", () => {
     const name = input.value.trim();
     if (!name) { input.reportValidity(); return; }
-    const generated = generateSociety({ id: crypto.randomUUID(), name, status: feature.status, indigenous, roll });
+    const generated = generateSociety({ id: crypto.randomUUID(), name, status: feature.status, indigenous, minimumTech, roll });
     (sector.societies ??= []).push(generated);
     link(generated.id);
   });
@@ -286,9 +291,9 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
     save();
     refresh();
   }));
-  if (!society && societies.length) {
+  if (!society && eligible.length) {
     const picker = node("select");
-    for (const candidate of societies) picker.add(new Option(candidate.name, candidate.id));
+    for (const candidate of eligible) picker.add(new Option(candidate.name, candidate.id));
     const label = node("label", "Existing society");
     label.append(picker);
     group.append(label, button("Link Society", () => link(picker.value)));
