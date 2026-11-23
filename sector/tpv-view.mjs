@@ -1,3 +1,4 @@
+import { developSettlement } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
 import { generateSociety } from "./tpv-societies.mjs";
@@ -222,13 +223,28 @@ function lifeformDetails(world) {
   ]))];
 }
 
-function centreDetails(centre) {
+function centreDetails(centre, roll, save, refresh) {
   const labels = ["Theme", "Appearance", "Complication"];
-  return detailSection("Population Centres", [
+  const group = detailSection("Population Centres", [
     ["Function", centre.purposes.join(" / ")], ["Population", centre.population.toLocaleString()],
     ...(centre.features.length ? [["Special features", centre.features.join(", ")]] : []),
     ...centre.prompts.map((text, index) => [labels[index], text]),
   ]);
+  const settlement = centre.settlement;
+  if (settlement) {
+    group.append(
+      detailSection("Settlement Situation", [["Local problem", settlement.problem], ["On arrival", settlement.arrival]]),
+      detailSection("Key People", settlement.people.map(person => [person.name, `${person.role}. ${person.motive}`])),
+      detailSection("Places to Visit", settlement.places.map(place => [place.name, place.detail])),
+    );
+  } else {
+    group.append(button("Develop Settlement", () => {
+      centre.settlement = developSettlement(centre, roll);
+      save();
+      refresh();
+    }));
+  }
+  return group;
 }
 
 export function moonName(host, index) {
@@ -368,7 +384,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
           if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
         };
-        const appendCentre = () => fields.append(centreDetails(centre),
+        const appendCentre = () => fields.append(centreDetails(centre, roll, save, show),
           societyDetails(sector, feature, centre, body.name, false, roll, save, show));
         if (planets.length) {
           fields.append(node("h4", "Planet"), orbitDetails(band));

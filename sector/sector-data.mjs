@@ -12,6 +12,14 @@ const record = (value) => value !== null && typeof value === "object" && !Array.
 const provenance = (value) => record(value) && value.id === "swn-revised" && value.version === "revised";
 
 const strings = value => Array.isArray(value) && value.every(item => typeof item === "string");
+function validSettlement(value) {
+  return record(value) && typeof value.problem === "string" && typeof value.arrival === "string" &&
+    Array.isArray(value.people) && value.people.every(person => record(person) &&
+      ["name", "role", "motive"].every(key => typeof person[key] === "string")) &&
+    Array.isArray(value.places) && value.places.every(place => record(place) &&
+      typeof place.name === "string" && typeof place.detail === "string");
+}
+
 function validDevelopment(data) {
   return record(data) && Array.isArray(data.worlds) && data.worlds.every(world => record(world) &&
     ["classification", "type", "position", "size", "climate", "gravity", "atmosphere", "composition",
@@ -25,7 +33,7 @@ function validDevelopment(data) {
         (lifeform.quantity === undefined || Number.isInteger(lifeform.quantity) && lifeform.quantity > 0)))) && (data.centre === undefined || record(data.centre) &&
       typeof data.centre.type === "string" && Number.isInteger(data.centre.population) &&
       data.centre.population > 0 && strings(data.centre.purposes) && strings(data.centre.features) &&
-      strings(data.centre.prompts));
+      strings(data.centre.prompts) && (data.centre.settlement === undefined || validSettlement(data.centre.settlement)));
 }
 
 export function readSector(json) {
