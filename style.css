@@ -437,3 +437,10 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   width: 1.65rem;
   transform: rotate(-22deg);
 }
+
+.hex .tpv-home-ring { fill: none; stroke: #f1cc87; stroke-width: 1; }
+.tpv-setting-society { margin-block: 1rem; padding: .75rem; border: 1px solid #52667e; border-radius: .4rem; }
+#tpv-profile label { margin-block: .5rem; }
+
+.hex .tpv-presence-ring { fill: none; stroke: #f1cc87; stroke-width: 1; }
+.hex .tpv-presence-frontier { stroke-dasharray: 2 2; }
