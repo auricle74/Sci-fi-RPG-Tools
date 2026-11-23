@@ -265,6 +265,18 @@ async function main() {
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await tpv.locator("#tpv-profile .tpv-orbit-marker").first().waitFor();
     assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
+    await tpv.getByRole("button", { name: "Redevelop System", exact: true }).click();
+    await tpv.getByLabel("New system status").selectOption("Wild");
+    await tpv.locator("#tpv-profile").getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
+    await tpv.getByRole("button", { name: "Redevelop System", exact: true }).click();
+    await tpv.getByLabel("New system status").selectOption("Wild");
+    await tpv.getByRole("button", { name: "Confirm Redevelopment" }).click();
+    assert.match(await tpv.locator("#tpv-profile > p").innerText(), /· Wild ·/);
+    assert.notDeepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
+    await tpv.reload();
+    await tpv.getByRole("button", { name: "Open System Profile" }).click();
+    assert.match(await tpv.locator("#tpv-profile > p").innerText(), /· Wild ·/);
     await tpv.getByRole("button", { name: "Back to Sector Chart" }).click();
     await tpv.locator("#tpv-chart").waitFor();
     assert.ok(await tpv.locator(".map-stage").isVisible());
