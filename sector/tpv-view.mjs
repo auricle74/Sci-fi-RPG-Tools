@@ -108,47 +108,92 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   inspector.append(statusLabel, factionLabel, open, routes);
 }
 
-function detailSection(title, explanation, rows = []) {
+function detailSection(title, rows = []) {
   const group = node("details");
   group.className = "inspector-group";
   group.open = true;
   const summary = node("summary");
   summary.append(node("span", title));
   group.append(summary);
-  if (explanation) group.append(node("small", explanation));
   if (rows.length) {
     const fields = node("dl");
     fields.className = "inspector-attributes";
-    for (const [label, value] of rows) fields.append(node("dt", label), node("dd", value));
+    for (const [label, value, explanation] of rows) {
+      const detail = node("dd", value);
+      if (explanation) detail.append(node("small", explanation));
+      fields.append(node("dt", label), detail);
+    }
     group.append(fields);
   }
   return group;
 }
 
-const centreExplanations = {
-  Outpost: "An isolated, self-contained settlement established for a particular job or service (p. 104).",
-  Station: "A largely self-sufficient settlement in space that may serve as a hub for travel and trade (p. 106).",
-  Colony: "A settlement established to give a starfaring society a foothold on another world (pp. 40, 108).",
+const orbitRanges = { Close: "1–2", Near: "3–5", Far: "6–8", Extreme: "9–10" };
+const gravityDetails = {
+  zero: "Objects and people drift without a downward pull.",
+  low: "Weaker than Earthlike gravity, making objects easier to lift.",
+  moderate: "Comparable to Earthlike gravity.",
+  heavy: "Stronger than Earthlike gravity, making movement more strenuous.",
+  crushing: "Extreme gravity makes ordinary human activity difficult.",
+};
+const climates = {
+  supercold: "Extreme cold requires advanced protection (p. 56).",
+  cold: "Low temperatures favour ice and frozen terrain (p. 57).",
+  temperate: "Moderate temperatures can support liquid water and a wide range of life (p. 58).",
+  hot: "High surface temperatures can make exposed water scarce and travel demanding (p. 59).",
+  superhot: "Extreme heat requires advanced protection (p. 60).",
+};
+const atmosphereDetails = {
+  "carbon dioxide": "An intense greenhouse effect may bring higher temperatures and dry windstorms (p. 62).",
+  methane: "Methane clouds, rain or storms are possible (p. 63).",
+  nitrogen: "Blue skies, clouds and storms are possible (p. 63).",
+  "nitrogen-oxygen": "Breathable by human standards, with weather such as rain, snow and storms (p. 63).",
+  "nitrogen-methane": "Methane clouds and precipitation are possible (p. 63).",
+  "sulfur dioxide": "Sulphurous clouds can give the sky a pale yellow tint (p. 63).",
+};
+const lifeDetails = {
+  none: "No native life indicated.",
+  microbial: "Life is microscopic.",
+  simple: "Life is multicellular but relatively simple.",
+  complex: "More complex organisms have evolved.",
 };
 
-function worldDetails(world, hasHost) {
-  const title = world.classification === "moon" ? "Moon" : hasHost ? "Host Planet" : "Planet";
-  const physical = detailSection(title,
-    "Size influences gravity and the number of moons. Gravity outside the moderate range can make human activity harder (p. 46).", [
+function orbitDetails(band) {
+  const zone = orbitZone(band);
+  return detailSection("Orbit Details", [
+    ["Band", String(band)], ["Zone", zone, `${zone} covers bands ${orbitRanges[zone]} (p. 52).`],
+  ]);
+}
+
+function worldDetails(world) {
+  return [
+    detailSection(world.classification === "moon" ? "Moon Details" : "Host Planet Details", [
       ["Classification", `${world.type} ${world.classification}`],
-      ["Size", world.size], ["Diameter", `${world.diameter.toLocaleString()} km`], ["Gravity", world.gravity],
-    ]);
-  const environment = detailSection("Environment",
-    "Climate and distance from the star affect the atmosphere. Its gases shape surface conditions and hazards. Water can persist as ice or vapour on worlds without an atmosphere (pp. 46–47).", [
-      ["Climate", world.climate],
-      ["Atmosphere", world.composition ? `${world.atmosphere} (${world.composition})` : world.atmosphere],
-      ["Water", `${world.water} (${world.waterPercent}%)`], ["Life", world.life], ["Resources", world.resources],
-    ]);
-  const sections = [physical, environment];
-  if (world.notes.length) sections.push(detailSection("World Features",
-    "Features describe what stands out about a world, including its terrain, hazards and life adaptations (pp. 49, 53, 64–71).",
-    world.notes.map((note, index) => [String(index + 1), note])));
-  return sections;
+      ["Size", world.size], ["Diameter", `${world.diameter.toLocaleString()} km`],
+      ["Gravity", world.gravity, gravityDetails[world.gravity.toLowerCase()]],
+    ]),
+    detailSection("Environment Details", [
+      ["Climate", world.climate, climates[world.climate.toLowerCase()]],
+      ["Atmosphere", world.composition ? `${world.atmosphere} (${world.composition})` : world.atmosphere,
+        atmosphereDetails[world.composition.toLowerCase()] ?? (world.atmosphere === "none" ? "No appreciable atmosphere." : "")],
+      ["Water", `${world.water} (${world.waterPercent}%)`,
+        world.waterPercent ? `Water covers ${world.waterPercent}% of the surface (p. 47).` : ""],
+      ["Life", world.life, lifeDetails[world.life.toLowerCase()]],
+      ["Resources", world.resources],
+    ]),
+    detailSection("World Features", world.notes.length
+      ? world.notes.map((note, index) => [String(index + 1), note])
+      : [["Features", "None recorded"]]),
+  ];
+}
+
+function centreDetails(centre) {
+  const labels = ["Theme", "Appearance", "Complication"];
+  return detailSection("Population Centres", [
+    ["Function", centre.purposes.join(" / ")], ["Population", centre.population.toLocaleString()],
+    ...(centre.features.length ? [["Special features", centre.features.join(", ")]] : []),
+    ...centre.prompts.map((text, index) => [labels[index], text]),
+  ]);
 }
 
 function renderProfile(profile, inspector, feature, coordinate, back) {
@@ -188,27 +233,31 @@ function renderProfile(profile, inspector, feature, coordinate, back) {
         header.append(node("small", body.type), node("h3", body.name));
         const fields = node("div");
         fields.className = "inspector-fields tpv-detail-fields";
-        fields.append(detailSection("Orbit",
-          "TPV groups distances from the host star into four zones. A world’s zone influences its climate and classification (p. 46).",
-          [["Band", String(band)], ["Zone", orbitZone(band)]]));
         const data = body.development;
-        for (const world of data?.worlds ?? []) fields.append(...worldDetails(world, data.worlds.length > 1));
-        if (data?.centre) {
-          const centre = data.centre;
-          fields.append(detailSection("Population Centre", centreExplanations[centre.type], [
-            ["Function", centre.purposes.join(" / ")], ["Population", centre.population.toLocaleString()],
-            ...(centre.features.length ? [["Special features", centre.features.join(", ")]] : []),
-          ]));
-          const labels = ["Theme", "Appearance", "Complication"];
-          fields.append(detailSection("Community",
-            "Use these three prompts together with the settlement’s circumstances to describe its character (pp. 101–102).",
-            centre.prompts.map((text, index) => [labels[index], text])));
+        const worlds = data?.worlds ?? [];
+        const centre = data?.centre;
+        const lunarCentre = /lunar/i.test(body.type);
+        const surfaceCentre = /planetary/i.test(body.type);
+        const planets = worlds.filter(world => world.classification === "planet");
+        const moons = worlds.filter(world => world.classification === "moon");
+        if (planets.length) {
+          fields.append(node("h4", "Planet"), orbitDetails(band));
+          for (const planet of planets) fields.append(...worldDetails(planet));
+          if (centre && surfaceCentre) fields.append(centreDetails(centre));
+        } else fields.append(orbitDetails(band));
+        if (moons.length) {
+          fields.append(node("h4", "Moon(s)"));
+          for (const moon of moons) fields.append(...worldDetails(moon));
+          if (centre && lunarCentre) fields.append(centreDetails(centre));
         }
-        if (body.features?.length) fields.append(detailSection("Features", "",
+        if (centre && !(lunarCentre && moons.length) && !(surfaceCentre && planets.length)) {
+          fields.append(centreDetails(centre));
+        }
+        if (body.features?.length) fields.append(detailSection("Features",
           body.features.map((text, index) => [String(index + 1), text])));
-        if (data?.worlds.length) {
-          const notation = detailSection("World Notation", "TPV’s compact reference format (p. 47).");
-          notation.append(...descriptions().slice(0, data.worlds.length).map(text => node("p", text)));
+        if (worlds.length) {
+          const notation = detailSection("World Notation");
+          notation.append(...descriptions().slice(0, worlds.length).map(text => node("p", text)));
           fields.append(notation);
         }
         inspector.replaceChildren(header, fields);
