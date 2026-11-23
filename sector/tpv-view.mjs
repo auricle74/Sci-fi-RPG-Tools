@@ -51,15 +51,19 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   const statusLabel = node("label", "System status");
   statusLabel.append(status);
   if (feature.satellites) status.disabled = true;
-  const open = button(feature.satellites ? "Open System Profile" : "Develop System", () => {
-    if (!feature.satellites) {
+  const needsDetails = body => !body.development && canDevelopBody(body);
+  const complete = feature.satellites && !feature.satellites.some(needsDetails);
+  const open = button(complete ? "Open System Profile" : "Develop System", () => {
+    if (!complete) {
+      const satellites = feature.satellites ?? developTpvSystem(feature.stars, status.value, roll, nameFor);
+      feature.satellites = satellites.map(body =>
+        needsDetails(body) ? { ...body, development: developBody(body, roll) } : body);
       feature.status = status.value;
-      feature.satellites = developTpvSystem(feature.stars, feature.status, roll, nameFor);
       status.disabled = true;
       open.textContent = "Open System Profile";
       save();
     }
-    renderProfile(profile, inspector, feature, coordinate, back, roll, save);
+    renderProfile(profile, inspector, feature, coordinate, back);
   });
   open.className = "tpv-open-profile";
   const faction = node("input");
@@ -104,7 +108,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   inspector.append(statusLabel, factionLabel, open, routes);
 }
 
-function renderProfile(profile, inspector, feature, coordinate, back, roll, save) {
+function renderProfile(profile, inspector, feature, coordinate, back) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
   const details = node("p", `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites${feature.faction ? ` · ${feature.faction}` : ""}`);
@@ -135,10 +139,6 @@ function renderProfile(profile, inspector, feature, coordinate, back, roll, save
         }
         return worlds;
       }
-      function updateSummary() {
-        const details = descriptions();
-        detailCell.replaceChildren(...(details.length ? details : [summary]).map(text => node("div", text)));
-      }
       function show() {
         inspector.replaceChildren(node("h3", body.name), node("p", summary),
           node("p", `Orbit ${band} · ${orbitZone(band)}`));
@@ -153,15 +153,6 @@ function renderProfile(profile, inspector, feature, coordinate, back, roll, save
             inspector.append(...data.centre.features.map(text => node("p", text)),
               ...data.centre.prompts.map((text, index) => node("p", `${labels[index]} · ${text}`)));
           }
-        } else if (canDevelopBody(body)) {
-          inspector.append(button("Develop World or Population Centre", () => {
-            body.development = developBody(body, roll);
-            save();
-            updateSummary();
-            show();
-            inspector.querySelector("h3").tabIndex = -1;
-            inspector.querySelector("h3").focus();
-          }));
         }
       }
       const graphic = node("span");
@@ -174,8 +165,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, roll, save
       const row = rows.insertRow();
       row.insertCell().append(button(body.name, show));
       row.insertCell().textContent = String(band);
-      const detailCell = row.insertCell();
-      updateSummary();
+      const details = descriptions();
+      row.insertCell().append(...(details.length ? details : [summary]).map(text => node("div", text)));
     }
     orbits.append(lane);
   }

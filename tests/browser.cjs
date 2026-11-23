@@ -257,9 +257,14 @@ async function main() {
     assert.equal(await tpv.locator(".map-stage").isVisible(), false);
     assert.equal(await tpv.locator("#tpv-chart").isVisible(), false);
     assert.equal(await tpv.locator("#tpv-profile .tpv-orbits section").count(), 11);
+    const developedRows = tpv.locator("#tpv-profile tbody tr");
+    const worldDetails = await developedRows.locator("td:last-child").allTextContents();
+    assert.ok(worldDetails.length > 0);
+    assert.ok(worldDetails.every(text => /G .+A .+W .+L .+R /.test(text)));
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await tpv.locator("#tpv-profile .tpv-orbit-marker").first().waitFor();
+    assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
     await tpv.getByRole("button", { name: "Back to Sector Chart" }).click();
     await tpv.locator("#tpv-chart").waitFor();
     assert.ok(await tpv.locator(".map-stage").isVisible());
