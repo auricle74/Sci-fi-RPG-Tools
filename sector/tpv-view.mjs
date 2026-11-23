@@ -238,6 +238,7 @@ function centreDetails(centre, roll, save, refresh) {
 
     );
     const places = detailSection("Places to Visit");
+    places.classList.add("tpv-settlement-places");
     for (const place of settlement.places) {
       const location = detailSection(place.name);
       location.append(node("p", place.detail));
