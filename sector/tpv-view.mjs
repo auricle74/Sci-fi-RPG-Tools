@@ -1,3 +1,4 @@
+import { canDevelopBody, developBody, worldNotation } from "./tpv-development.mjs";
 import { developTpvSystem, jumpRisk, orbitZone, tpvDistance } from "./tpv.mjs";
 
 function node(tag, text) {
@@ -58,7 +59,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
       open.textContent = "Open System Profile";
       save();
     }
-    renderProfile(profile, inspector, feature, coordinate, back);
+    renderProfile(profile, inspector, feature, coordinate, back, roll, save);
   });
   open.className = "tpv-open-profile";
   const faction = node("input");
@@ -103,7 +104,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   inspector.append(statusLabel, factionLabel, open, routes);
 }
 
-function renderProfile(profile, inspector, feature, coordinate, back) {
+function renderProfile(profile, inspector, feature, coordinate, back, roll, save) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
   const details = node("p", `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites${feature.faction ? ` · ${feature.faction}` : ""}`);
@@ -121,8 +122,48 @@ function renderProfile(profile, inspector, feature, coordinate, back) {
     lane.append(node("h3", `${band} · ${orbitZone(band)}`));
     for (const body of feature.satellites.filter(satellite => satellite.band === band)) {
       const summary = [body.type, body.size, ...(body.features ?? [])].filter(Boolean).join(" · ");
-      const show = () => inspector.replaceChildren(node("h3", body.name), node("p", summary),
-        node("p", `Orbit ${band} · ${orbitZone(band)}`));
+      function descriptions() {
+        const data = body.development;
+        if (!data) return [];
+        const worlds = data.worlds.map(world => {
+          const name = data.worlds.length > 1 && world.classification === "planet" ? `${body.name} (host)` : body.name;
+          return worldNotation(name, world);
+        });
+        if (data.centre) {
+          const centre = data.centre;
+          worlds.push(`${body.type} · ${centre.purposes.join(" / ")} · Population ${centre.population.toLocaleString()}`);
+        }
+        return worlds;
+      }
+      function updateSummary() {
+        const details = descriptions();
+        detailCell.replaceChildren(...(details.length ? details : [summary]).map(text => node("div", text)));
+      }
+      function show() {
+        inspector.replaceChildren(node("h3", body.name), node("p", summary),
+          node("p", `Orbit ${band} · ${orbitZone(band)}`));
+        const data = body.development;
+        if (data) {
+          inspector.append(...descriptions().map(text => node("p", text)));
+          for (const world of data.worlds) {
+            inspector.append(node("p", `${world.classification === "moon" ? "Moon" : "Planet"} diameter: ${world.diameter.toLocaleString()} km`));
+          }
+          if (data.centre) {
+            const labels = ["Theme", "Appearance", "Complication"];
+            inspector.append(...data.centre.features.map(text => node("p", text)),
+              ...data.centre.prompts.map((text, index) => node("p", `${labels[index]} · ${text}`)));
+          }
+        } else if (canDevelopBody(body)) {
+          inspector.append(button("Develop World or Population Centre", () => {
+            body.development = developBody(body, roll);
+            save();
+            updateSummary();
+            show();
+            inspector.querySelector("h3").tabIndex = -1;
+            inspector.querySelector("h3").focus();
+          }));
+        }
+      }
       const graphic = node("span");
       graphic.className = `tpv-body tpv-${body.kind} tpv-size-${body.size?.toLowerCase() ?? "standard"}`;
       graphic.setAttribute("aria-hidden", "true");
@@ -133,7 +174,8 @@ function renderProfile(profile, inspector, feature, coordinate, back) {
       const row = rows.insertRow();
       row.insertCell().append(button(body.name, show));
       row.insertCell().textContent = String(band);
-      row.insertCell().textContent = summary;
+      const detailCell = row.insertCell();
+      updateSummary();
     }
     orbits.append(lane);
   }
