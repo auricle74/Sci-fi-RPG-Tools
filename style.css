@@ -410,6 +410,8 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #tpv-divider[hidden] { display: none; }
 
 #world .tpv-detail-fields .inspector-group summary span { font-size: 1.15rem; }
+#world .tpv-detail-fields .tpv-settlement-places > details > summary > span { font-size: 1.05rem; }
+#world .tpv-detail-fields .tpv-settlement-places > details > details > summary > span { font-size: .95rem; }
 #world .tpv-detail-fields dd > small {
   display: block;
   margin-top: .25rem;
