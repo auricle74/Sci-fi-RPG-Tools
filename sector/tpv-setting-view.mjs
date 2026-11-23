@@ -1,3 +1,4 @@
+import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
 import { generateSociety } from "./tpv-societies.mjs";
 import { availablePresence, relationships, rollRelationship } from "./tpv-factions.mjs";
 
@@ -22,6 +23,15 @@ function picker(text, options) {
   return { label, select };
 }
 
+function pickerName(name) {
+  const label = node("label", "Faction name");
+  const input = node("input");
+  input.required = true;
+  input.value = name;
+  label.append(input);
+  return { label, input };
+}
+
 export function renderSetting(container, sector, coordinate, roll, save, openSystem, back) {
   const societies = sector.societies ?? [];
   const systems = new Map(sector.systems.filter(system => system.stars).map(system => [system.id, system]));
@@ -38,16 +48,21 @@ export function renderSetting(container, sector, coordinate, roll, save, openSys
   const nameLabel = node("label", "New interstellar society name");
   const name = node("input");
   name.required = true;
+  name.value = rollFactionName(roll, { place: sector.name });
   nameLabel.append(name);
   const submit = node("button", "Develop Interstellar Society");
   submit.type = "submit";
-  create.append(nameLabel, submit);
+  create.append(nameLabel, button("New Name", () => {
+    name.value = rollFactionName(roll, { place: sector.name });
+  }), submit);
   create.addEventListener("submit", event => {
     event.preventDefault();
     if (!name.value.trim()) return;
-    (sector.societies ??= []).push(generateSociety({
+    const society = generateSociety({
       id: crypto.randomUUID(), name: name.value.trim(), status: "Core", minimumTech: 3, roll,
-    }));
+    });
+    society.faction = generateFactionProfile(roll, { interstellar: true });
+    (sector.societies ??= []).push(society);
     refresh();
   });
   content.push(create);
@@ -90,6 +105,44 @@ export function renderSetting(container, sector, coordinate, roll, save, openSys
         }));
       } else section.append(node("p", "No unclaimed systems qualify over the current jump routes."));
     }
+    const place = systems.get(society.homeSystemId)?.name;
+    const faction = node("details");
+    faction.className = "inspector-group";
+    faction.open = true;
+    faction.append(node("summary", "Faction Profile"));
+    if (society.faction) {
+      const fields = node("dl");
+      fields.className = "inspector-attributes";
+      for (const [label, value] of factionRows(society.faction, place)) {
+        fields.append(node("dt", label), node("dd", value));
+      }
+      faction.append(fields, node("h4", "Faction Notation"), node("p", factionNotation(society.name, society.faction, place)));
+    } else {
+      faction.append(button("Develop Faction Profile", () => {
+        const spansSystems = Boolean(society.coreSystems?.length || society.frontierSystems?.length);
+        society.faction = generateFactionProfile(roll, {
+          interstellar: spansSystems,
+          minimumSystem: Boolean(society.homeSystemId),
+        });
+        refresh();
+      }));
+    }
+    const rename = pickerName(society.name);
+    faction.append(rename.label, button("Roll Faction Name", () => {
+      rename.input.value = rollFactionName(roll, {
+        place: place || society.faction?.base || sector.name,
+        surname: society.faction?.leader.surname,
+      });
+    }), button("Save Name", () => {
+      if (!rename.input.value.trim()) {
+        rename.input.value = "";
+        rename.input.reportValidity();
+        return;
+      }
+      society.name = rename.input.value.trim();
+      refresh();
+    }));
+    section.append(faction);
     content.push(section);
   }
 
