@@ -192,6 +192,37 @@ async function main() {
     tags.once("dialog", dialog => dialog.accept());
     await tags.getByRole("button", { name: "Delete tag" }).click();
     await tags.getByText("Tag deleted.", { exact: true }).waitFor();
+    const routeFixture = JSON.parse(exported);
+    routeFixture.selectedHex = { column: 1, row: 1 };
+    routeFixture.generateTradeRoutes = false;
+    routeFixture.tradeRoutes = [];
+    routeFixture.systems = [
+      ["origin", "Origin", 1], ["near", "Near", 2], ["edge", "Edge", 4], ["far", "Far", 5],
+    ].map(([id, name, column]) => ({
+      id, name, column, row: 1, ruleset: routeFixture.ruleset, mainWorld: null,
+    }));
+    page.once("dialog", dialog => dialog.accept());
+    await input.setInputFiles({
+      name: "routes.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(routeFixture)),
+    });
+    await page.getByRole("heading", { name: "Origin", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Add Trade Route" }).click();
+    const destination = page.getByRole("combobox", { name: "Destination", exact: true });
+    assert.deepEqual(await destination.locator("option").evaluateAll(options => options.map(option => option.value)),
+      ["", "near", "edge"]);
+    await destination.selectOption("near");
+    await page.getByRole("button", { name: "Save route" }).click();
+    assert.equal(await tradeLines.count(), 1);
+    await page.getByRole("button", { name: "Edit route to Near" }).click();
+    await destination.selectOption("edge");
+    await page.getByRole("button", { name: "Save route" }).click();
+    await page.reload();
+    await page.getByRole("button", { name: "Edit route to Edge" }).waitFor();
+    page.once("dialog", dialog => dialog.accept());
+    await page.getByRole("button", { name: "Delete route to Edge" }).click();
+    assert.equal(await tradeLines.count(), 0);
+    await page.reload();
+    await page.getByText("No trade routes.", { exact: true }).waitFor();
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();
