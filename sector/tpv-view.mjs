@@ -1,3 +1,4 @@
+import { orbitalAppearance } from "./tpv-graphics.mjs";
 import { canDevelopBody, developBody, worldNotation } from "./tpv-development.mjs";
 import { developTpvSystem, jumpRisk, orbitZone, tpvDistance } from "./tpv.mjs";
 
@@ -263,7 +264,13 @@ function renderProfile(profile, inspector, feature, coordinate, back) {
         inspector.replaceChildren(header, fields);
       }
       const graphic = node("span");
-      graphic.className = `tpv-body tpv-${body.kind} tpv-size-${body.size?.toLowerCase() ?? "standard"}`;
+      const appearance = orbitalAppearance(body);
+      graphic.className = `tpv-body tpv-${appearance.kind} tpv-size-${appearance.size}`;
+      if (appearance.colour) graphic.style.setProperty("--world-colour", appearance.colour);
+      if (appearance.rings) {
+        graphic.classList.add("tpv-ringed");
+        graphic.classList.toggle("tpv-multiple-rings", appearance.rings > 1);
+      }
       graphic.setAttribute("aria-hidden", "true");
       const marker = button(body.name, show);
       marker.className = "tpv-orbit-marker";
