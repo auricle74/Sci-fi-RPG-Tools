@@ -10,11 +10,10 @@ const atmospheres = {
 };
 
 export function orbitalAppearance(body) {
-  // A populated surface still belongs to a world, even in saves where its kind is "station".
+  // TPV's satellite for an orbital space station is its host planet (p. 41).
+  // Standalone stations and orbital outposts have no developed host world.
   const worlds = body.development?.worlds ?? [];
-  const world = /space station|orbital outpost/i.test(body.type ?? "")
-    ? undefined
-    : worlds.find(world => world.classification === "planet") ?? worlds[0];
+  const world = worlds.find(world => world.classification === "planet") ?? worlds[0];
   const kind = world?.classification ?? body.kind;
   const size = (world?.size ?? body.size)?.toLowerCase() ?? "standard";
   const colour = world && (world.atmosphere === "none" ? "#9b9790" : atmospheres[world.composition.toLowerCase()]);

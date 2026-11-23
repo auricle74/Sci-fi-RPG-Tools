@@ -392,7 +392,18 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       graphic.setAttribute("aria-hidden", "true");
       const marker = button(body.name, show);
       marker.className = "tpv-orbit-marker";
-      marker.prepend(graphic);
+      if (appearance.kind === "planet" && /^orbital space station$/i.test(body.type)) {
+        const pair = node("span");
+        pair.className = "tpv-planet-station";
+        pair.setAttribute("aria-hidden", "true");
+        const station = node("span");
+        station.className = "tpv-body tpv-station";
+        pair.append(graphic, station);
+        marker.setAttribute("aria-label", `${body.name} (planet with orbital space station)`);
+        marker.prepend(pair);
+      } else {
+        marker.prepend(graphic);
+      }
       lane.append(marker);
       const row = rows.insertRow();
       row.insertCell().append(button(body.name, show));
