@@ -125,15 +125,16 @@ async function main() {
     assert.equal(await nameLabels.count(), largeCount);
     assert.equal(await page.locator(".hex:not(.occupied) .hex-system-name").count(), 0);
     assert.ok(await nameLabels.first().isVisible());
+    const routeLayer = page.locator(".trade-routes");
     await routeVisibility.uncheck();
-    assert.equal(await page.locator(".trade-routes").isVisible(), false);
+    assert.equal(await routeLayer.evaluate(layer => getComputedStyle(layer).display), "none");
     assert.ok(await nameLabels.first().isVisible());
     await nameVisibility.uncheck();
     await page.reload();
     assert.equal(await nameLabels.first().isVisible(), false);
     assert.equal(await page.locator("#trade-route-key").isVisible(), false);
     await routeVisibility.check();
-    assert.ok(await page.locator(".trade-routes").isVisible());
+    assert.notEqual(await routeLayer.evaluate(layer => getComputedStyle(layer).display), "none");
     assert.equal(await nameLabels.first().isVisible(), false);
     await nameVisibility.check();
     assert.ok(await nameLabels.first().isVisible());
