@@ -17,7 +17,11 @@ function validDevelopment(data) {
       "water", "life", "resources"].every(key => typeof world[key] === "string") &&
     Number.isInteger(world.diameter) && world.diameter > 0 &&
     Number.isInteger(world.waterPercent) && world.waterPercent >= 0 && world.waterPercent <= 100 &&
-    strings(world.notes)) && (data.centre === undefined || record(data.centre) &&
+    strings(world.notes) && (world.lifeforms === undefined || Array.isArray(world.lifeforms) &&
+      world.lifeforms.every(lifeform => record(lifeform) && typeof lifeform.form === "string" &&
+        ["Microbial", "Simple", "Complex", "Advanced"].includes(lifeform.level) && strings(lifeform.traits) &&
+        (lifeform.size === undefined || typeof lifeform.size === "string") &&
+        (lifeform.quantity === undefined || Number.isInteger(lifeform.quantity) && lifeform.quantity > 0)))) && (data.centre === undefined || record(data.centre) &&
       typeof data.centre.type === "string" && Number.isInteger(data.centre.population) &&
       data.centre.population > 0 && strings(data.centre.purposes) && strings(data.centre.features) &&
       strings(data.centre.prompts));
