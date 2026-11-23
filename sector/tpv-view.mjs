@@ -228,6 +228,31 @@ function centreDetails(centre) {
   ]);
 }
 
+export function moonName(host, index) {
+  let letters = "";
+  for (let number = index + 1; number > 0; number = Math.floor((number - 1) / 26)) {
+    letters = String.fromCharCode(65 + (number - 1) % 26) + letters;
+  }
+  return `${host} ${letters}`;
+}
+
+function developedMoonName(body, index) {
+  // Lunar outposts and colonies represent off-world settlers; a populated moon
+  // alone does not identify its inhabitants or imply a human settlement.
+  if (index === 0 && /^lunar (outpost|colony)$/i.test(body.type)) return body.name;
+  return moonName(body.name, index);
+}
+
+function giantMoons(body) {
+  const counts = body.features?.map(feature =>
+    feature.match(/^\d+ moons · Moonlets per moon: (\d+(?:, \d+)*)$/)?.[1]).filter(Boolean) ?? [];
+  return counts.flatMap(count => count.split(", ")).map((count, index) => {
+    const name = moonName(body.name, index);
+    const moonlets = Array.from({ length: Math.min(5, Number(count)) }, (_, n) => `${name}${n + 1}`);
+    return [name, moonlets.join(", ") || "No moonlets"];
+  });
+}
+
 function renderProfile(profile, inspector, feature, coordinate, back, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
@@ -246,13 +271,14 @@ function renderProfile(profile, inspector, feature, coordinate, back, redevelop)
     lane.append(node("h3", `${band} · ${orbitZone(band)}`));
     for (const body of feature.satellites.filter(satellite => satellite.band === band)) {
       const summary = [body.type, body.size, ...(body.features ?? [])].filter(Boolean).join(" · ");
+      const namedMoons = giantMoons(body);
       function descriptions() {
         const data = body.development;
         if (!data) return [];
-        const worlds = data.worlds.map(world => {
-          const name = data.worlds.length > 1 && world.classification === "planet" ? `${body.name} (host)` : body.name;
-          return worldNotation(name, world);
-        });
+        let moonIndex = 0;
+        const worlds = data.worlds.map(world => worldNotation(
+          world.classification === "moon" ? developedMoonName(body, moonIndex++) :
+            /^lunar (outpost|colony)$/i.test(body.type) ? `${body.name} (host)` : body.name, world));
         if (data.centre) {
           const centre = data.centre;
           worlds.push(`${body.type} · ${centre.purposes.join(" / ")} · Population ${centre.population.toLocaleString()}`);
@@ -279,7 +305,9 @@ function renderProfile(profile, inspector, feature, coordinate, back, redevelop)
         } else fields.append(orbitDetails(band));
         if (moons.length) {
           fields.append(node("h4", "Moon(s)"));
-          for (const moon of moons) fields.append(...worldDetails(moon), ...lifeformDetails(moon));
+          for (const [index, moon] of moons.entries()) {
+            fields.append(node("h5", developedMoonName(body, index)), ...worldDetails(moon), ...lifeformDetails(moon));
+          }
           if (centre && lunarCentre) fields.append(centreDetails(centre));
         }
         if (centre && !(lunarCentre && moons.length) && !(surfaceCentre && planets.length)) {
@@ -287,6 +315,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, redevelop)
         }
         if (body.features?.length) fields.append(detailSection("Features",
           body.features.map((text, index) => [String(index + 1), text])));
+        if (namedMoons.length) fields.append(detailSection("Moon(s)", namedMoons));
         if (worlds.length) {
           const notation = detailSection("World Notation");
           notation.append(...descriptions().slice(0, worlds.length).map(text => node("p", text)));
@@ -311,6 +340,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, redevelop)
       row.insertCell().append(button(body.name, show));
       row.insertCell().textContent = String(band);
       const details = descriptions();
+      if (namedMoons.length) details.push(summary, ...namedMoons.map(([name, moonlets]) => `${name} · ${moonlets}`));
       row.insertCell().append(...(details.length ? details : [summary]).map(text => node("div", text)));
     }
     orbits.append(lane);
