@@ -305,7 +305,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .sector-options label[hidden], .tpv-map [hidden] { display: none; }
 .tpv-map { display: block; overflow: auto; }
 .tpv-map .map-stage { height: clamp(17rem, 64vh, 42rem); }
-.tpv-map .tpv-feature-mark { font-size: 14px; fill: #9de7e1; }
+.tpv-feature-mark { pointer-events: none; }
 #tpv-chart, #tpv-profile { padding: 1rem; }
 .tpv-map table { width: 100%; border-collapse: collapse; text-align: left; }
 .tpv-map td, .tpv-map th { border-bottom: 1px solid #34495c; padding: .4rem; }
