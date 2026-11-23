@@ -253,12 +253,16 @@ async function main() {
     await tpv.getByLabel("System status").selectOption("Core");
     await tpv.getByRole("button", { name: "Develop System" }).click();
     await tpv.locator("#tpv-profile .tpv-orbits").waitFor();
+    assert.equal(await tpv.locator("#sector-chart-layout").isVisible(), false);
+    assert.equal(await tpv.locator(".map-stage").isVisible(), false);
+    assert.equal(await tpv.locator("#tpv-chart").isVisible(), false);
     assert.equal(await tpv.locator("#tpv-profile .tpv-orbits section").count(), 11);
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await tpv.locator("#tpv-profile .tpv-orbit-marker").first().waitFor();
     await tpv.getByRole("button", { name: "Back to Sector Chart" }).click();
     await tpv.locator("#tpv-chart").waitFor();
+    assert.ok(await tpv.locator(".map-stage").isVisible());
     assert.deepEqual(tpvErrors, []);
   } finally {
     await browser.close();
