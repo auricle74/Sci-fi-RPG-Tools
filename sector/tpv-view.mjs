@@ -29,7 +29,8 @@ export function renderChart(container, features, coordinate, select) {
   const body = chart.createTBody();
   for (const feature of features) {
     const row = body.insertRow();
-    row.insertCell().append(button(coordinate(feature.column, feature.row), () => select(feature)));
+    row.dataset.hex = coordinate(feature.column, feature.row);
+    row.insertCell().append(button(row.dataset.hex, () => select(feature)));
     row.insertCell().textContent = `${feature.name} · ${feature.type}`;
   }
   container.replaceChildren(node("h3", "Subsectors of interest"), chart);

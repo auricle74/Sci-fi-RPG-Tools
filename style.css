@@ -303,8 +303,27 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .trade-route-actions button { font-size: .85rem; }
 
 .sector-options label[hidden], .tpv-map [hidden] { display: none; }
-.tpv-map { display: block; overflow: auto; }
-.tpv-map .map-stage { height: clamp(17rem, 64vh, 42rem); }
+#sector-chart-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+.tpv-map #sector-chart-layout {
+  grid-template-rows: minmax(0, var(--map-share, 65fr)) 16px minmax(0, var(--list-share, 35fr));
+}
+.tpv-map:has(#sector-chart-layout[hidden]) { grid-template-rows: minmax(0, 1fr); }
+#tpv-divider {
+  background: #172637;
+  cursor: row-resize;
+  touch-action: none;
+  display: grid;
+  place-items: center;
+}
+#tpv-divider::before { content: ""; width: 2.5rem; height: 3px; border-radius: 2px; background: #9de7e1; }
+#tpv-divider:hover { background: #294253; }
+#tpv-chart, #tpv-profile { min-height: 0; overflow: auto; }
+#tpv-chart tr:has(button[aria-current="true"]) { background: #233e50; }
+#tpv-chart tr:has(button[aria-current="true"]) td:first-child { box-shadow: inset 3px 0 #9de7e1; }
 .tpv-feature-mark { pointer-events: none; }
 #tpv-chart, #tpv-profile { padding: 1rem; }
 .tpv-map table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -337,3 +356,5 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .hex.tpv-nebula-coverage:not([aria-pressed="true"]) polygon { fill: #302452; }
 .tpv-orbit-star { background: radial-gradient(circle at 50% 75%, #bd713a, transparent 55%); }
 .trade-routes .tpv-jump-1 line, .trade-routes .tpv-jump-2 { stroke-dasharray: none; }
+
+#tpv-divider[hidden] { display: none; }

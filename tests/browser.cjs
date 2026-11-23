@@ -234,6 +234,22 @@ async function main() {
     await tpv.getByRole("button", { name: "Generate sector", exact: true }).click();
     assert.equal(await tpv.locator(".hex").count(), 100);
     assert.equal(await tpv.locator("#tpv-chart tbody tr").count(), 20);
+    const divider = tpv.getByRole("separator", { name: "Resize map and subsector list" });
+    const mapStage = tpv.locator(".map-stage");
+    const originalHeight = (await mapStage.boundingBox()).height;
+    await divider.press("ArrowUp");
+    assert.ok((await mapStage.boundingBox()).height < originalHeight);
+    await divider.press("End");
+    assert.ok((await mapStage.boundingBox()).height > originalHeight);
+    const lastHex = tpv.locator(".hex.occupied").last();
+    await lastHex.dispatchEvent("click");
+    const chosen = [await lastHex.getAttribute("data-column"), await lastHex.getAttribute("data-row")]
+      .map(part => part.padStart(2, "0")).join("");
+    assert.equal(await tpv.locator("#tpv-chart button[aria-current=true]").innerText(), chosen);
+    assert.ok(await tpv.locator("#tpv-chart").evaluate(list => list.scrollTop > 0));
+    await tpv.locator(".hex:not(.occupied)").first().dispatchEvent("click");
+    assert.equal(await tpv.locator("#tpv-chart button[aria-current=true]").count(), 0);
+    await tpv.locator("#tpv-chart tbody button").first().click();
     await tpv.getByLabel("System status").selectOption("Core");
     await tpv.getByRole("button", { name: "Develop System" }).click();
     await tpv.locator("#tpv-profile .tpv-orbits").waitFor();
