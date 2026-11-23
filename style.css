@@ -43,7 +43,7 @@ output { color: #9de7e1; font-weight: 600; }
 svg { display: block; }
 .hex { cursor: pointer; }
 .hex polygon { stroke: #496176; fill: #142333; }
-.hex text { fill: #c7d6e4; font-size: 9px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.hex text { fill: #c7d6e4; font-size: 7px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .hex:hover polygon { fill: #243e51; }
 .hex[aria-pressed="true"] polygon { fill: #234e56; stroke: #9de7e1; stroke-width: 2; }
 #map .hex:focus { outline: none; }
