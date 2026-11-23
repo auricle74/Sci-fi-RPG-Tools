@@ -1,3 +1,4 @@
+import { tpvDistance, tpvRules } from "./tpv.mjs";
 import { validTradeRoutes } from "./trade-routes.mjs";
 
 export const presets = { swn: [8, 10], traveller: [8, 10], void: [10, 10] };
@@ -42,7 +43,8 @@ export function readSector(json) {
     if (value.locations !== undefined) locations(value.locations);
   }
   identify(sector);
-  check(sector.schemaVersion === 1 && provenance(sector.ruleset) &&
+  const tpv = sector.ruleset?.id === tpvRules.id && sector.ruleset.version === tpvRules.version;
+  check(sector.schemaVersion === 1 && (tpv || provenance(sector.ruleset)) &&
     record(sector.grid) && record(sector.selectedHex) && Array.isArray(sector.systems));
   check(sector.name === undefined || typeof sector.name === "string");
   check(sector.generateTradeRoutes === undefined || typeof sector.generateTradeRoutes === "boolean");
@@ -50,6 +52,7 @@ export function readSector(json) {
   check(sector.starCountPolicy === undefined || ["fixed", "scaled"].includes(sector.starCountPolicy));
   const { grid } = sector;
   check(validDimension(grid.width) && validDimension(grid.height) && validHex(sector.selectedHex, grid));
+  if (tpv) check(grid.preset === "void" && !sector.generateTradeRoutes);
   if (grid.preset === "traveller" && grid.width === 32 && grid.height === 40) grid.preset = "custom";
   if (grid.preset !== "custom") {
     check(Object.hasOwn(presets, grid.preset) &&
@@ -57,10 +60,31 @@ export function readSector(json) {
   }
   for (const system of sector.systems) {
     identify(system);
-    check(provenance(system.ruleset) && typeof system.name === "string" && validHex(system, grid));
+    check((tpv ? system.ruleset?.id === tpvRules.id && system.ruleset.version === tpvRules.version :
+      provenance(system.ruleset)) && typeof system.name === "string" && validHex(system, grid));
     const hex = `${system.column},${system.row}`;
     check(!coords.has(hex));
     coords.add(hex);
+    if (tpv) {
+      check(system.faction === undefined || typeof system.faction === "string");
+      check(["star", "nebula", "anomaly"].includes(system.kind) && typeof system.type === "string");
+      if (system.kind === "star" || system.type === "Sentient star" || system.stars !== undefined) {
+        check(Array.isArray(system.stars) && system.stars.length && system.stars.every(star =>
+          record(star) && typeof star.type === "string" && [0, 1, 2].includes(star.dice) &&
+          Number.isInteger(star.penalty) && star.penalty >= 0 && star.penalty <= 5));
+      }
+      if (system.coverage !== undefined) check(Array.isArray(system.coverage) &&
+        system.coverage.every(cell => record(cell) && validHex(cell, grid)));
+      if (system.satellites !== undefined) check(system.stars &&
+        ["Core", "Frontier", "Wild"].includes(system.status) && Array.isArray(system.satellites) &&
+        system.satellites.every(body => record(body) && Number.isInteger(body.band) && body.band >= 1 &&
+          body.band <= 10 && typeof body.name === "string" && typeof body.type === "string" &&
+          ["planet", "moon", "station", "giant", "asteroid", "phenomenon"].includes(body.kind) &&
+          (body.size === undefined || ["Tiny", "Small", "Medium", "Large", "Huge"].includes(body.size)) &&
+          (body.features === undefined || Array.isArray(body.features) &&
+            body.features.every(feature => typeof feature === "string"))));
+      continue;
+    }
     check(system.description === undefined || typeof system.description === "string");
     if (system.tags !== undefined) {
       check(Array.isArray(system.tags) &&
@@ -75,7 +99,8 @@ export function readSector(json) {
   }
   if (sector.tradeRoutes !== undefined) {
     check(Array.isArray(sector.tradeRoutes) &&
-      validTradeRoutes(sector.tradeRoutes, sector.systems).length === sector.tradeRoutes.length);
+      validTradeRoutes(sector.tradeRoutes, tpv ? sector.systems.filter(system => system.stars) : sector.systems,
+        tpv ? tpvDistance : undefined).length === sector.tradeRoutes.length);
   }
   return sector;
 }
