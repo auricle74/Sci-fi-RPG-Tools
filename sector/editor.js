@@ -1,5 +1,5 @@
 import { bookTags, catalogueTags } from "./tag-catalogue.mjs";
-import { findTradeRoutes } from "./trade-routes.mjs";
+import { findTradeRoutes, validTradeRoutes } from "./trade-routes.mjs";
 import { generateSystems, rollName, starCount } from "./swn.mjs";
 import { presets, readSector, validDimension } from "./sector-data.mjs";
 import { showInspector } from "./inspector.mjs";
@@ -23,7 +23,7 @@ const routeKey = element("trade-route-key");
 function syncVisibility() {
   map.classList.toggle("hide-trade-routes", !showTradeRoutes.checked);
   map.classList.toggle("hide-system-names", !showSystemNames.checked);
-  routeKey.hidden = !sector.generateTradeRoutes || !showTradeRoutes.checked;
+  routeKey.hidden = !sector.tradeRoutes.length || !showTradeRoutes.checked;
 }
 
 for (const control of [showTradeRoutes, showSystemNames]) {
@@ -127,6 +127,7 @@ function selectHex(column, row, focus = false) {
   target.setAttribute("aria-pressed", "true");
   sector.selectedHex = { column, row };
   const system = systems.get(code);
+  tradeRoutes.querySelector(".highlighted-route")?.classList.remove("highlighted-route");
   element("selection").textContent = system ? `Hex ${code}` : `Hex ${code} · Empty`;
   showInspector(element("world"), sector, system, {
     save() {
@@ -137,6 +138,11 @@ function selectHex(column, row, focus = false) {
       renderTradeRoutes();
       saveSector();
     }, render: renderMap, roll,
+    highlightRoute(index) {
+      for (const [position, line] of Array.from(tradeRoutes.children).entries()) {
+        line.classList.toggle("highlighted-route", position === index);
+      }
+    },
   });
   if (focus) target.focus();
   saveSector();
@@ -151,10 +157,11 @@ function svgElement(name, attributes) {
 const tradeRoutes = svgElement("g", { class: "trade-routes", "aria-hidden": "true" });
 
 function renderTradeRoutes() {
-  const routes = sector.generateTradeRoutes
-    ? findTradeRoutes(sector.systems, [...catalogueTags(), ...bookTags])
-    : [];
-  tradeRoutes.replaceChildren(...routes.map(([first, second]) => {
+  sector.tradeRoutes = validTradeRoutes(sector.tradeRoutes, sector.systems);
+  const routes = sector.tradeRoutes;
+  const byId = new Map(sector.systems.map(system => [system.id, system]));
+  tradeRoutes.replaceChildren(...routes.map(route => {
+    const [first, second] = route.map(id => byId.get(id));
     const [x1, y1] = hexCentres.get(coordinate(first.column, first.row));
     const [x2, y2] = hexCentres.get(coordinate(second.column, second.row));
     return svgElement("line", { x1, y1, x2, y2 });
@@ -363,6 +370,10 @@ element("cancel-generate").addEventListener("click", () => {
 });
 
 function activateSector(next) {
+  next.tradeRoutes ??= next.generateTradeRoutes
+    ? findTradeRoutes(next.systems, [...catalogueTags(), ...bookTags])
+      .map(pair => pair.map(system => system.id))
+    : [];
   sector = next;
   closeReplacement();
   generationStatus.textContent = "";
