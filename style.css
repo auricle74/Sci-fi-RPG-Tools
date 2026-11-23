@@ -360,9 +360,11 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #tpv-divider[hidden] { display: none; }
 
 #world .tpv-detail-fields .inspector-group summary span { font-size: 1.15rem; }
-#world .tpv-detail-fields .inspector-group > small {
+#world .tpv-detail-fields dd > small {
   display: block;
-  margin-top: .45rem;
-  line-height: 1.45;
+  margin-top: .25rem;
+  line-height: 1.4;
 }
 #world .tpv-detail-fields dd { overflow-wrap: anywhere; }
+
+#world .tpv-detail-fields h4 { margin: 1.15rem 0 .25rem; font-size: 1.4rem; }
