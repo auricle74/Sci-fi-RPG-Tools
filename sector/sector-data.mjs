@@ -1,3 +1,4 @@
+import { relationships } from "./tpv-factions.mjs";
 import { tpvDistance, tpvRules } from "./tpv.mjs";
 import { validTradeRoutes } from "./trade-routes.mjs";
 
@@ -124,13 +125,31 @@ export function readSector(json) {
     const societies = sector.societies ?? [];
     check(Array.isArray(societies));
     const societyIds = new Set();
+    const stars = new Set(sector.systems.filter(system => system.stars).map(system => system.id));
     for (const society of societies) {
       identify(society);
       check(typeof society.name === "string" && society.name.trim() &&
         Number.isInteger(society.tech) && society.tech >= 0 && society.tech <= 5 &&
         Number.isInteger(society.area) && society.area >= 0 && society.area <= 100 &&
         typeof society.condition === "string" && typeof society.politics === "string");
+      check(society.homeSystemId === undefined || stars.has(society.homeSystemId));
+      for (const key of ["coreSystems", "frontierSystems"]) {
+        check(society[key] === undefined || Array.isArray(society[key]) && society[key].every(id => stars.has(id)));
+      }
+      const claimed = [...(society.coreSystems ?? []), ...(society.frontierSystems ?? [])];
+      if (society.homeSystemId !== undefined) claimed.push(society.homeSystemId);
+      check(new Set(claimed).size === claimed.length);
       societyIds.add(society.id);
+    }
+    const relations = sector.societyRelationships ?? [];
+    check(Array.isArray(relations));
+    const pairs = new Set();
+    for (const relation of relations) {
+      check(record(relation) && societyIds.has(relation.first) && societyIds.has(relation.second) &&
+        relation.first !== relation.second && relationships.includes(relation.kind));
+      const pair = JSON.stringify([relation.first, relation.second].sort());
+      check(!pairs.has(pair));
+      pairs.add(pair);
     }
     for (const system of sector.systems) {
       for (const body of system.satellites ?? []) {

@@ -1,3 +1,5 @@
+import { factionPresence } from "./tpv-factions.mjs";
+import { renderSetting } from "./tpv-setting-view.mjs";
 import { generateTpvSector, tpvDistance, tpvRules } from "./tpv.mjs";
 import { inspectTpv, renderChart } from "./tpv-view.mjs";
 import { bookTags, catalogueTags } from "./tag-catalogue.mjs";
@@ -280,11 +282,25 @@ function setProfileOpen(open) {
   element("map-title").parentElement.hidden = open;
 }
 
+const settingOverview = element("tpv-setting-overview");
+settingOverview.addEventListener("click", () => {
+  setProfileOpen(true);
+  renderSetting(element("tpv-profile"), sector, coordinate, roll, saveSector, system => {
+    sector.selectedHex = { column: system.column, row: system.row };
+    renderMap();
+    hexes.get(coordinate(system.column, system.row))?.focus();
+  }, () => {
+    renderMap();
+    settingOverview.focus();
+  });
+});
+
 function renderMap() {
+  settingOverview.hidden = !isTpv();
   setProfileOpen(false);
   map.closest(".sector-map").classList.toggle("tpv-map", isTpv());
   if (isTpv()) renderChart(element("tpv-chart"), sector.systems, coordinate, feature =>
-    selectHex(feature.column, feature.row, true));
+    selectHex(feature.column, feature.row, true), system => factionPresence(sector, system.id));
   const { width, height } = sector.grid;
   const radius = 32;
   const halfHeight = Math.sqrt(3) * radius / 2;
@@ -322,7 +338,17 @@ function renderMap() {
         name.textContent = system.name;
         nameBox.append(name);
         group.append(nameBox);
-        if (isTpv()) group.append(tpvMarker(system));
+        if (isTpv()) {
+          const presence = factionPresence(sector, system.id);
+          if (presence.some(entry => entry.role === "Home")) {
+            group.append(svgElement("circle", { r: 9, class: "tpv-home-ring", "aria-hidden": "true" }),
+              svgElement("circle", { r: 12, class: "tpv-home-ring", "aria-hidden": "true" }));
+          } else if (presence.length) {
+            const style = presence.some(entry => entry.role === "Core") ? "core" : "frontier";
+            group.append(svgElement("circle", { r: 9, class: `tpv-presence-ring tpv-presence-${style}`, "aria-hidden": "true" }));
+          }
+          group.append(tpvMarker(system));
+        }
         else group.append(svgElement("circle", { r: 4, "aria-hidden": "true" }));
       }
       const label = svgElement("text", { y: halfHeight - 7, "aria-hidden": "true" });
