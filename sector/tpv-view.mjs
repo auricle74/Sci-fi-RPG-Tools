@@ -1,3 +1,4 @@
+import { generateSociety } from "./tpv-societies.mjs";
 import { bearsLife, generateLifeforms } from "./tpv-lifeforms.mjs";
 import { orbitalAppearance } from "./tpv-graphics.mjs";
 import { canDevelopBody, developBody, worldNotation } from "./tpv-development.mjs";
@@ -74,7 +75,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   }
 
   function showProfile() {
-    renderProfile(profile, inspector, feature, coordinate, back, systemStatus => {
+    renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, systemStatus => {
       develop(systemStatus);
       inspector.replaceChildren(node("h3", feature.name), node("p", feature.type));
       showProfile();
@@ -253,7 +254,49 @@ function giantMoons(body) {
   });
 }
 
-function renderProfile(profile, inspector, feature, coordinate, back, redevelop) {
+function societyDetails(sector, feature, target, homeName, indigenous, roll, save, refresh) {
+  const societies = sector.societies ?? [];
+  const society = societies.find(item => item.id === target.societyId);
+  const group = detailSection("Society", society ? [
+    ["Name", society.name], ["Tech level", `TL${society.tech}`],
+    ["Condition", society.condition], ["Political system", society.politics],
+    ...(target.classification ? [["Populated area", `${society.area}% of habitable territory`]] : []),
+  ] : []);
+  const link = id => {
+    target.societyId = id;
+    save();
+    refresh();
+  };
+  const input = node("input");
+  const create = button("Develop Society", () => {
+    const name = input.value.trim();
+    if (!name) { input.reportValidity(); return; }
+    const generated = generateSociety({ id: crypto.randomUUID(), name, status: feature.status, indigenous, roll });
+    (sector.societies ??= []).push(generated);
+    link(generated.id);
+  });
+  if (!society) {
+    const inputLabel = node("label", "New society name");
+    input.required = true;
+    input.value = `${homeName} Collective`;
+    inputLabel.append(input);
+    group.append(inputLabel, create);
+  } else group.append(button("Unlink society", () => {
+    delete target.societyId;
+    save();
+    refresh();
+  }));
+  if (!society && societies.length) {
+    const picker = node("select");
+    for (const candidate of societies) picker.add(new Option(candidate.name, candidate.id));
+    const label = node("label", "Existing society");
+    label.append(picker);
+    group.append(label, button("Link Society", () => link(picker.value)));
+  }
+  return group;
+}
+
+function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
   const details = node("p", `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites${feature.faction ? ` · ${feature.faction}` : ""}`);
@@ -298,20 +341,30 @@ function renderProfile(profile, inspector, feature, coordinate, back, redevelop)
         const surfaceCentre = /planetary/i.test(body.type);
         const planets = worlds.filter(world => world.classification === "planet");
         const moons = worlds.filter(world => world.classification === "moon");
+        const appendWorld = (world, name) => {
+          fields.append(...worldDetails(world), ...lifeformDetails(world));
+          const indigenous = world.lifeforms?.some(lifeform => lifeform.level === "Advanced") ?? false;
+          const populated = body.type.toLowerCase() === `populated ${world.classification}`;
+          if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
+        };
+        const appendCentre = () => fields.append(centreDetails(centre),
+          societyDetails(sector, feature, centre, body.name, false, roll, save, show));
         if (planets.length) {
           fields.append(node("h4", "Planet"), orbitDetails(band));
-          for (const planet of planets) fields.append(...worldDetails(planet), ...lifeformDetails(planet));
-          if (centre && surfaceCentre) fields.append(centreDetails(centre));
+          for (const planet of planets) appendWorld(planet, body.name);
+          if (centre && surfaceCentre) appendCentre();
         } else fields.append(orbitDetails(band));
         if (moons.length) {
           fields.append(node("h4", "Moon(s)"));
           for (const [index, moon] of moons.entries()) {
-            fields.append(node("h5", developedMoonName(body, index)), ...worldDetails(moon), ...lifeformDetails(moon));
+            const name = developedMoonName(body, index);
+            fields.append(node("h5", name));
+            appendWorld(moon, name);
           }
-          if (centre && lunarCentre) fields.append(centreDetails(centre));
+          if (centre && lunarCentre) appendCentre();
         }
         if (centre && !(lunarCentre && moons.length) && !(surfaceCentre && planets.length)) {
-          fields.append(centreDetails(centre));
+          appendCentre();
         }
         if (body.features?.length) fields.append(detailSection("Features",
           body.features.map((text, index) => [String(index + 1), text])));

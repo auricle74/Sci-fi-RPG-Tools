@@ -120,5 +120,26 @@ export function readSector(json) {
       validTradeRoutes(sector.tradeRoutes, tpv ? sector.systems.filter(system => system.stars) : sector.systems,
         tpv ? tpvDistance : undefined).length === sector.tradeRoutes.length);
   }
+  if (tpv) {
+    const societies = sector.societies ?? [];
+    check(Array.isArray(societies));
+    const societyIds = new Set();
+    for (const society of societies) {
+      identify(society);
+      check(typeof society.name === "string" && society.name.trim() &&
+        Number.isInteger(society.tech) && society.tech >= 0 && society.tech <= 5 &&
+        Number.isInteger(society.area) && society.area >= 0 && society.area <= 100 &&
+        typeof society.condition === "string" && typeof society.politics === "string");
+      societyIds.add(society.id);
+    }
+    for (const system of sector.systems) {
+      for (const body of system.satellites ?? []) {
+        const data = body.development;
+        for (const target of [...(data?.worlds ?? []), data?.centre]) {
+          check(target?.societyId === undefined || societyIds.has(target.societyId));
+        }
+      }
+    }
+  }
   return sector;
 }
