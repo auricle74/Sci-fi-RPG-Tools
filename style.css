@@ -295,3 +295,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 }
 .hide-system-names .hex-system-name,
 .hide-trade-routes .trade-routes { display: none; }
+
+.trade-routes .highlighted-route { stroke: #ffe1a0; stroke-width: 4; }
+.inspector-trade-routes { list-style: none; padding: 0; }
+.inspector-trade-routes li { display: flex; flex-wrap: wrap; align-items: baseline; }
