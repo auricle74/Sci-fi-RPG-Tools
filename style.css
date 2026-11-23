@@ -400,6 +400,10 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   radial-gradient(circle at 35% 72%, #586471 13%, transparent 15%); }
 .tpv-phenomenon { border: 3px dotted #bd9ff5; box-shadow: 0 0 .7rem #ac75e3; }
 .hex.tpv-nebula-coverage:not([aria-pressed="true"]) polygon { fill: #302452; }
+.hex[data-system-status="Wild"] { --tpv-system-fill: #1a3446; }
+.hex[data-system-status="Frontier"] { --tpv-system-fill: #254b63; }
+.hex[data-system-status="Core"] { --tpv-system-fill: #30627f; }
+.hex.occupied[data-system-status] polygon { fill: var(--tpv-system-fill); }
 .tpv-orbit-star { background: radial-gradient(circle at 50% 75%, #bd713a, transparent 55%); }
 .trade-routes .tpv-jump-1 line, .trade-routes .tpv-jump-2 { stroke-dasharray: none; }
 
