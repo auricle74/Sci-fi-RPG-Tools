@@ -1,3 +1,4 @@
+import { hexDistance } from "./trade-routes.mjs";
 import { systemPointTypes } from "./system-points.mjs";
 import { profileFields, validHex } from "./sector-data.mjs";
 import { rerollTag, rollName, rollWorld } from "./swn.mjs";
@@ -88,7 +89,7 @@ function disclosure(title, className = "inspector-group") {
   return group;
 }
 
-export function showInspector(section, sector, system, { save, render, roll }) {
+export function showInspector(section, sector, system, { save, render, roll, highlightRoute }) {
   const makeId = () => crypto.randomUUID();
   function collectNames(record, names) {
     if (record.name) names.add(record.name.trim());
@@ -235,7 +236,85 @@ export function showInspector(section, sector, system, { save, render, roll }) {
     header.append(node("small", kind), heading, commands, status);
     section.append(header, body);
     readObject(body, record, reopen);
+    if (record === system) renderRoutes(body);
     if (focus) heading.focus();
+  }
+
+  function renderRoutes(body) {
+    const group = disclosure("Trade Routes");
+    const routes = sector.tradeRoutes;
+    const label = (target) => {
+      const distance = hexDistance(system, target);
+      return `${target.name} · ${hexCode(target)} · ${distance} ${distance === 1 ? "hex" : "hexes"}`;
+    };
+    const destinations = new Map(sector.systems.map(target => [target.id, target]));
+    const linked = new Set();
+    const list = node("ul");
+    list.className = "inspector-trade-routes";
+    const refresh = () => {
+      save();
+      const parent = group.parentElement;
+      group.remove();
+      renderRoutes(parent);
+      parent.lastElementChild.querySelector("summary").focus();
+    };
+
+    function pickDestination(index, current) {
+      const choices = sector.systems.filter(target => target !== system &&
+        hexDistance(system, target) <= 3 && (!linked.has(target.id) || target === current))
+        .sort((first, second) => hexDistance(system, first) - hexDistance(system, second) ||
+          first.name.localeCompare(second.name));
+      const caption = node("label", "Destination");
+      const select = node("select");
+      select.append(new Option("Choose a system", ""), ...choices.map(target => new Option(label(target), target.id)));
+      select.value = current?.id ?? "";
+      select.required = true;
+      caption.append(select);
+      const form = node("form");
+      const submit = node("button", "Save route");
+      const cancel = action("Cancel", () => {
+        form.remove();
+        highlightRoute(-1);
+        add.focus();
+      });
+      form.append(caption, submit, cancel);
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        const route = [system.id, select.value];
+        if (current) routes[index] = route;
+        else routes.push(route);
+        refresh();
+      });
+      group.querySelector("form")?.remove();
+      group.append(form);
+      highlightRoute(index);
+      select.focus();
+    }
+
+    for (const [index, route] of routes.entries()) {
+      if (!route.includes(system.id)) continue;
+      const target = destinations.get(route.find(id => id !== system.id));
+      linked.add(target.id);
+      const row = node("li");
+      const preview = action(label(target), () => highlightRoute(index));
+      const edit = action("Edit", () => pickDestination(index, target));
+      edit.setAttribute("aria-label", `Edit route to ${target.name}`);
+      const remove = action("Delete", () => {
+        if (!confirm(`Delete trade route to ${target.name}?`)) return;
+        routes.splice(index, 1);
+        refresh();
+      });
+      remove.setAttribute("aria-label", `Delete route to ${target.name}`);
+      row.append(preview, edit, remove);
+      list.append(row);
+    }
+
+    const add = action("Add Trade Route", () => pickDestination(-1));
+    add.disabled = !sector.systems.some(target => target !== system &&
+      !linked.has(target.id) && hexDistance(system, target) <= 3);
+    group.append(list.children.length ? list : node("p", "No trade routes."), add);
+    if (add.disabled) group.append(node("small", "No unlinked systems within 3 hexes."));
+    body.append(group);
   }
 
   function editObject(body, record, kind, reopen) {
