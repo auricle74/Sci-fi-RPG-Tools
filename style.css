@@ -280,8 +280,8 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 
 .sector-options .map-visibility { margin-top: 1rem; gap: .55rem 1rem; }
 .map-visibility legend { font-weight: 600; }
-.map-visibility label { display: flex; align-items: center; }
-.map-visibility input { width: auto; margin: 0; accent-color: #9de7e1; }
+.map-visibility label, #tpv-start-control:not([hidden]) { display: flex; align-items: center; }
+.map-visibility input, #tpv-start { width: auto; margin: 0; accent-color: #9de7e1; }
 .hex-system-name { pointer-events: none; }
 .hex-system-name div {
   overflow: hidden;
