@@ -57,22 +57,36 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   const needsLifeforms = world => world.lifeforms === undefined && bearsLife(world.life);
   const complete = feature.satellites && !feature.satellites.some(body =>
     needsDetails(body) || body.development?.worlds.some(needsLifeforms));
+  function develop(systemStatus, satellites) {
+    const generated = satellites ?? developTpvSystem(feature.stars, systemStatus, roll, nameFor);
+    feature.satellites = generated.map(body => {
+      const development = body.development ?? (needsDetails(body) ? developBody(body, roll) : undefined);
+      if (!development) return body;
+      const worlds = development.worlds.map(world =>
+        needsLifeforms(world) ? { ...world, lifeforms: generateLifeforms(world.life, roll) } : world);
+      return { ...body, development: { ...development, worlds } };
+    });
+    feature.status = systemStatus;
+    status.value = systemStatus;
+    status.disabled = true;
+    open.textContent = "Open System Profile";
+    save();
+  }
+
+  function showProfile() {
+    renderProfile(profile, inspector, feature, coordinate, back, systemStatus => {
+      develop(systemStatus);
+      inspector.replaceChildren(node("h3", feature.name), node("p", feature.type));
+      showProfile();
+    });
+  }
+
   const open = button(complete ? "Open System Profile" : "Develop System", () => {
-    if (!complete) {
-      const satellites = feature.satellites ?? developTpvSystem(feature.stars, status.value, roll, nameFor);
-      feature.satellites = satellites.map(body => {
-        const development = body.development ?? (needsDetails(body) ? developBody(body, roll) : undefined);
-        if (!development) return body;
-        const worlds = development.worlds.map(world =>
-          needsLifeforms(world) ? { ...world, lifeforms: generateLifeforms(world.life, roll) } : world);
-        return { ...body, development: { ...development, worlds } };
-      });
-      feature.status = status.value;
-      status.disabled = true;
-      open.textContent = "Open System Profile";
-      save();
+    if (!feature.satellites || feature.satellites.some(body =>
+      needsDetails(body) || body.development?.worlds.some(needsLifeforms))) {
+      develop(status.value, feature.satellites);
     }
-    renderProfile(profile, inspector, feature, coordinate, back);
+    showProfile();
   });
   open.className = "tpv-open-profile";
   const faction = node("input");
@@ -214,7 +228,7 @@ function centreDetails(centre) {
   ]);
 }
 
-function renderProfile(profile, inspector, feature, coordinate, back) {
+function renderProfile(profile, inspector, feature, coordinate, back, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
   const details = node("p", `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites${feature.faction ? ` · ${feature.faction}` : ""}`);
@@ -301,6 +315,34 @@ function renderProfile(profile, inspector, feature, coordinate, back) {
     }
     orbits.append(lane);
   }
-  profile.replaceChildren(button("Back to Sector Chart", back), heading, details, orbits, entries);
+  const controls = node("div");
+  const form = node("form");
+  form.hidden = true;
+  const status = node("select");
+  for (const option of ["Wild", "Frontier", "Core"]) status.add(new Option(option));
+  status.value = feature.status;
+  const label = node("label", "New system status");
+  label.append(status);
+  const openForm = button("Redevelop System", () => {
+    form.hidden = false;
+    openForm.hidden = true;
+    status.focus();
+  });
+  const confirm = node("button", "Confirm Redevelopment");
+  confirm.type = "submit";
+  form.append(label, node("p", "This replaces the current satellites and their details."),
+    confirm, button("Cancel", () => {
+      form.reset();
+      status.value = feature.status;
+      form.hidden = true;
+      openForm.hidden = false;
+      openForm.focus();
+    }));
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    redevelop(status.value);
+  });
+  controls.append(button("Back to Sector Chart", back), openForm, form);
+  profile.replaceChildren(controls, heading, details, orbits, entries);
   heading.focus();
 }
