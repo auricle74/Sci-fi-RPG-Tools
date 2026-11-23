@@ -12,12 +12,20 @@ const record = (value) => value !== null && typeof value === "object" && !Array.
 const provenance = (value) => record(value) && value.id === "swn-revised" && value.version === "revised";
 
 const strings = value => Array.isArray(value) && value.every(item => typeof item === "string");
+function validSite(areas) {
+  return Array.isArray(areas) && areas.length > 0 && areas.every((area, index) =>
+    record(area) && ["name", "occupant", "obstacle", "discovery"].every(key => typeof area[key] === "string") &&
+    Array.isArray(area.connects) && area.connects.every(number =>
+      Number.isInteger(number) && number >= 1 && number <= areas.length && number !== index + 1));
+}
+
 function validSettlement(value) {
   return record(value) && typeof value.problem === "string" && typeof value.arrival === "string" &&
     Array.isArray(value.people) && value.people.every(person => record(person) &&
       ["name", "role", "motive"].every(key => typeof person[key] === "string")) &&
     Array.isArray(value.places) && value.places.every(place => record(place) &&
-      typeof place.name === "string" && typeof place.detail === "string");
+      typeof place.name === "string" && typeof place.detail === "string" &&
+      (place.site === undefined || validSite(place.site)));
 }
 
 function validDevelopment(data) {
