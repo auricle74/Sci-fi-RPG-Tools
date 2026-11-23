@@ -32,9 +32,25 @@ const roles = {
 
 const pick = (entries, roll) => entries[roll(entries.length) - 1];
 
+const arrivals = [
+  [
+    (person, place) => `An emergency announcement sends arrivals to the ${place}. ${person} is asking for help checking who is still missing.`,
+    (person, place) => `You arrive during a pause in the emergency response. At the ${place}, ${person} needs someone to check whether the next shift can safely return.`,
+  ],
+  [
+    (person, place) => `Two groups give you conflicting instructions on arrival. ${person} asks you to hear both accounts at the ${place} before taking sides.`,
+    (person, place) => `A routine handover has turned into an argument at the ${place}. ${person} asks you to check what the previous shift reported.`,
+  ],
+  [
+    (person, place) => `The shortage has brought a queue to the ${place}. ${person} asks you to find out why the latest allocation came up short.`,
+    (person, place) => `Your arrival coincides with a resupply delay. At the ${place}, ${person} is looking for someone who can verify what actually arrived.`,
+  ],
+];
+
 export function developSettlement(centre, roll) {
   const category = roll(10);
-  const problem = pick(problems[category <= 2 ? 0 : category <= 5 ? 1 : 2], roll);
+  const problemType = category <= 2 ? 0 : category <= 5 ? 1 : 2;
+  const problem = pick(problems[problemType], roll);
   const type = Object.hasOwn(locations, centre.type) ? centre.type : "Outpost";
   const available = [...new Set([
     ...locations[type], ...centre.purposes.map(purpose => purposeSites[purpose]).filter(Boolean),
@@ -52,6 +68,35 @@ export function developSettlement(centre, roll) {
     motive: index === 0 ? "Keep essential services running and avoid a public panic." :
       "Get an independent witness to check the last shift’s account.",
   }));
-  const arrival = `As you arrive, ${people[1].name} asks you to meet at the ${second.toLowerCase()} before the next shift. At the ${first.toLowerCase()}, word of the problem is already spreading.`;
+  const arrival = pick(arrivals[problemType], roll)(people[1].name, second.toLowerCase());
   return { problem, places, people, arrival };
+}
+
+const siteAreas = [
+  ["Access point", "A reception alcove", "An outer passage"],
+  ["Operations area", "A work bay", "A crew room"],
+  ["Service annex", "An equipment store", "A records alcove"],
+];
+const siteObstacles = [
+  "The attendant will admit visitors only if a resident vouches for them.",
+  "A temporary closure forces visitors to wait or negotiate another way in.",
+  "A crowd is blocking the way and refuses to move until someone hears its complaint.",
+];
+const siteDiscoveries = [
+  "The duty log shows who was on site when the problem was first reported.",
+  "A discarded message points to someone who raised concerns before the official report.",
+  "A handwritten correction contradicts the timeline in the public notice.",
+];
+
+export function developSite(settlement, roll) {
+  const [entrance, interior, annex] = siteAreas.map(options => pick(options, roll));
+  const contact = settlement.people.length ? pick(settlement.people, roll).name : "A member of the local crew";
+  return [
+    { name: entrance, occupant: "An attendant on duty", obstacle: pick(siteObstacles, roll), discovery: "", connects: [2] },
+    { name: interior, occupant: contact, obstacle: "The crew will talk once someone takes over their immediate duties.",
+      discovery: `The crew can explain how the settlement’s problem affects this location. Current problem: ${settlement.problem}.`,
+      connects: [1, 3] },
+    { name: annex, occupant: "A worker finishing their shift", obstacle: "Access depends on persuading the worker to stay.",
+      discovery: pick(siteDiscoveries, roll), connects: [2] },
+  ];
 }

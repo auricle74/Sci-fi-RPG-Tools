@@ -1,4 +1,4 @@
-import { developSettlement } from "./tpv-settlement.mjs";
+import { developSettlement, developSite } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
 import { generateSociety } from "./tpv-societies.mjs";
@@ -235,8 +235,31 @@ function centreDetails(centre, roll, save, refresh) {
     group.append(
       detailSection("Settlement Situation", [["Local problem", settlement.problem], ["On arrival", settlement.arrival]]),
       detailSection("Key People", settlement.people.map(person => [person.name, `${person.role}. ${person.motive}`])),
-      detailSection("Places to Visit", settlement.places.map(place => [place.name, place.detail])),
+
     );
+    const places = detailSection("Places to Visit");
+    for (const place of settlement.places) {
+      const location = detailSection(place.name);
+      location.append(node("p", place.detail));
+      if (place.site) {
+        location.append(...place.site.map((area, index) =>
+          detailSection(`${index + 1}. ${area.name}`, [
+            ["Occupant", area.occupant], ["Obstacle", area.obstacle],
+            ...(area.discovery ? [["Discovery", area.discovery]] : []),
+            ["Connects to areas", area.connects.join(", ")],
+          ])));
+      } else {
+        const develop = button("Develop Site", () => {
+          place.site = developSite(settlement, roll);
+          save();
+          refresh();
+        });
+        develop.setAttribute("aria-label", `Develop Site for ${place.name}`);
+        location.append(develop);
+      }
+      places.append(location);
+    }
+    group.append(places);
   } else {
     group.append(button("Develop Settlement", () => {
       centre.settlement = developSettlement(centre, roll);
