@@ -1,3 +1,4 @@
+import { bearsLife, generateLifeforms } from "./tpv-lifeforms.mjs";
 import { orbitalAppearance } from "./tpv-graphics.mjs";
 import { canDevelopBody, developBody, worldNotation } from "./tpv-development.mjs";
 import { developTpvSystem, jumpRisk, orbitZone, tpvDistance } from "./tpv.mjs";
@@ -53,12 +54,19 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   statusLabel.append(status);
   if (feature.satellites) status.disabled = true;
   const needsDetails = body => !body.development && canDevelopBody(body);
-  const complete = feature.satellites && !feature.satellites.some(needsDetails);
+  const needsLifeforms = world => world.lifeforms === undefined && bearsLife(world.life);
+  const complete = feature.satellites && !feature.satellites.some(body =>
+    needsDetails(body) || body.development?.worlds.some(needsLifeforms));
   const open = button(complete ? "Open System Profile" : "Develop System", () => {
     if (!complete) {
       const satellites = feature.satellites ?? developTpvSystem(feature.stars, status.value, roll, nameFor);
-      feature.satellites = satellites.map(body =>
-        needsDetails(body) ? { ...body, development: developBody(body, roll) } : body);
+      feature.satellites = satellites.map(body => {
+        const development = body.development ?? (needsDetails(body) ? developBody(body, roll) : undefined);
+        if (!development) return body;
+        const worlds = development.worlds.map(world =>
+          needsLifeforms(world) ? { ...world, lifeforms: generateLifeforms(world.life, roll) } : world);
+        return { ...body, development: { ...development, worlds } };
+      });
       feature.status = status.value;
       status.disabled = true;
       open.textContent = "Open System Profile";
@@ -188,6 +196,15 @@ function worldDetails(world) {
   ];
 }
 
+function lifeformDetails(world) {
+  if (!world.lifeforms?.length) return [];
+  return [detailSection("Lifeforms", world.lifeforms.map(lifeform => [
+    lifeform.level, lifeform.form,
+    [lifeform.size, lifeform.quantity === undefined ? "" : `Encounter quantity: ${lifeform.quantity}`,
+      ...lifeform.traits].filter(Boolean).join(" · "),
+  ]))];
+}
+
 function centreDetails(centre) {
   const labels = ["Theme", "Appearance", "Complication"];
   return detailSection("Population Centres", [
@@ -243,12 +260,12 @@ function renderProfile(profile, inspector, feature, coordinate, back) {
         const moons = worlds.filter(world => world.classification === "moon");
         if (planets.length) {
           fields.append(node("h4", "Planet"), orbitDetails(band));
-          for (const planet of planets) fields.append(...worldDetails(planet));
+          for (const planet of planets) fields.append(...worldDetails(planet), ...lifeformDetails(planet));
           if (centre && surfaceCentre) fields.append(centreDetails(centre));
         } else fields.append(orbitDetails(band));
         if (moons.length) {
           fields.append(node("h4", "Moon(s)"));
-          for (const moon of moons) fields.append(...worldDetails(moon));
+          for (const moon of moons) fields.append(...worldDetails(moon), ...lifeformDetails(moon));
           if (centre && lunarCentre) fields.append(centreDetails(centre));
         }
         if (centre && !(lunarCentre && moons.length) && !(surfaceCentre && planets.length)) {
