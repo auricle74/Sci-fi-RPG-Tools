@@ -144,7 +144,11 @@ function selectHex(column, row, focus = false) {
     selectChartRow(code);
     const usedNames = new Set([system?.name]);
     inspectTpv(element("world"), element("tpv-profile"), sector, system, coordinate, roll,
-      () => rollName(roll, usedNames), () => { renderTradeRoutes(); saveSector(); }, () => {
+      () => rollName(roll, usedNames), () => {
+        if (system?.stars) target.dataset.systemStatus = system.status ?? "Wild";
+        renderTradeRoutes();
+        saveSector();
+      }, () => {
         setProfileOpen(false);
         selectHex(column, row, true);
       });
@@ -325,6 +329,7 @@ function renderMap() {
         "aria-pressed": "false", tabindex: "-1",
         "data-column": column, "data-row": row, transform: `translate(${x} ${y})`,
       });
+      if (isTpv() && system?.stars) group.dataset.systemStatus = system.status ?? "Wild";
       if (nebulaHexes.has(code)) group.classList.add("tpv-nebula-coverage");
       group.append(svgElement("polygon", {
         points: `${-radius},0 ${-radius / 2},${-halfHeight} ${radius / 2},${-halfHeight} ${radius},0 ${radius / 2},${halfHeight} ${-radius / 2},${halfHeight}`,

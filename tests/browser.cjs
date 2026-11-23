@@ -250,6 +250,10 @@ async function main() {
     await tpv.locator(".hex:not(.occupied)").first().dispatchEvent("click");
     assert.equal(await tpv.locator("#tpv-chart button[aria-current=true]").count(), 0);
     await tpv.locator("#tpv-chart tbody button").first().click();
+    const selectedSystem = tpv.locator(".hex.occupied[aria-pressed=true]");
+    const hexFill = () => selectedSystem.locator("polygon").evaluate(hex => getComputedStyle(hex).fill);
+    assert.equal(await selectedSystem.getAttribute("data-system-status"), "Wild");
+    const wildFill = await hexFill();
     await tpv.getByLabel("System status").selectOption("Core");
     await tpv.getByRole("button", { name: "Develop System" }).click();
     await tpv.locator("#tpv-profile .tpv-orbits").waitFor();
@@ -257,6 +261,8 @@ async function main() {
     assert.equal(await tpv.locator(".map-stage").isVisible(), false);
     assert.equal(await tpv.locator("#tpv-chart").isVisible(), false);
     assert.equal(await tpv.locator("#tpv-profile .tpv-orbits section").count(), 11);
+    assert.equal(await selectedSystem.getAttribute("data-system-status"), "Core");
+    assert.notEqual(await hexFill(), wildFill);
     const developedRows = tpv.locator("#tpv-profile tbody tr");
     const worldDetails = await developedRows.locator("td:last-child").allTextContents();
     assert.ok(worldDetails.length > 0);
@@ -274,6 +280,8 @@ async function main() {
     await tpv.getByRole("button", { name: "Confirm Redevelopment" }).click();
     assert.match(await tpv.locator("#tpv-profile > p").innerText(), /· Wild ·/);
     assert.notDeepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
+    assert.equal(await selectedSystem.getAttribute("data-system-status"), "Wild");
+    assert.equal(await hexFill(), wildFill);
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     assert.match(await tpv.locator("#tpv-profile > p").innerText(), /· Wild ·/);
