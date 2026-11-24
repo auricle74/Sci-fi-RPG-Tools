@@ -392,8 +392,12 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         return worlds;
       }
       let worldTrigger;
+      let systemInspector;
       function show(event, openPlace) {
-        if (event) worldTrigger = event.currentTarget;
+        if (event) {
+          worldTrigger = event.currentTarget;
+          systemInspector = [...inspector.childNodes];
+        }
         const header = node("header");
         header.className = "inspector-header";
         header.append(node("small", body.type), node("h3", body.name));
@@ -409,7 +413,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const worldProfile = planets.length > 0 || body.kind === "planet" || body.kind === "giant";
         const locationFields = worldProfile ? node("section") : fields;
         if (worldProfile) {
-          locationFields.className = "inspector-fields tpv-detail-fields";
+          locationFields.className = "inspector-fields tpv-detail-fields tpv-world-locations";
           locationFields.append(node("h3", "Sites and Locations"));
         }
         const appendWorld = (world, name) => {
@@ -458,10 +462,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         if (!centre) locationFields.append(node("p", "No sites or settlements are recorded for this world."));
         const worldHeading = node("h2", `${body.name} · World Profile`);
         worldHeading.tabIndex = -1;
-        const layout = node("div");
-        layout.className = "tpv-world-layout";
         fields.prepend(node("h3", "World Details"));
-        layout.append(fields, locationFields);
         const surfaceSites = centre && surfaceCentre
           ? [body.type, ...(centre.settlement?.places ?? []).map(place => place.name)]
           : [];
@@ -469,9 +470,10 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           surfaceSites, appearance.colour);
         profile.replaceChildren(button("Back to System Profile", () => {
           profile.replaceChildren(controls, heading, details, orbits, entries);
+          inspector.replaceChildren(...systemInspector);
           (worldTrigger ?? heading).focus();
-        }), worldHeading, node("p", `${feature.name} · ${body.type}`), globe, layout);
-        inspector.replaceChildren();
+        }), worldHeading, node("p", `${feature.name} · ${body.type}`), globe, locationFields);
+        inspector.replaceChildren(fields);
         worldHeading.focus();
       }
       const graphic = node("span");
