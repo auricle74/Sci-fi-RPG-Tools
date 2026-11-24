@@ -548,3 +548,16 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .sector-workspace .tpv-breadcrumb button[aria-current="page"] { color: #e4effa; }
 
 .inspector-group ul.tpv-swn-tag-hooks { list-style: disc; padding-inline-start: 1.5rem; margin-block: .25rem .75rem; }
+
+/* System profile tags use the same typography as the satellite table. */
+#tpv-profile > section.tpv-world-locations > details > summary > span {
+  font-size: 1em;
+  font-weight: 700;
+}
+#tpv-profile > section.tpv-world-locations > details > details > summary > span {
+  font-size: 1em;
+  font-weight: 600;
+  color: #9de7e1;
+}
+#tpv-profile > section.tpv-world-locations > details > details > summary { cursor: pointer; }
+#tpv-profile > section.tpv-world-locations > details > details:not([open]) > summary::before { content: "+"; }
