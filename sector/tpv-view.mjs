@@ -615,9 +615,9 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           }
           renderSettlement();
         }
-        const surfaceSites = centre && surfaceCentre ? [body.type] : [];
+        const globeSites = centre ? [body.type] : [];
         const globe = worldGlobe([feature.id, body.name, band, feature.satellites.indexOf(body)],
-          surfaceSites, appearance.colour, openSettlement, siteName);
+          globeSites, appearance.colour, openSettlement, siteName);
         const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ["World Profile", () => worldHeading.focus()]);
         profile.replaceChildren(trail, worldHeading, node("p", `${feature.name} · ${body.type}`), globe, locationFields);
         inspector.replaceChildren(fields);
