@@ -226,15 +226,33 @@ function lifeformDetails(world) {
 
 function settlementPointcrawl(place, index) {
   const areas = place.site ?? [];
-  const x = 54;
-  const y = 38;
-  const position = number => x + number * 64;
+  const entrance = [46, 77];
+  const positions = [entrance, ...areas.map((_, index) => [110 + index * 64, 77])];
+  if (areas.length === 3) {
+    const entranceLinks = areas[0].connects;
+    const loop = areas.every(area => area.connects.length === 2);
+    if (loop || entranceLinks.length === 2) {
+      positions[2] = [192, 39];
+      positions[3] = [192, 115];
+    } else {
+      const middle = entranceLinks[0];
+      if (middle === 2 || middle === 3) {
+        positions[middle] = [176, 77];
+        positions[middle === 2 ? 3 : 2] = [240, middle === 2 ? 115 : 39];
+      }
+    }
+  }
+  const width = Math.max(...positions.map(([x]) => x)) + 46;
   const map = svg("svg", {
-    viewBox: `0 0 ${108 + areas.length * 64} 76`,
+    viewBox: `0 0 ${width} 154`,
     role: "img", "aria-label": `${place.name} pointcrawl`,
   });
   map.classList.add("tpv-pointcrawl");
-  const route = (from, to) => map.append(svg("line", { x1: position(from), y1: y, x2: position(to), y2: y }));
+  const route = (from, to) => {
+    const [x1, y1] = positions[from];
+    const [x2, y2] = positions[to];
+    map.append(svg("line", { x1, y1, x2, y2 }));
+  };
   if (areas.length) route(0, 1);
   const links = new Set();
   areas.forEach((area, offset) => {
@@ -247,9 +265,9 @@ function settlementPointcrawl(place, index) {
     }
   });
   [String(index + 1), ...areas.map((_, offset) => `${index + 1}.${offset + 1}`)].forEach((number, offset) => {
-    const cx = position(offset);
-    map.append(svg("circle", { cx, cy: y, r: 18 }));
-    const label = svg("text", { x: cx, y });
+    const [x, y] = positions[offset];
+    map.append(svg("rect", { x: x - 18, y: y - 18, width: 36, height: 36 }));
+    const label = svg("text", { x, y });
     label.textContent = number;
     map.append(label);
   });
