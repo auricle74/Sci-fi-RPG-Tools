@@ -518,3 +518,18 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   text-anchor: middle;
   dominant-baseline: central;
 }
+
+.tpv-pointcrawl-layout {
+  display: grid;
+  grid-template-columns: minmax(9rem, 13rem) minmax(0, 38rem);
+  justify-content: center;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.tpv-pointcrawl-choices { display: grid; align-content: start; gap: .25rem; }
+.tpv-pointcrawl-choices button { text-align: start; }
+.tpv-pointcrawl-choices button[aria-pressed="true"] { background: #243e51; }
+.tpv-pointcrawl-layout .tpv-pointcrawl { margin: 0; }
+@media (max-width: 38rem) {
+  .tpv-pointcrawl-layout { grid-template-columns: minmax(0, 1fr); }
+}
