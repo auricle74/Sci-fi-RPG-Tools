@@ -420,7 +420,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   font-size: 1rem;
   color: #9de7e1;
 }
-:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > details > details > summary > span {
+:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > details .tpv-swn-tag-row > details > summary > span {
   font-size: .9rem;
 }
 :is(#world .tpv-detail-fields, .tpv-world-locations) dd > small {
@@ -554,10 +554,20 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   font-size: 1em;
   font-weight: 700;
 }
-#tpv-profile > section.tpv-world-locations > details > details > summary > span {
+#tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details > summary > span {
   font-size: 1em;
   font-weight: 600;
   color: #9de7e1;
 }
-#tpv-profile > section.tpv-world-locations > details > details > summary { cursor: pointer; }
-#tpv-profile > section.tpv-world-locations > details > details:not([open]) > summary::before { content: "+"; }
+#tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details > summary { cursor: pointer; }
+#tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details:not([open]) > summary::before { content: "+"; }
+
+.tpv-swn-tag-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem;
+  margin-block: .35rem .65rem;
+}
+.tpv-swn-tag-controls select { flex: 1 1 10rem; width: min(100%, 20rem); }
+.tpv-swn-tag-controls button:disabled { opacity: .5; }
