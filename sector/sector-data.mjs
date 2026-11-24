@@ -41,6 +41,7 @@ function validDevelopment(data) {
         ["Microbial", "Simple", "Complex", "Advanced"].includes(lifeform.level) && strings(lifeform.traits) &&
         (lifeform.size === undefined || typeof lifeform.size === "string") &&
         (lifeform.quantity === undefined || Number.isInteger(lifeform.quantity) && lifeform.quantity > 0)))) && (data.centre === undefined || record(data.centre) &&
+      (data.centre.name === undefined || typeof data.centre.name === "string") &&
       typeof data.centre.type === "string" && Number.isInteger(data.centre.population) &&
       data.centre.population > 0 && strings(data.centre.purposes) && strings(data.centre.features) &&
       strings(data.centre.prompts) && (data.centre.settlement === undefined || validSettlement(data.centre.settlement)));
