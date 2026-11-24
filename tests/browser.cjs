@@ -300,7 +300,7 @@ async function main() {
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     assert.match(await tpv.locator("#tpv-profile > p").innerText(), /· Wild ·/);
-    await tpv.getByRole("button", { name: "Back to Sector Chart" }).click();
+    await tpv.getByRole("button", { name: "Sector Chart", exact: true }).click();
     await tpv.locator("#tpv-chart").waitFor();
     assert.ok(await tpv.locator(".map-stage").isVisible());
     await tpv.getByRole("button", { name: "Setting Overview", exact: true }).click();
