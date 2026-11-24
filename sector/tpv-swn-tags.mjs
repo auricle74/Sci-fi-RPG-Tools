@@ -11,6 +11,8 @@ function worldTagFits(tag, world, inhabited) {
   switch (tag.name) {
     case "Freak Weather": return /storm|hurricane|tempest|extreme weather|cyclon/i.test(notes);
     case "Hostile Biosphere": return world.life !== "none" && /toxic|aggressive|predator|parasit/i.test(notes);
+    case "Dying Race": return inhabited && /dying race|declining species|species facing extinction/i.test(notes);
+    case "Urbanized Surface": return inhabited && /urbanized surface|planetwide (?:city|urban)|world-spanning city/i.test(notes);
     case "Oceanic World": return inhabited && world.waterPercent >= 90;
     case "Desert World": return inhabited && /arid|desert/i.test(world.type);
     case "Seismic Instability": return inhabited && /earthquake|seismic|tectonic|volcanic/i.test(notes);
@@ -20,10 +22,14 @@ function worldTagFits(tag, world, inhabited) {
 
 export function assignTpvTags(system, catalogue, roll) {
   let changed = false;
-  function assign(target, eligible) {
-    if (target.swnTags !== undefined) return;
-    const candidates = catalogue.filter(eligible);
-    target.swnTags = [];
+  function assign(target, eligible, recheck = false) {
+    const saved = target.swnTags;
+    if (saved !== undefined && !recheck) return;
+    const retained = saved?.filter(eligible) ?? [];
+    const candidates = catalogue.filter(tag => eligible(tag) && !retained.some(
+      entry => entry.name === tag.name && entry.type === tag.type));
+    if (saved && retained.length === saved.length && (saved.length || !candidates.length)) return;
+    target.swnTags = retained;
     while (candidates.length && target.swnTags.length < 2) {
       const [tag] = candidates.splice(roll(candidates.length) - 1, 1);
       target.swnTags.push({ type: tag.type, name: tag.name });
@@ -39,10 +45,9 @@ export function assignTpvTags(system, catalogue, roll) {
     const lunar = /^lunar /i.test(body.type);
     for (const world of worlds) {
       const inhabited = Boolean(world.societyId) || world.lifeforms?.some(item => item.level === "Advanced") ||
-        key(body.type) === `populated ${world.classification}` ||
-        Boolean(centre && (surface && world === worlds.find(item => item.classification === "planet") ||
+        Boolean(centre?.population > 0 && (surface && world === worlds.find(item => item.classification === "planet") ||
           lunar && world === worlds.find(item => item.classification === "moon")));
-      assign(world, tag => key(tag.type) === world.classification && worldTagFits(tag, world, inhabited));
+      assign(world, tag => key(tag.type) === world.classification && worldTagFits(tag, world, inhabited), true);
     }
     if (centre) {
       const types = [key(body.type)];
