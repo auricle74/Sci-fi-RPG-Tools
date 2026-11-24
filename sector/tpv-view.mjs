@@ -21,6 +21,23 @@ function button(text, click) {
   return control;
 }
 
+function profileBreadcrumb(...steps) {
+  const nav = node("nav");
+  nav.className = "tpv-breadcrumb";
+  nav.setAttribute("aria-label", "Profile navigation");
+  const list = node("ol");
+  steps.forEach(([label, action], index) => {
+    const item = node("li");
+    const control = button(label, action);
+    if (index === steps.length - 1) control.setAttribute("aria-current", "page");
+    item.append(control);
+    list.append(item);
+  });
+  nav.append(list);
+  return nav;
+}
+
+
 function table(headers) {
   const result = node("table");
   const headings = result.createTHead().insertRow();
@@ -46,7 +63,7 @@ export function renderChart(container, features, coordinate, select, presence) {
   container.replaceChildren(node("h3", "Subsectors of interest"), chart);
 }
 
-export function inspectTpv(inspector, profile, sector, feature, coordinate, roll, nameFor, save, back) {
+export function inspectTpv(inspector, profile, sector, feature, coordinate, roll, nameFor, save, back, showSetting) {
   inspector.replaceChildren();
   if (!feature) return;
   inspector.append(node("h3", feature.name), node("p", feature.type));
@@ -87,7 +104,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   }
 
   function showProfile() {
-    renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, status, systemStatus => {
+    renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, status, showSetting, systemStatus => {
       develop(systemStatus);
       inspector.replaceChildren(node("h3", feature.name), node("p", feature.type));
       showProfile();
@@ -422,9 +439,11 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
   return group;
 }
 
-function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, redevelop) {
+function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, showSetting, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
+  const settingStep = ["Setting Overview", showSetting];
+  const systemTrail = profileBreadcrumb(settingStep, ["System Profile", () => heading.focus()]);
   const details = node("p");
   const updateDetails = () => {
     details.textContent = `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites`;
@@ -544,6 +563,16 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const worldHeading = node("h2", `${body.name} · World Profile`);
         worldHeading.tabIndex = -1;
         fields.prepend(node("h3", "World Details"));
+        function returnToSystem() {
+          profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries);
+          inspector.replaceChildren(...systemInspector);
+          (worldTrigger ?? heading).focus();
+        }
+        const worldSettingStep = ["Setting Overview", () => {
+          inspector.replaceChildren(...systemInspector);
+          showSetting();
+        }];
+        const systemStep = ["System Profile", returnToSystem];
         function openSettlement(event) {
           const trigger = event?.currentTarget;
           function renderSettlement(developedPlace) {
@@ -573,10 +602,12 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               selectPlace(Math.max(0, settlement.places.indexOf(developedPlace)));
             }
             content.append(centreDetails(centre, roll, save, renderSettlement, true, selectPlace));
-            profile.replaceChildren(button("Back to World Profile", () => {
+            const worldStep = ["World Profile", () => {
               show(undefined, true);
               if (trigger?.classList.contains("tpv-globe-target")) profile.querySelector(".tpv-globe-target")?.focus();
-            }), title, node("p", `Host: ${body.name}`), content);
+            }];
+            const trail = profileBreadcrumb(worldSettingStep, systemStep, worldStep, ["Site Profile", () => title.focus()]);
+            profile.replaceChildren(trail, title, node("p", `Host: ${body.name}`), content);
             title.focus();
           }
           renderSettlement();
@@ -584,11 +615,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const surfaceSites = centre && surfaceCentre ? [body.type] : [];
         const globe = worldGlobe([feature.id, body.name, band, feature.satellites.indexOf(body)],
           surfaceSites, appearance.colour, openSettlement);
-        profile.replaceChildren(button("Back to System Profile", () => {
-          profile.replaceChildren(controls, heading, details, orbits, entries);
-          inspector.replaceChildren(...systemInspector);
-          (worldTrigger ?? heading).focus();
-        }), worldHeading, node("p", `${feature.name} · ${body.type}`), globe, locationFields);
+        const trail = profileBreadcrumb(worldSettingStep, systemStep, ["World Profile", () => worldHeading.focus()]);
+        profile.replaceChildren(trail, worldHeading, node("p", `${feature.name} · ${body.type}`), globe, locationFields);
         inspector.replaceChildren(fields);
         (restoreSettlementFocus ? settlementAction ?? worldHeading : worldHeading).focus();
       }
@@ -654,6 +682,6 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     redevelop(status.value);
   });
   controls.append(button("Back to Sector Chart", back), statusLabel, openForm, form);
-  profile.replaceChildren(controls, heading, details, orbits, entries);
+  profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries);
   heading.focus();
 }
