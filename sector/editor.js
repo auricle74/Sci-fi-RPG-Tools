@@ -151,7 +151,7 @@ function selectHex(column, row, focus = false) {
       }, () => {
         setProfileOpen(false);
         selectHex(column, row, true);
-      });
+      }, showSettingOverview);
     element("world").querySelector(".tpv-open-profile")?.addEventListener("click", () => setProfileOpen(true));
   } else showInspector(element("world"), sector, system, {
     save() {
@@ -287,7 +287,9 @@ function setProfileOpen(open) {
 }
 
 const settingOverview = element("tpv-setting-overview");
-settingOverview.addEventListener("click", () => {
+settingOverview.addEventListener("click", showSettingOverview);
+
+function showSettingOverview() {
   setProfileOpen(true);
   renderSetting(element("tpv-profile"), sector, coordinate, roll, saveSector, system => {
     sector.selectedHex = { column: system.column, row: system.row };
@@ -297,7 +299,7 @@ settingOverview.addEventListener("click", () => {
     renderMap();
     settingOverview.focus();
   });
-});
+}
 
 function renderMap() {
   settingOverview.hidden = !isTpv();

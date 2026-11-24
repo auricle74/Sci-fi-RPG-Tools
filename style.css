@@ -533,3 +533,16 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 @media (max-width: 38rem) {
   .tpv-pointcrawl-layout { grid-template-columns: minmax(0, 1fr); }
 }
+
+.tpv-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 .5rem;
+}
+.tpv-breadcrumb li { display: flex; align-items: center; }
+.tpv-breadcrumb li + li::before { content: "›" / ""; color: #a2b5c8; }
+.sector-workspace .tpv-breadcrumb button { padding: .35rem .65rem; }
+.sector-workspace .tpv-breadcrumb button[aria-current="page"] { color: #e4effa; }
