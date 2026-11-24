@@ -443,7 +443,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
   const settingStep = ["Setting Overview", showSetting];
-  const systemTrail = profileBreadcrumb(settingStep, ["System Profile", () => heading.focus()]);
+  const chartStep = ["Sector Chart", back];
+  const systemTrail = profileBreadcrumb(settingStep, chartStep, ["System Profile", () => heading.focus()]);
   const details = node("p");
   const updateDetails = () => {
     details.textContent = `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites`;
@@ -606,7 +607,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               show(undefined, true);
               if (trigger?.classList.contains("tpv-globe-target")) profile.querySelector(".tpv-globe-target")?.focus();
             }];
-            const trail = profileBreadcrumb(worldSettingStep, systemStep, worldStep, ["Site Profile", () => title.focus()]);
+            const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, worldStep, ["Site Profile", () => title.focus()]);
             profile.replaceChildren(trail, title, node("p", `Host: ${body.name}`), content);
             title.focus();
           }
@@ -615,7 +616,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const surfaceSites = centre && surfaceCentre ? [body.type] : [];
         const globe = worldGlobe([feature.id, body.name, band, feature.satellites.indexOf(body)],
           surfaceSites, appearance.colour, openSettlement);
-        const trail = profileBreadcrumb(worldSettingStep, systemStep, ["World Profile", () => worldHeading.focus()]);
+        const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ["World Profile", () => worldHeading.focus()]);
         profile.replaceChildren(trail, worldHeading, node("p", `${feature.name} · ${body.type}`), globe, locationFields);
         inspector.replaceChildren(fields);
         (restoreSettlementFocus ? settlementAction ?? worldHeading : worldHeading).focus();
@@ -681,7 +682,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     event.preventDefault();
     redevelop(status.value);
   });
-  controls.append(button("Back to Sector Chart", back), statusLabel, openForm, form);
+  controls.append(statusLabel, openForm, form);
   profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries);
   heading.focus();
 }
