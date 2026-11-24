@@ -224,42 +224,35 @@ function lifeformDetails(world) {
   ]))];
 }
 
-function settlementPointcrawl(settlement) {
-  const places = settlement.places.map((place, index) => ({
-    place, index, x: 54, y: 38 + index * 76,
-  }));
-  const columns = Math.max(0, ...places.map(({ place }) => place.site?.length ?? 0));
+function settlementPointcrawl(place, index) {
+  const areas = place.site ?? [];
+  const x = 54;
+  const y = 38;
+  const position = number => x + number * 64;
   const map = svg("svg", {
-    viewBox: `0 0 ${108 + columns * 64} ${Math.max(76, places.length * 76)}`,
-    role: "img", "aria-label": "Numbered settlement pointcrawl. Area names and connections are listed below.",
+    viewBox: `0 0 ${108 + areas.length * 64} 76`,
+    role: "img", "aria-label": `${place.name} pointcrawl`,
   });
   map.classList.add("tpv-pointcrawl");
-  const points = [];
-  const route = (x1, y1, x2, y2) => map.append(svg("line", { x1, y1, x2, y2 }));
-  for (const { place, index, x, y } of places) {
-    points.push([x, y, String(index + 1)]);
-    if (index) route(x, y - 76, x, y);
-    const areas = place.site ?? [];
-    if (areas.length) route(x, y, x + 64, y);
-    const links = new Set();
-    areas.forEach((area, offset) => {
-      const number = offset + 1;
-      const areaX = x + number * 64;
-      points.push([areaX, y, `${index + 1}.${number}`]);
-      for (const connected of area.connects) {
-        const key = [Math.min(number, connected), Math.max(number, connected)].join("-");
-        if (links.has(key)) continue;
-        links.add(key);
-        route(areaX, y, x + connected * 64, y);
-      }
-    });
-  }
-  for (const [x, y, number] of points) {
-    map.append(svg("circle", { cx: x, cy: y, r: 18 }));
-    const label = svg("text", { x, y });
+  const route = (from, to) => map.append(svg("line", { x1: position(from), y1: y, x2: position(to), y2: y }));
+  if (areas.length) route(0, 1);
+  const links = new Set();
+  areas.forEach((area, offset) => {
+    const number = offset + 1;
+    for (const connected of area.connects) {
+      const key = [Math.min(number, connected), Math.max(number, connected)].join("-");
+      if (links.has(key)) continue;
+      links.add(key);
+      route(number, connected);
+    }
+  });
+  [String(index + 1), ...areas.map((_, offset) => `${index + 1}.${offset + 1}`)].forEach((number, offset) => {
+    const cx = position(offset);
+    map.append(svg("circle", { cx, cy: y, r: 18 }));
+    const label = svg("text", { x: cx, y });
     label.textContent = number;
     map.append(label);
-  }
+  });
   return map;
 }
 
@@ -272,7 +265,7 @@ function centreOverview(centre) {
   ]);
 }
 
-function centreDetails(centre, roll, save, refresh, numbered = false) {
+function centreDetails(centre, roll, save, refresh, numbered = false, selectPlace) {
   const group = numbered ? node("section") : centreOverview(centre);
   const settlement = centre.settlement;
   if (settlement) {
@@ -285,6 +278,7 @@ function centreDetails(centre, roll, save, refresh, numbered = false) {
     places.classList.add("tpv-settlement-places");
     for (const [placeIndex, place] of settlement.places.entries()) {
       const location = detailSection(numbered ? `${placeIndex + 1}. ${place.name}` : place.name);
+      if (selectPlace) location.firstElementChild.addEventListener("click", () => selectPlace(placeIndex));
       location.append(node("p", place.detail));
       if (place.site) {
         location.append(...place.site.map((area, index) =>
@@ -520,14 +514,33 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         fields.prepend(node("h3", "World Details"));
         function openSettlement(event) {
           const trigger = event?.currentTarget;
-          function renderSettlement() {
+          function renderSettlement(developedPlace) {
             const title = node("h2", `${body.type} · Site Profile`);
             title.tabIndex = -1;
             const content = node("section");
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
             const settlement = centre.settlement;
-            if (settlement?.places.length) content.append(settlementPointcrawl(settlement));
-            content.append(centreDetails(centre, roll, save, renderSettlement, true));
+            let selectPlace;
+            if (settlement?.places.length) {
+              const layout = node("div");
+              layout.className = "tpv-pointcrawl-layout";
+              const choices = node("div");
+              choices.className = "tpv-pointcrawl-choices";
+              choices.setAttribute("role", "group");
+              choices.setAttribute("aria-label", "Select pointcrawl location");
+              const diagram = node("div");
+              const buttons = settlement.places.map((place, index) =>
+                button(place.name, () => selectPlace(index)));
+              selectPlace = index => {
+                buttons.forEach((control, offset) => control.setAttribute("aria-pressed", offset === index));
+                diagram.replaceChildren(settlementPointcrawl(settlement.places[index], index));
+              };
+              choices.append(...buttons);
+              layout.append(choices, diagram);
+              content.append(layout);
+              selectPlace(Math.max(0, settlement.places.indexOf(developedPlace)));
+            }
+            content.append(centreDetails(centre, roll, save, renderSettlement, true, selectPlace));
             profile.replaceChildren(button("Back to World Profile", () => {
               show(undefined, true);
               if (trigger?.classList.contains("tpv-globe-target")) profile.querySelector(".tpv-globe-target")?.focus();
