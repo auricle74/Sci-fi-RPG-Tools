@@ -1,5 +1,5 @@
 import { svg, worldGlobe } from "./tpv-globe.mjs";
-import { developSettlement, developSite } from "./tpv-settlement.mjs";
+import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
 import { generateSociety } from "./tpv-societies.mjs";
@@ -242,9 +242,18 @@ function settlementPointcrawl(place, index) {
       }
     }
   }
-  const width = Math.max(...positions.map(([x]) => x)) + 46;
+  if (areas.length && areas.every(area => area.position)) {
+    positions.splice(0, positions.length, [0, 0], ...areas.map(area =>
+      area.position.map(coordinate => coordinate * 64)));
+  }
+  const xs = positions.map(([x]) => x);
+  const ys = positions.map(([, y]) => y);
+  const left = Math.min(...xs) - 30;
+  const top = Math.min(...ys) - 30;
+  const width = Math.max(...xs) - left + 30;
+  const height = Math.max(...ys) - top + 30;
   const map = svg("svg", {
-    viewBox: `0 0 ${width} 154`,
+    viewBox: `${left} ${top} ${width} ${height}`,
     role: "img", "aria-label": `${place.name} pointcrawl`,
   });
   map.classList.add("tpv-pointcrawl");
@@ -299,6 +308,11 @@ function centreDetails(centre, roll, save, refresh, numbered = false, selectPlac
       if (selectPlace) location.firstElementChild.addEventListener("click", () => selectPlace(placeIndex));
       location.append(node("p", place.detail));
       if (place.site) {
+        if (numbered) location.append(button("Reroll Layout", () => {
+          place.site = layOutSite(place.site, roll);
+          save();
+          refresh(place);
+        }));
         location.append(...place.site.map((area, index) =>
           detailSection(`${numbered ? `${placeIndex + 1}.` : ""}${index + 1}. ${area.name}`, [
             ["Occupant", area.occupant], ["Obstacle", area.obstacle],
