@@ -1,3 +1,4 @@
+import { rollSiteName } from "./tpv-site-names.mjs";
 import { orbitZone } from "./tpv.mjs";
 import { adaptations, climateTables, communityProfile, hazards, surfaces } from "./tpv-world-data.mjs";
 
@@ -127,7 +128,7 @@ export function developBody(body, roll) {
     const entry = value => communityProfile[Math.floor((value - 1) / 4)][index];
     return result <= 96 ? entry(result) : `${entry(roll(96))} / ${entry(roll(96))}`;
   });
-  return { worlds, centre: { type, purposes, features, population, prompts } };
+  return { worlds, centre: { type, purposes, features, population, prompts, name: rollSiteName(roll) } };
 }
 
 export const canDevelopBody = body => ["planet", "moon"].includes(body.kind) || /outpost|station|colony/i.test(body.type);

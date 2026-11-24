@@ -1,3 +1,4 @@
+import { rollSiteName } from "./tpv-site-names.mjs";
 import { rollName } from "./swn.mjs";
 
 // Adapted from TPV's community problems, settlement locations and inhabitants (pp. 103–109).
@@ -57,9 +58,11 @@ export function developSettlement(centre, roll) {
   ])];
   const first = available.splice(roll(available.length) - 1, 1)[0];
   const second = available.splice(roll(available.length) - 1, 1)[0];
+  const firstName = rollSiteName(roll);
+  const secondName = rollSiteName(roll);
   const places = [
-    { name: first, detail: "Residents are gathering here to demand answers." },
-    { name: second, detail: "The last shift left behind a record that contradicts the official account." },
+    { name: `${firstName} (${first})`, detail: "Residents are gathering here to demand answers." },
+    { name: `${secondName} (${second})`, detail: "The last shift left behind a record that contradicts the official account." },
   ];
   const names = new Set();
   const people = roles[type].map((role, index) => ({
@@ -68,7 +71,7 @@ export function developSettlement(centre, roll) {
     motive: index === 0 ? "Keep essential services running and avoid a public panic." :
       "Get an independent witness to check the last shift’s account.",
   }));
-  const arrival = pick(arrivals[problemType], roll)(people[1].name, second.toLowerCase());
+  const arrival = pick(arrivals[problemType], roll)(people[1].name, `${secondName} ${second.toLowerCase()}`);
   return { problem, places, people, arrival };
 }
 

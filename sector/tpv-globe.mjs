@@ -37,7 +37,7 @@ function hash(text) {
   return value >>> 0;
 }
 
-export function worldGlobe(worldKey, sites, colour, openSite) {
+export function worldGlobe(worldKey, sites, colour, openSite, siteName) {
   const figure = document.createElement("figure");
   figure.className = "tpv-world-globe";
   const map = svg("svg", { viewBox: "0 0 598 302", role: "group", "aria-label": "Two hemispheres of the world, with numbered surface locations" });
@@ -59,10 +59,11 @@ export function worldGlobe(worldKey, sites, colour, openSite) {
     if (!cell) return;
     available.splice(available.indexOf(cell), 1);
     cell.polygon.classList.add("tpv-globe-site");
+    const name = siteName ?? site;
     const [x, y] = cell.centre;
     const marker = svg("text", { x, y, "aria-hidden": "true" });
     marker.textContent = index + 1;
-    const target = svg("g", { role: "button", tabindex: "0", "aria-label": `Open Site Profile for ${site}`, class: "tpv-globe-target" });
+    const target = svg("g", { role: "button", tabindex: "0", "aria-label": `Open Site Profile for ${name}`, class: "tpv-globe-target" });
     target.append(cell.polygon, marker);
     target.addEventListener("click", openSite);
     target.addEventListener("keydown", event => {
@@ -75,7 +76,7 @@ export function worldGlobe(worldKey, sites, colour, openSite) {
     const item = document.createElement("li");
     const link = document.createElement("button");
     link.type = "button";
-    link.textContent = site;
+    link.textContent = name;
     link.addEventListener("click", openSite);
     item.append(link);
     list.append(item);
