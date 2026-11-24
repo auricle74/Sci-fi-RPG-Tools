@@ -267,6 +267,14 @@ async function main() {
     const worldDetails = await developedRows.locator("td:last-child").allTextContents();
     assert.ok(worldDetails.length > 0);
     assert.ok(worldDetails.every(text => /G .+A .+W .+L .+R /.test(text)));
+    const planet = tpv.locator(".tpv-orbit-marker").filter({ has: tpv.locator(".tpv-planet") }).first();
+    const planetName = await planet.innerText();
+    await planet.click();
+    await tpv.getByRole("heading", { name: `${planetName.trim()} · World Profile`, exact: true }).waitFor();
+    await tpv.getByRole("heading", { name: "Sites and Locations", exact: true }).waitFor();
+    assert.equal(await tpv.locator(".sector-details").isVisible(), false);
+    await tpv.getByRole("button", { name: "Back to System Profile" }).click();
+    assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await tpv.locator("#tpv-profile .tpv-orbit-marker").first().waitFor();
