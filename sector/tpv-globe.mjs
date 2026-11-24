@@ -3,7 +3,7 @@ const hexSize = 12;
 const originX = [151, 447];
 const originY = 151;
 
-function svg(tag, attributes) {
+export function svg(tag, attributes) {
   const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
   return element;
@@ -37,10 +37,10 @@ function hash(text) {
   return value >>> 0;
 }
 
-export function worldGlobe(worldKey, sites, colour) {
+export function worldGlobe(worldKey, sites, colour, openSite) {
   const figure = document.createElement("figure");
   figure.className = "tpv-world-globe";
-  const map = svg("svg", { viewBox: "0 0 598 302", role: "img", "aria-label": "Two hemispheres of the world, with numbered surface locations" });
+  const map = svg("svg", { viewBox: "0 0 598 302", role: "group", "aria-label": "Two hemispheres of the world, with numbered surface locations" });
   if (colour) map.style.setProperty("--globe-colour", colour);
   for (const cx of originX) map.append(svg("circle", { cx, cy: originY, r: radius }));
   const available = [];
@@ -62,9 +62,22 @@ export function worldGlobe(worldKey, sites, colour) {
     const [x, y] = cell.centre;
     const marker = svg("text", { x, y, "aria-hidden": "true" });
     marker.textContent = index + 1;
-    map.append(marker);
+    const target = svg("g", { role: "button", tabindex: "0", "aria-label": `Open Site Profile for ${site}`, class: "tpv-globe-target" });
+    target.append(cell.polygon, marker);
+    target.addEventListener("click", openSite);
+    target.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openSite(event);
+      }
+    });
+    map.append(target);
     const item = document.createElement("li");
-    item.textContent = site;
+    const link = document.createElement("button");
+    link.type = "button";
+    link.textContent = site;
+    link.addEventListener("click", openSite);
+    item.append(link);
     list.append(item);
   });
   legend.append(list);
