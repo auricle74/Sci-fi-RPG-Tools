@@ -88,20 +88,51 @@ const siteDiscoveries = [
   "A handwritten correction contradicts the timeline in the public notice.",
 ];
 
+const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const adjacentRooms = ([x, y], [otherX, otherY]) => Math.abs(x - otherX) + Math.abs(y - otherY) === 1;
+
+export function layOutSite(areas, roll) {
+  const entrance = pick(directions, roll);
+  const rooms = [{ ...areas[0], position: entrance, connects: [] }];
+  const occupied = new Set(["0,0", entrance.join(",")]);
+  function connect(first, second) {
+    rooms[first].connects.push(second + 1);
+    rooms[second].connects.push(first + 1);
+  }
+  for (const area of areas.slice(1)) {
+    const options = rooms.flatMap(({ position: [x, y] }, parent) =>
+      directions.map(([dx, dy]) => ({ parent, position: [x + dx, y + dy] }))
+        .filter(({ position }) => !occupied.has(position.join(","))));
+    const { parent, position } = pick(options, roll);
+    const index = rooms.length;
+    rooms.push({ ...area, position, connects: [] });
+    occupied.add(position.join(","));
+    connect(parent, index);
+    for (let other = 0; other < index; other += 1) {
+      if (other !== parent && adjacentRooms(position, rooms[other].position) && roll(3) === 1) {
+        connect(other, index);
+      }
+    }
+  }
+  return rooms;
+}
+
 export function developSite(settlement, roll) {
   const [entrance, interior, annex] = siteAreas.map(options => pick(options, roll));
   const contact = settlement.people.length ? pick(settlement.people, roll).name : "A member of the local crew";
-  // One middle room creates a connected plan. Some sites also have a shortcut.
-  const middle = roll(3);
-  const loop = roll(4) === 1;
-  const connections = [1, 2, 3].map(room =>
-    [1, 2, 3].filter(other => other !== room && (loop || room === middle || other === middle)));
-  return [
-    { name: entrance, occupant: "An attendant on duty", obstacle: pick(siteObstacles, roll), discovery: "", connects: connections[0] },
+  const areas = [
+    { name: entrance, occupant: "An attendant on duty", obstacle: pick(siteObstacles, roll), discovery: "" },
     { name: interior, occupant: contact, obstacle: "The crew will talk once someone takes over their immediate duties.",
-      discovery: `The crew can explain how the settlement’s problem affects this location. Current problem: ${settlement.problem}.`,
-      connects: connections[1] },
+      discovery: `The crew can explain how the settlement’s problem affects this location. Current problem: ${settlement.problem}.` },
     { name: annex, occupant: "A worker finishing their shift", obstacle: "Access depends on persuading the worker to stay.",
-      discovery: pick(siteDiscoveries, roll), connects: connections[2] },
+      discovery: pick(siteDiscoveries, roll) },
   ];
+  const possibleRooms = ["Staff break room", "Maintenance bay", "Records office", "Delivery vestibule", "Utility room"];
+  const extraRooms = roll(possibleRooms.length + 1) - 1;
+  for (let index = 0; index < extraRooms; index += 1) {
+    const [name] = possibleRooms.splice(roll(possibleRooms.length) - 1, 1);
+    areas.push({ name, occupant: pick(["A technician", "A local worker", "Unoccupied"], roll),
+      obstacle: pick(siteObstacles, roll), discovery: pick(siteDiscoveries, roll) });
+  }
+  return layOutSite(areas, roll);
 }
