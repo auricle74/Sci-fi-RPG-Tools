@@ -1,3 +1,4 @@
+import { worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
@@ -461,10 +462,15 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         layout.className = "tpv-world-layout";
         fields.prepend(node("h3", "World Details"));
         layout.append(fields, locationFields);
+        const surfaceSites = centre && surfaceCentre
+          ? [body.type, ...(centre.settlement?.places ?? []).map(place => place.name)]
+          : [];
+        const globe = worldGlobe([feature.id, body.name, band, feature.satellites.indexOf(body)],
+          surfaceSites, appearance.colour);
         profile.replaceChildren(button("Back to System Profile", () => {
           profile.replaceChildren(controls, heading, details, orbits, entries);
           (worldTrigger ?? heading).focus();
-        }), worldHeading, node("p", `${feature.name} · ${body.type}`), layout);
+        }), worldHeading, node("p", `${feature.name} · ${body.type}`), globe, layout);
         inspector.replaceChildren();
         worldHeading.focus();
       }
