@@ -100,6 +100,7 @@ function syncCustomInputs() {
   const tpv = tpvSelected();
   size.disabled = tpv;
   element("tpv-start-control").hidden = !tpv;
+  element("tpv-swn-tags-control").hidden = !tpv;
   for (const input of setup.querySelectorAll("[data-swn-only]")) input.closest("label").hidden = tpv;
   const custom = !tpv && size.value === "custom";
   element("custom").hidden = !custom;
@@ -499,6 +500,7 @@ function generateSector() {
     next = createSector(rules.value, tpvSelected() ? "void" : size.value, width, height);
     next.name = rollName(roll, new Set([sector.name?.trim()]));
     if (tpvSelected()) {
+      next.addSwnTags = element("tpv-swn-tags").checked;
       const usedNames = new Set();
       next.systems = generateTpvSector(roll, () => crypto.randomUUID(),
         () => rollName(roll, usedNames), element("tpv-start").checked);
@@ -540,6 +542,7 @@ function activateSector(next) {
   size.value = sector.grid.preset;
   widthInput.value = sector.grid.width;
   heightInput.value = sector.grid.height;
+  element("tpv-swn-tags").checked = sector.addSwnTags === true;
   density.value = sector.starCountPolicy ?? "fixed";
   element("system-point-die").value = sector.systemPointDie ?? 0;
   element("generate-trade-routes").value = sector.generateTradeRoutes ? "yes" : "no";
@@ -588,6 +591,13 @@ element("import-sector").addEventListener("change", async (event) => {
   status.textContent = "Sector imported.";
 });
 
+element("tpv-swn-tags").checked = sector.addSwnTags === true;
+element("tpv-swn-tags").addEventListener("change", event => {
+  if (!isTpv()) return;
+  sector.addSwnTags = event.target.checked;
+  saveSector();
+  renderMap();
+});
 rules.addEventListener("change", syncCustomInputs);
 size.addEventListener("change", syncCustomInputs);
 for (const control of [widthInput, heightInput, density]) control.addEventListener("input", syncDensity);
