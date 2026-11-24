@@ -1,4 +1,4 @@
-import { assignTpvTags, tpvTagCatalogue } from "./tpv-swn-tags.mjs";
+import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
 import { svg, worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
@@ -302,23 +302,65 @@ function settlementPointcrawl(place, index) {
   return map;
 }
 
-function swnTagDetails(tags, catalogue) {
+function swnTagDetails(target, choices, catalogue, roll, save) {
   const group = detailSection("SWN Tags");
-  for (const { type, name } of tags) {
-    const tag = catalogue.find(entry => entry.type === type && entry.name === name);
-    const entry = detailSection(name);
-    entry.open = false;
-    if (tag) {
-      entry.append(node("p", tag.description));
-      for (const [label, hooks] of Object.entries(tag.hooks ?? {})) {
-        const list = node("ul");
-        list.className = "tpv-swn-tag-hooks";
-        list.append(...hooks.map(hook => node("li", hook)));
-        entry.append(node("strong", label), list);
-      }
-    }
-    group.append(entry);
+  const rows = node("div");
+  const add = button("Add tag", () => {
+    const available = alternatives();
+    update([...tags(), tpvTagReference(available[roll(available.length) - 1])], tags().length);
+  });
+  const tags = () => target.swnTags ?? [];
+  const alternatives = () => choices.filter(tag => !tags().some(saved => sameTpvTag(tag, saved)));
+  function update(next, focusIndex) {
+    target.swnTags = next;
+    target.swnTagsEdited = true;
+    save();
+    render();
+    (rows.children[focusIndex]?.querySelector("select") ?? add).focus();
   }
+
+  function render() {
+    rows.replaceChildren();
+    const available = alternatives();
+    tags().forEach((saved, index) => {
+      const tag = catalogue.find(entry => sameTpvTag(entry, saved));
+      const row = node("div");
+      row.className = "tpv-swn-tag-row";
+      const entry = detailSection(saved.name);
+      entry.open = false;
+      if (tag) {
+        entry.append(node("p", tag.description));
+        for (const [label, hooks] of Object.entries(tag.hooks ?? {})) {
+          const list = node("ul");
+          list.className = "tpv-swn-tag-hooks";
+          list.append(...hooks.map(hook => node("li", hook)));
+          entry.append(node("strong", label), list);
+        }
+      }
+      const controls = node("div");
+      controls.className = "tpv-swn-tag-controls";
+      const select = node("select");
+      select.setAttribute("aria-label", `Change ${saved.name}`);
+      select.append(new Option(saved.name, ""));
+      available.forEach((candidate, offset) => select.append(new Option(candidate.name, String(offset + 1))));
+      select.disabled = !available.length;
+      function replace(candidate) {
+        update(tags().map((item, offset) => offset === index ? tpvTagReference(candidate) : item), index);
+      }
+      select.addEventListener("change", () => replace(available[Number(select.value) - 1]));
+      const reroll = button("Reroll", () => replace(available[roll(available.length) - 1]));
+      reroll.disabled = !available.length;
+      reroll.setAttribute("aria-label", `Reroll ${saved.name}`);
+      const remove = button("Delete", () => update(tags().filter((_, offset) => offset !== index), index));
+      remove.setAttribute("aria-label", `Delete ${saved.name}`);
+      controls.append(select, reroll, remove);
+      row.append(entry, controls);
+      rows.append(row);
+    });
+    add.hidden = !available.length || tags().length >= 2;
+  }
+  group.append(rows, add);
+  render();
   return group;
 }
 
@@ -468,12 +510,16 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   const settingStep = ["Setting Overview", showSetting];
   const chartStep = ["Sector Chart", back];
   const catalogue = sector.addSwnTags ? tpvTagCatalogue() : null;
-  function appendSwnTags(target, container) {
-    if (catalogue && target.swnTags?.length) container.append(swnTagDetails(target.swnTags, catalogue));
+  function appendSwnTags(target, container, type, body) {
+    if (!catalogue) return;
+    const choices = tpvTagChoices(catalogue, type, body);
+    if (choices.length || target.swnTags?.length) {
+      container.append(swnTagDetails(target, choices, catalogue, roll, save));
+    }
   }
   const systemTagPanel = node("section");
   systemTagPanel.className = "tpv-world-locations tpv-detail-fields";
-  appendSwnTags(feature, systemTagPanel);
+  appendSwnTags(feature, systemTagPanel, "System");
   const systemTrail = profileBreadcrumb(settingStep, chartStep, ["System Profile", () => heading.focus()]);
   const details = node("p");
   const updateDetails = () => {
@@ -538,7 +584,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         }
         const appendWorld = (world, name) => {
           fields.append(...worldDetails(world), ...lifeformDetails(world));
-          appendSwnTags(world, fields);
+          appendSwnTags(world, fields, world.classification);
           const indigenous = world.lifeforms?.some(lifeform => lifeform.level === "Advanced") ?? false;
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
           if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
@@ -559,7 +605,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           } else {
             locationFields.append(centreDetails(centre, roll, save, () => show()));
           }
-          appendSwnTags(centre, locationFields);
+          appendSwnTags(centre, locationFields, centre.type, body);
           locationFields.append(societyDetails(sector, feature, centre, body.name, false, roll, save, show));
         };
         if (planets.length) {
@@ -582,7 +628,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         if (centre && !(lunarCentre && moons.length) && !(surfaceCentre && planets.length)) {
           appendCentre();
         }
-        appendSwnTags(body, fields);
+        if (!worlds.length && !centre) appendSwnTags(body, fields, tpvBodyTagType(body), body);
         if (body.features?.length) fields.append(detailSection("Features",
           body.features.map((text, index) => [String(index + 1), text])));
         if (namedMoons.length) fields.append(detailSection("Moon(s)", namedMoons));
@@ -638,6 +684,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               selectPlace(Math.max(0, settlement.places.indexOf(developedPlace)));
             }
             content.append(centreDetails(centre, roll, save, renderSettlement, true, selectPlace));
+            appendSwnTags(centre, content, centre.type, body);
             const worldStep = ["World Profile", () => {
               show(undefined, true);
               if (trigger?.classList.contains("tpv-globe-target")) profile.querySelector(".tpv-globe-target")?.focus();
