@@ -91,12 +91,17 @@ const siteDiscoveries = [
 export function developSite(settlement, roll) {
   const [entrance, interior, annex] = siteAreas.map(options => pick(options, roll));
   const contact = settlement.people.length ? pick(settlement.people, roll).name : "A member of the local crew";
+  // One middle room creates a connected plan. Some sites also have a shortcut.
+  const middle = roll(3);
+  const loop = roll(4) === 1;
+  const connections = [1, 2, 3].map(room =>
+    [1, 2, 3].filter(other => other !== room && (loop || room === middle || other === middle)));
   return [
-    { name: entrance, occupant: "An attendant on duty", obstacle: pick(siteObstacles, roll), discovery: "", connects: [2] },
+    { name: entrance, occupant: "An attendant on duty", obstacle: pick(siteObstacles, roll), discovery: "", connects: connections[0] },
     { name: interior, occupant: contact, obstacle: "The crew will talk once someone takes over their immediate duties.",
       discovery: `The crew can explain how the settlement’s problem affects this location. Current problem: ${settlement.problem}.`,
-      connects: [1, 3] },
+      connects: connections[1] },
     { name: annex, occupant: "A worker finishing their shift", obstacle: "Access depends on persuading the worker to stay.",
-      discovery: pick(siteDiscoveries, roll), connects: [2] },
+      discovery: pick(siteDiscoveries, roll), connects: connections[2] },
   ];
 }
