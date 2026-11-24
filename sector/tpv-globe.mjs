@@ -40,7 +40,7 @@ function hash(text) {
 export function worldGlobe(worldKey, sites, colour, openSite, siteName) {
   const figure = document.createElement("figure");
   figure.className = "tpv-world-globe";
-  const map = svg("svg", { viewBox: "0 0 598 302", role: "group", "aria-label": "Two hemispheres of the world, with numbered surface locations" });
+  const map = svg("svg", { viewBox: "0 0 598 302", role: "group", "aria-label": "Two hemispheres of the world, with numbered site locations" });
   if (colour) map.style.setProperty("--globe-colour", colour);
   for (const cx of originX) map.append(svg("circle", { cx, cy: originY, r: radius }));
   const available = [];
