@@ -496,3 +496,25 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   padding-inline: 1.5rem;
   margin-block: 0;
 }
+
+.tpv-globe-target { cursor: pointer; }
+.tpv-world-globe .tpv-globe-target:hover polygon,
+.tpv-world-globe .tpv-globe-target:focus-visible polygon { fill: #fff1ae; stroke: white; stroke-width: 2; }
+
+.tpv-pointcrawl {
+  width: min(100%, 38rem);
+  max-height: 23rem;
+  margin: 1rem auto;
+  border: 1px solid #34495c;
+  border-radius: .5rem;
+  background: #101b2a;
+}
+.tpv-pointcrawl line { stroke: #7797b4; stroke-width: 2; }
+.tpv-pointcrawl circle { fill: #223b53; stroke: #9de7e1; }
+.tpv-pointcrawl text {
+  fill: #e4effa;
+  font-size: 12px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
