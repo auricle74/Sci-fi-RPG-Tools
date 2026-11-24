@@ -263,13 +263,17 @@ function settlementPointcrawl(settlement) {
   return map;
 }
 
-function centreDetails(centre, roll, save, refresh, compact = false, openPlace, numbered = false) {
+function centreOverview(centre) {
   const labels = ["Theme", "Appearance", "Complication"];
-  const group = detailSection("Population Centres", [
+  return detailSection("Population Centres", [
     ["Function", centre.purposes.join(" / ")], ["Population", centre.population.toLocaleString()],
     ...(centre.features.length ? [["Special features", centre.features.join(", ")]] : []),
     ...centre.prompts.map((text, index) => [labels[index], text]),
   ]);
+}
+
+function centreDetails(centre, roll, save, refresh, numbered = false) {
+  const group = numbered ? node("section") : centreOverview(centre);
   const settlement = centre.settlement;
   if (settlement) {
     group.append(
@@ -281,7 +285,6 @@ function centreDetails(centre, roll, save, refresh, compact = false, openPlace, 
     places.classList.add("tpv-settlement-places");
     for (const [placeIndex, place] of settlement.places.entries()) {
       const location = detailSection(numbered ? `${placeIndex + 1}. ${place.name}` : place.name);
-      location.open = !compact || place === openPlace;
       location.append(node("p", place.detail));
       if (place.site) {
         location.append(...place.site.map((area, index) =>
@@ -432,7 +435,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       }
       let worldTrigger;
       let systemInspector;
-      function show(event, openPlace) {
+      function show(event, restoreSettlementFocus = false) {
         if (event) {
           worldTrigger = event.currentTarget;
           systemInspector = [...inspector.childNodes];
@@ -461,13 +464,23 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
           if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
         };
+        let settlementAction;
         const appendCentre = () => {
           if (worldProfile) {
-            locationFields.append(button(body.type, openSettlement));
-            return;
+            const overview = centreOverview(centre);
+            settlementAction = centre.settlement
+              ? button("Open Site Profile", openSettlement)
+              : button("Develop Settlement", () => {
+                centre.settlement = developSettlement(centre, roll);
+                save();
+                openSettlement();
+              });
+            overview.append(settlementAction);
+            locationFields.append(node("h4", body.type), overview);
+          } else {
+            locationFields.append(centreDetails(centre, roll, save, () => show()));
           }
-          locationFields.append(centreDetails(centre, roll, save, place => show(undefined, place), worldProfile, openPlace),
-            societyDetails(sector, feature, centre, body.name, false, roll, save, show));
+          locationFields.append(societyDetails(sector, feature, centre, body.name, false, roll, save, show));
         };
         if (planets.length) {
           fields.append(node("h4", "Planet"), orbitDetails(band));
@@ -507,19 +520,17 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         fields.prepend(node("h3", "World Details"));
         function openSettlement(event) {
           const trigger = event?.currentTarget;
-          const worldNodes = [...profile.childNodes];
-          function renderSettlement(place) {
+          function renderSettlement() {
             const title = node("h2", `${body.type} · Site Profile`);
             title.tabIndex = -1;
             const content = node("section");
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
             const settlement = centre.settlement;
             if (settlement?.places.length) content.append(settlementPointcrawl(settlement));
-            content.append(centreDetails(centre, roll, save, renderSettlement, false, place, true),
-              societyDetails(sector, feature, centre, body.name, false, roll, save, () => renderSettlement()));
+            content.append(centreDetails(centre, roll, save, renderSettlement, true));
             profile.replaceChildren(button("Back to World Profile", () => {
-              profile.replaceChildren(...worldNodes);
-              (trigger ?? worldHeading).focus();
+              show(undefined, true);
+              if (trigger?.classList.contains("tpv-globe-target")) profile.querySelector(".tpv-globe-target")?.focus();
             }), title, node("p", `Host: ${body.name}`), content);
             title.focus();
           }
@@ -534,7 +545,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           (worldTrigger ?? heading).focus();
         }), worldHeading, node("p", `${feature.name} · ${body.type}`), globe, locationFields);
         inspector.replaceChildren(fields);
-        worldHeading.focus();
+        (restoreSettlementFocus ? settlementAction ?? worldHeading : worldHeading).focus();
       }
       const graphic = node("span");
       const appearance = orbitalAppearance(body);
