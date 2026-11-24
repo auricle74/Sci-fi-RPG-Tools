@@ -212,15 +212,15 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   gap: .2rem .55rem;
 }
 #world .has-reroll :is(input, select) { grid-column: 1 / -1; min-width: 0; }
-#world .reroll-action {
+:is(#world, .tpv-world-locations) .reroll-action {
   justify-self: start;
   padding: .15rem .35rem;
   color: #92a3b3;
   font-size: .75rem;
   font-weight: 400;
 }
-#world .reroll-action:hover,
-#world .reroll-action:focus-visible { color: #edf4fb; }
+:is(#world, .tpv-world-locations) .reroll-action:hover,
+:is(#world, .tpv-world-locations) .reroll-action:focus-visible { color: #edf4fb; }
 
 .sector-details > h2 {
   color: #b5c5d4;
@@ -562,12 +562,13 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details > summary { cursor: pointer; }
 #tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details:not([open]) > summary::before { content: "+"; }
 
-.tpv-swn-tag-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .25rem;
-  margin-block: .35rem .65rem;
+:is(#world, .tpv-world-locations) .tpv-swn-tag-controls.edit-field.has-reroll {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: .2rem .55rem;
+  margin: .6rem 0;
 }
-.tpv-swn-tag-controls select { flex: 1 1 10rem; width: min(100%, 20rem); }
+.tpv-swn-tag-controls select { grid-column: 1 / -1; width: 100%; min-width: 0; }
+.tpv-swn-tag-controls button { justify-self: start; }
 .tpv-swn-tag-controls button:disabled { opacity: .5; }
