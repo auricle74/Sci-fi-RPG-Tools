@@ -12,6 +12,9 @@ const record = (value) => value !== null && typeof value === "object" && !Array.
 const provenance = (value) => record(value) && value.id === "swn-revised" && value.version === "revised";
 
 const strings = value => Array.isArray(value) && value.every(item => typeof item === "string");
+const validSwnTags = tags => tags === undefined || Array.isArray(tags) && tags.every(tag =>
+  record(tag) && typeof tag.type === "string" && typeof tag.name === "string");
+
 function validSite(areas) {
   return Array.isArray(areas) && areas.length > 0 && areas.every((area, index) =>
     record(area) && ["name", "occupant", "obstacle", "discovery"].every(key => typeof area[key] === "string") &&
@@ -31,7 +34,7 @@ function validSettlement(value) {
 }
 
 function validDevelopment(data) {
-  return record(data) && Array.isArray(data.worlds) && data.worlds.every(world => record(world) &&
+  return record(data) && Array.isArray(data.worlds) && data.worlds.every(world => record(world) && validSwnTags(world.swnTags) &&
     ["classification", "type", "position", "size", "climate", "gravity", "atmosphere", "composition",
       "water", "life", "resources"].every(key => typeof world[key] === "string") &&
     Number.isInteger(world.diameter) && world.diameter > 0 &&
@@ -42,7 +45,7 @@ function validDevelopment(data) {
         (lifeform.size === undefined || typeof lifeform.size === "string") &&
         (lifeform.quantity === undefined || Number.isInteger(lifeform.quantity) && lifeform.quantity > 0)))) && (data.centre === undefined || record(data.centre) &&
       (data.centre.name === undefined || typeof data.centre.name === "string") &&
-      typeof data.centre.type === "string" && Number.isInteger(data.centre.population) &&
+      validSwnTags(data.centre.swnTags) && typeof data.centre.type === "string" && Number.isInteger(data.centre.population) &&
       data.centre.population > 0 && strings(data.centre.purposes) && strings(data.centre.features) &&
       strings(data.centre.prompts) && (data.centre.settlement === undefined || validSettlement(data.centre.settlement)));
 }
@@ -83,6 +86,7 @@ export function readSector(json) {
   const tpv = sector.ruleset?.id === tpvRules.id && sector.ruleset.version === tpvRules.version;
   check(sector.schemaVersion === 1 && (tpv || provenance(sector.ruleset)) &&
     record(sector.grid) && record(sector.selectedHex) && Array.isArray(sector.systems));
+  check(sector.addSwnTags === undefined || typeof sector.addSwnTags === "boolean");
   check(sector.name === undefined || typeof sector.name === "string");
   check(sector.generateTradeRoutes === undefined || typeof sector.generateTradeRoutes === "boolean");
   check(sector.systemPointDie === undefined || [0, 4, 6, 8, 10, 20].includes(sector.systemPointDie));
@@ -104,6 +108,7 @@ export function readSector(json) {
     coords.add(hex);
     if (tpv) {
       delete system.faction;
+      check(validSwnTags(system.swnTags));
       check(["star", "nebula", "anomaly"].includes(system.kind) && typeof system.type === "string");
       if (system.kind === "star" || system.type === "Sentient star" || system.stars !== undefined) {
         check(Array.isArray(system.stars) && system.stars.length && system.stars.every(star =>
@@ -114,7 +119,7 @@ export function readSector(json) {
         system.coverage.every(cell => record(cell) && validHex(cell, grid)));
       if (system.satellites !== undefined) check(system.stars &&
         ["Core", "Frontier", "Wild"].includes(system.status) && Array.isArray(system.satellites) &&
-        system.satellites.every(body => record(body) && Number.isInteger(body.band) && body.band >= 1 &&
+        system.satellites.every(body => record(body) && validSwnTags(body.swnTags) && Number.isInteger(body.band) && body.band >= 1 &&
           body.band <= 10 && typeof body.name === "string" && typeof body.type === "string" &&
           ["planet", "moon", "station", "giant", "asteroid", "phenomenon"].includes(body.kind) &&
           (body.size === undefined || ["Tiny", "Small", "Medium", "Large", "Huge"].includes(body.size)) &&
