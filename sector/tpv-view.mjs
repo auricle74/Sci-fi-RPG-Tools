@@ -512,6 +512,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       let worldTrigger;
       let systemInspector;
       function show(event, restoreSettlementFocus = false) {
+        if (catalogue && assignTpvTags(feature, catalogue, roll)) save();
         if (event) {
           worldTrigger = event.currentTarget;
           systemInspector = [...inspector.childNodes];
