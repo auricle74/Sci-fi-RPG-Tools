@@ -223,7 +223,7 @@ function lifeformDetails(world) {
   ]))];
 }
 
-function centreDetails(centre, roll, save, refresh) {
+function centreDetails(centre, roll, save, refresh, compact = false, openPlace) {
   const labels = ["Theme", "Appearance", "Complication"];
   const group = detailSection("Population Centres", [
     ["Function", centre.purposes.join(" / ")], ["Population", centre.population.toLocaleString()],
@@ -241,6 +241,7 @@ function centreDetails(centre, roll, save, refresh) {
     places.classList.add("tpv-settlement-places");
     for (const place of settlement.places) {
       const location = detailSection(place.name);
+      location.open = !compact || place === openPlace;
       location.append(node("p", place.detail));
       if (place.site) {
         location.append(...place.site.map((area, index) =>
@@ -253,7 +254,7 @@ function centreDetails(centre, roll, save, refresh) {
         const develop = button("Develop Site", () => {
           place.site = developSite(settlement, roll);
           save();
-          refresh();
+          refresh(place);
         });
         develop.setAttribute("aria-label", `Develop Site for ${place.name}`);
         location.append(develop);
@@ -389,7 +390,9 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         }
         return worlds;
       }
-      function show() {
+      let worldTrigger;
+      function show(event, openPlace) {
+        if (event) worldTrigger = event.currentTarget;
         const header = node("header");
         header.className = "inspector-header";
         header.append(node("small", body.type), node("h3", body.name));
@@ -402,19 +405,31 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const surfaceCentre = /planetary/i.test(body.type);
         const planets = worlds.filter(world => world.classification === "planet");
         const moons = worlds.filter(world => world.classification === "moon");
+        const worldProfile = planets.length > 0 || body.kind === "planet" || body.kind === "giant";
+        const locationFields = worldProfile ? node("section") : fields;
+        if (worldProfile) {
+          locationFields.className = "inspector-fields tpv-detail-fields";
+          locationFields.append(node("h3", "Sites and Locations"));
+        }
         const appendWorld = (world, name) => {
           fields.append(...worldDetails(world), ...lifeformDetails(world));
           const indigenous = world.lifeforms?.some(lifeform => lifeform.level === "Advanced") ?? false;
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
           if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
         };
-        const appendCentre = () => fields.append(centreDetails(centre, roll, save, show),
-          societyDetails(sector, feature, centre, body.name, false, roll, save, show));
+        const appendCentre = () => {
+          if (worldProfile) locationFields.append(node("p", body.type));
+          locationFields.append(centreDetails(centre, roll, save, place => show(undefined, place), worldProfile, openPlace),
+            societyDetails(sector, feature, centre, body.name, false, roll, save, show));
+        };
         if (planets.length) {
           fields.append(node("h4", "Planet"), orbitDetails(band));
           for (const planet of planets) appendWorld(planet, body.name);
           if (centre && surfaceCentre) appendCentre();
-        } else fields.append(orbitDetails(band));
+        } else {
+          fields.append(orbitDetails(band));
+          if (worldProfile && body.size) fields.append(detailSection("Physical Profile", [["Size", body.size]]));
+        }
         if (moons.length) {
           fields.append(node("h4", "Moon(s)"));
           for (const [index, moon] of moons.entries()) {
@@ -435,7 +450,23 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           notation.append(...descriptions().slice(0, worlds.length).map(text => node("p", text)));
           fields.append(notation);
         }
-        inspector.replaceChildren(header, fields);
+        if (!worldProfile) {
+          inspector.replaceChildren(header, fields);
+          return;
+        }
+        if (!centre) locationFields.append(node("p", "No sites or settlements are recorded for this world."));
+        const worldHeading = node("h2", `${body.name} · World Profile`);
+        worldHeading.tabIndex = -1;
+        const layout = node("div");
+        layout.className = "tpv-world-layout";
+        fields.prepend(node("h3", "World Details"));
+        layout.append(fields, locationFields);
+        profile.replaceChildren(button("Back to System Profile", () => {
+          profile.replaceChildren(controls, heading, details, orbits, entries);
+          (worldTrigger ?? heading).focus();
+        }), worldHeading, node("p", `${feature.name} · ${body.type}`), layout);
+        inspector.replaceChildren();
+        worldHeading.focus();
       }
       const graphic = node("span");
       const appearance = orbitalAppearance(body);
