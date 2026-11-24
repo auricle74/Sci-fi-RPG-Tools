@@ -273,7 +273,7 @@ async function main() {
     await tpv.getByRole("heading", { name: `${planetName.trim()} · World Profile`, exact: true }).waitFor();
     await tpv.locator(".tpv-world-globe + section").getByRole("heading", { name: "Sites and Locations", exact: true }).waitFor();
     await tpv.locator(".sector-details").getByRole("heading", { name: "World Details", exact: true }).waitFor();
-    await tpv.getByRole("button", { name: "Back to System Profile" }).click();
+    await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
