@@ -303,6 +303,7 @@ function settlementPointcrawl(place, index) {
 function centreOverview(centre) {
   const labels = ["Theme", "Appearance", "Complication"];
   return detailSection("Population Centres", [
+    ...(centre.name ? [["Settlement", centre.name]] : []),
     ["Function", centre.purposes.join(" / ")], ["Population", centre.population.toLocaleString()],
     ...(centre.features.length ? [["Special features", centre.features.join(", ")]] : []),
     ...centre.prompts.map((text, index) => [labels[index], text]),
@@ -475,7 +476,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             /^lunar (outpost|colony)$/i.test(body.type) ? `${body.name} (host)` : body.name, world));
         if (data.centre) {
           const centre = data.centre;
-          worlds.push(`${body.type} · ${centre.purposes.join(" / ")} · Population ${centre.population.toLocaleString()}`);
+          worlds.push(`${centre.name ? `${centre.name} · ` : ""}${body.type} · ${centre.purposes.join(" / ")} · Population ${centre.population.toLocaleString()}`);
         }
         return worlds;
       }
@@ -494,6 +495,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const data = body.development;
         const worlds = data?.worlds ?? [];
         const centre = data?.centre;
+        const siteName = centre?.name ?? body.type;
         const lunarCentre = /lunar/i.test(body.type);
         const surfaceCentre = /planetary/i.test(body.type);
         const planets = worlds.filter(world => world.classification === "planet");
@@ -522,7 +524,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 openSettlement();
               });
             overview.append(settlementAction);
-            locationFields.append(node("h4", body.type), overview);
+            locationFields.append(node("h4", siteName), overview);
           } else {
             locationFields.append(centreDetails(centre, roll, save, () => show()));
           }
@@ -577,7 +579,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         function openSettlement(event) {
           const trigger = event?.currentTarget;
           function renderSettlement(developedPlace) {
-            const title = node("h2", `${body.type} · Site Profile`);
+            const title = node("h2", `${siteName} · Site Profile`);
             title.tabIndex = -1;
             const content = node("section");
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
@@ -615,7 +617,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         }
         const surfaceSites = centre && surfaceCentre ? [body.type] : [];
         const globe = worldGlobe([feature.id, body.name, band, feature.satellites.indexOf(body)],
-          surfaceSites, appearance.colour, openSettlement);
+          surfaceSites, appearance.colour, openSettlement, siteName);
         const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ["World Profile", () => worldHeading.focus()]);
         profile.replaceChildren(trail, worldHeading, node("p", `${feature.name} · ${body.type}`), globe, locationFields);
         inspector.replaceChildren(fields);
