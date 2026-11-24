@@ -510,7 +510,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   background: #101b2a;
 }
 .tpv-pointcrawl line { stroke: #7797b4; stroke-width: 2; }
-.tpv-pointcrawl circle { fill: #223b53; stroke: #9de7e1; }
+.tpv-pointcrawl rect { fill: #223b53; stroke: #9de7e1; }
 .tpv-pointcrawl text {
   fill: #e4effa;
   font-size: 12px;
