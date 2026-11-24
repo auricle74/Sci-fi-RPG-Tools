@@ -280,8 +280,8 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 
 .sector-options .map-visibility { margin-top: 1rem; gap: .55rem 1rem; }
 .map-visibility legend { font-weight: 600; }
-.map-visibility label, #tpv-start-control:not([hidden]) { display: flex; align-items: center; }
-.map-visibility input, #tpv-start { width: auto; margin: 0; accent-color: #9de7e1; }
+.map-visibility label, #tpv-start-control:not([hidden]), #tpv-swn-tags-control:not([hidden]) { display: flex; align-items: center; }
+.map-visibility input, #tpv-start, #tpv-swn-tags { width: auto; margin: 0; accent-color: #9de7e1; }
 .hex-system-name { pointer-events: none; }
 .hex-system-name div {
   overflow: hidden;
@@ -546,3 +546,5 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .tpv-breadcrumb li + li::before { content: "›" / ""; color: #a2b5c8; }
 .sector-workspace .tpv-breadcrumb button { padding: .35rem .65rem; }
 .sector-workspace .tpv-breadcrumb button[aria-current="page"] { color: #e4effa; }
+
+.inspector-group ul.tpv-swn-tag-hooks { list-style: disc; padding-inline-start: 1.5rem; margin-block: .25rem .75rem; }
