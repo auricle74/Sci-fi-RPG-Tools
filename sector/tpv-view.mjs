@@ -1,3 +1,4 @@
+import { assignTpvTags, tpvTagCatalogue } from "./tpv-swn-tags.mjs";
 import { svg, worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
@@ -104,6 +105,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   }
 
   function showProfile() {
+    if (sector.addSwnTags && assignTpvTags(feature, tpvTagCatalogue(), roll)) save();
     renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, status, showSetting, systemStatus => {
       develop(systemStatus);
       inspector.replaceChildren(node("h3", feature.name), node("p", feature.type));
@@ -300,6 +302,26 @@ function settlementPointcrawl(place, index) {
   return map;
 }
 
+function swnTagDetails(tags, catalogue) {
+  const group = detailSection("SWN Tags");
+  for (const { type, name } of tags) {
+    const tag = catalogue.find(entry => entry.type === type && entry.name === name);
+    const entry = detailSection(name);
+    entry.open = false;
+    if (tag) {
+      entry.append(node("p", tag.description));
+      for (const [label, hooks] of Object.entries(tag.hooks ?? {})) {
+        const list = node("ul");
+        list.className = "tpv-swn-tag-hooks";
+        list.append(...hooks.map(hook => node("li", hook)));
+        entry.append(node("strong", label), list);
+      }
+    }
+    group.append(entry);
+  }
+  return group;
+}
+
 function centreOverview(centre) {
   const labels = ["Theme", "Appearance", "Complication"];
   return detailSection("Population Centres", [
@@ -445,6 +467,13 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   heading.tabIndex = -1;
   const settingStep = ["Setting Overview", showSetting];
   const chartStep = ["Sector Chart", back];
+  const catalogue = sector.addSwnTags ? tpvTagCatalogue() : null;
+  function appendSwnTags(target, container) {
+    if (catalogue && target.swnTags?.length) container.append(swnTagDetails(target.swnTags, catalogue));
+  }
+  const systemTagPanel = node("section");
+  systemTagPanel.className = "tpv-world-locations tpv-detail-fields";
+  appendSwnTags(feature, systemTagPanel);
   const systemTrail = profileBreadcrumb(settingStep, chartStep, ["System Profile", () => heading.focus()]);
   const details = node("p");
   const updateDetails = () => {
@@ -508,6 +537,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         }
         const appendWorld = (world, name) => {
           fields.append(...worldDetails(world), ...lifeformDetails(world));
+          appendSwnTags(world, fields);
           const indigenous = world.lifeforms?.some(lifeform => lifeform.level === "Advanced") ?? false;
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
           if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
@@ -528,6 +558,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           } else {
             locationFields.append(centreDetails(centre, roll, save, () => show()));
           }
+          appendSwnTags(centre, locationFields);
           locationFields.append(societyDetails(sector, feature, centre, body.name, false, roll, save, show));
         };
         if (planets.length) {
@@ -550,6 +581,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         if (centre && !(lunarCentre && moons.length) && !(surfaceCentre && planets.length)) {
           appendCentre();
         }
+        appendSwnTags(body, fields);
         if (body.features?.length) fields.append(detailSection("Features",
           body.features.map((text, index) => [String(index + 1), text])));
         if (namedMoons.length) fields.append(detailSection("Moon(s)", namedMoons));
@@ -567,7 +599,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         worldHeading.tabIndex = -1;
         fields.prepend(node("h3", "World Details"));
         function returnToSystem() {
-          profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries);
+          profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries, systemTagPanel);
           inspector.replaceChildren(...systemInspector);
           (worldTrigger ?? heading).focus();
         }
@@ -685,6 +717,6 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     redevelop(status.value);
   });
   controls.append(statusLabel, openForm, form);
-  profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries);
+  profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries, systemTagPanel);
   heading.focus();
 }
