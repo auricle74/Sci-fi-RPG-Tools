@@ -302,64 +302,92 @@ function settlementPointcrawl(place, index) {
   return map;
 }
 
+let nextTagFieldId = 0;
+
 function swnTagDetails(target, choices, catalogue, roll, save) {
   const group = detailSection("SWN Tags");
   const rows = node("div");
+  let draft;
+  const edit = button("Edit Tags", () => {
+    draft = [...tags()];
+    render();
+    (rows.querySelector("select") ?? add).focus();
+  });
+  const commands = node("div");
+  commands.className = "inspector-commands";
+  commands.append(button("Save", () => {
+    target.swnTags = draft;
+    target.swnTagsEdited = true;
+    save();
+    finish();
+  }), button("Cancel", finish));
+  function finish() {
+    draft = undefined;
+    render();
+    edit.focus();
+  }
   const add = button("Add tag", () => {
     const available = alternatives();
     update([...tags(), tpvTagReference(available[roll(available.length) - 1])], tags().length);
   });
-  const tags = () => target.swnTags ?? [];
+  const tags = () => draft ?? target.swnTags ?? [];
   const alternatives = () => choices.filter(tag => !tags().some(saved => sameTpvTag(tag, saved)));
   function update(next, focusIndex) {
-    target.swnTags = next;
-    target.swnTagsEdited = true;
-    save();
+    draft = next;
     render();
     (rows.children[focusIndex]?.querySelector("select") ?? add).focus();
   }
 
   function render() {
     rows.replaceChildren();
+    edit.hidden = Boolean(draft);
+    commands.hidden = !draft;
     const available = alternatives();
     tags().forEach((saved, index) => {
-      const tag = catalogue.find(entry => sameTpvTag(entry, saved));
       const row = node("div");
       row.className = "tpv-swn-tag-row";
-      const entry = detailSection(saved.name);
-      entry.open = false;
-      if (tag) {
-        entry.append(node("p", tag.description));
-        for (const [label, hooks] of Object.entries(tag.hooks ?? {})) {
-          const list = node("ul");
-          list.className = "tpv-swn-tag-hooks";
-          list.append(...hooks.map(hook => node("li", hook)));
-          entry.append(node("strong", label), list);
+      rows.append(row);
+      if (!draft) {
+        const tag = catalogue.find(entry => sameTpvTag(entry, saved));
+        const entry = detailSection(saved.name);
+        entry.open = false;
+        if (tag) {
+          entry.append(node("p", tag.description));
+          for (const [label, hooks] of Object.entries(tag.hooks ?? {})) {
+            const list = node("ul");
+            list.className = "tpv-swn-tag-hooks";
+            list.append(...hooks.map(hook => node("li", hook)));
+            entry.append(node("strong", label), list);
+          }
         }
+        row.append(entry);
+        return;
       }
       const controls = node("div");
-      controls.className = "tpv-swn-tag-controls";
+      controls.className = "tpv-swn-tag-controls edit-field has-reroll";
       const select = node("select");
-      select.setAttribute("aria-label", `Change ${saved.name}`);
+      const label = node("label", `Tag ${index + 1}`);
+      select.id = `tpv-tag-field-${++nextTagFieldId}`;
+      label.htmlFor = select.id;
       select.append(new Option(saved.name, ""));
       available.forEach((candidate, offset) => select.append(new Option(candidate.name, String(offset + 1))));
-      select.disabled = !available.length;
+
       function replace(candidate) {
         update(tags().map((item, offset) => offset === index ? tpvTagReference(candidate) : item), index);
       }
       select.addEventListener("change", () => replace(available[Number(select.value) - 1]));
       const reroll = button("Reroll", () => replace(available[roll(available.length) - 1]));
+      reroll.className = "reroll-action";
       reroll.disabled = !available.length;
       reroll.setAttribute("aria-label", `Reroll ${saved.name}`);
       const remove = button("Delete", () => update(tags().filter((_, offset) => offset !== index), index));
       remove.setAttribute("aria-label", `Delete ${saved.name}`);
-      controls.append(select, reroll, remove);
-      row.append(entry, controls);
-      rows.append(row);
+      controls.append(label, reroll, remove, select);
+      row.append(controls);
     });
-    add.hidden = !available.length || tags().length >= 2;
+    add.hidden = !draft || !available.length || tags().length >= 2;
   }
-  group.append(rows, add);
+  group.append(edit, rows, add, commands);
   render();
   return group;
 }
