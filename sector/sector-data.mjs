@@ -15,6 +15,8 @@ const strings = value => Array.isArray(value) && value.every(item => typeof item
 function validSite(areas) {
   return Array.isArray(areas) && areas.length > 0 && areas.every((area, index) =>
     record(area) && ["name", "occupant", "obstacle", "discovery"].every(key => typeof area[key] === "string") &&
+    (area.position === undefined || Array.isArray(area.position) && area.position.length === 2 &&
+      area.position.every(coordinate => Number.isSafeInteger(coordinate) && Math.abs(coordinate) <= areas.length)) &&
     Array.isArray(area.connects) && area.connects.every(number =>
       Number.isInteger(number) && number >= 1 && number <= areas.length && number !== index + 1));
 }
