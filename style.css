@@ -479,3 +479,31 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 @media (min-width: 58.001rem) {
   .sector-workspace:has(#tpv-profile:not([hidden]) .tpv-world-layout) { grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr); }
 }
+
+.tpv-world-globe {
+  max-width: 52rem;
+  margin: .75rem auto 1.5rem;
+}
+.tpv-world-globe svg { width: 100%; height: auto; }
+.tpv-world-globe circle {
+  fill: color-mix(in srgb, var(--globe-colour, #518eed) 26%, #101b2a);
+  stroke: #7797b4;
+  stroke-width: 1.5;
+}
+.tpv-world-globe polygon { fill: none; stroke: #a1bbd2; stroke-opacity: .45; stroke-width: .7; }
+.tpv-world-globe .tpv-globe-site { fill: #9de7e1; stroke: #d4f9f6; stroke-opacity: 1; }
+.tpv-world-globe text {
+  fill: #101b2a;
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.tpv-world-globe ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .35rem 2rem;
+  padding-inline: 1.5rem;
+  margin-block: 0;
+}
