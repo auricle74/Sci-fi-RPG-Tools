@@ -40,12 +40,67 @@ const additionalTags = {
   ],
 };
 
+const hookSubjects = {
+  "Exposed Strata": "the exposed rock layers",
+  "Survey Blind Spots": "a gap in the survey",
+  "Unmapped Basins": "an unsurveyed basin",
+  "Deep Regolith": "tracks in the loose dust",
+  "Tidal Fractures": "a newly opened fracture",
+  "Permanent Shadow": "a dark crater",
+  "Supply Window": "the next supply run",
+  "Patchwork Habitat": "a disused habitat module",
+  "Local Materials": "a source of local materials",
+  "Limited Watch": "an understaffed watch post",
+  "Redundant Stores": "one of the emergency supply caches",
+  "Remote Survey": "a remote survey instrument",
+  "Shearing Bands": "the boundary between the cloud bands",
+  "Transient Vortex": "the short-lived vortex",
+  "Auroral Arcs": "the edge of an auroral arc",
+  "Loose Rubble": "a drifting rubble cluster",
+  "Exposed Veins": "the fresh mineral exposure",
+  "Slow Tumble": "the slowly rotating asteroid",
+  "Shifting Boundary": "the moving boundary",
+  "Quiet Interval": "the lull in activity",
+  "Instrument Echo": "the echo's apparent source",
+};
+
+function additionalHooks(name) {
+  const subject = hookSubjects[name];
+  return {
+    Enemies: [
+      `A salvage captain staking an exclusive claim to ${subject}`,
+      "A broker selling misleading coordinates to rival crews",
+      "A former contractor trying to erase evidence of a failed expedition",
+    ],
+    Friends: [
+      `A technician who can explain the latest readings from ${subject}`,
+      "A pilot who knows a safer approach",
+      "A previous visitor willing to share an annotated log",
+    ],
+    Complications: [
+      `A recent shift makes the recorded approach to ${subject} unreliable`,
+      "Two independent records disagree about what happened here",
+      "A distress signal interrupts the first attempt to investigate",
+    ],
+    Things: [
+      `An instrument record that reveals an unexpected change near ${subject}`,
+      "A navigation log with a missing interval",
+      "A damaged marker carrying a useful identifier",
+    ],
+    Places: [
+      `A sheltered vantage point overlooking ${subject}`,
+      "The last confirmed position of an earlier survey party",
+      "A staging area with a clear route back to the ship",
+    ],
+  };
+}
+
 export function tpvTagCatalogue() {
   const catalogue = [...bookTags, ...catalogueTags()];
   for (const [type, entries] of Object.entries(additionalTags)) {
     for (const [name, description] of entries) {
       if (!catalogue.some(tag => key(tag.type) === key(type) && key(tag.name) === key(name))) {
-        catalogue.push({ type, name, description });
+        catalogue.push({ type, name, description, hooks: additionalHooks(name) });
       }
     }
   }

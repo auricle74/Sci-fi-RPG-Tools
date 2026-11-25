@@ -1,3 +1,4 @@
+import { rollNpcName, rollNpcSurname } from "./tpv-npc-names.mjs";
 import { rollName } from "./swn.mjs";
 import { adjectives, assets, complications, nouns, structures, traits, types } from "./tpv-faction-tables.mjs";
 
@@ -8,7 +9,7 @@ export function rollFactionName(roll, { place, surname } = {}) {
   const structure = () => pick(structures, roll);
   const adjective = () => {
     const value = pick(adjectives, roll);
-    if (value === "[NPC Surname]") return surname || rollName(roll);
+    if (value === "[NPC Surname]") return surname || rollNpcSurname(roll);
     if (value === "[Place Name]") return place || rollName(roll);
     return value;
   };
@@ -96,8 +97,7 @@ export function generateFactionProfile(roll, { place = "", interstellar = false,
     const options = traits[category <= 3 ? 0 : category <= 7 ? 1 : 2];
     personality.push(pick(options.filter(value => !personality.includes(value)), roll));
   }
-  const givenName = rollName(roll);
-  const surname = rollName(roll, new Set([givenName]));
+  const { name, surname } = rollNpcName(roll);
   const pronounRoll = roll(10);
   const pronouns = pronounRoll <= 3 ? "she/her" : pronounRoll <= 6 ? "he/him" : "they/them";
   const categories = [...new Set([...type.map(value => assetCategories[value.split("/")[0]] ?? "general"), "general"])];
@@ -108,7 +108,7 @@ export function generateFactionProfile(roll, { place = "", interstellar = false,
     specialAssets.push(value);
   }
   return {
-    type, reach, base: place, leader: { name: `${givenName} ${surname}`, surname, pronouns, motivation, traits: personality },
+    type, reach, base: place, leader: { name, surname, pronouns, motivation, traits: personality },
     goal: `To ${goals[motivation]}`, assets: specialAssets, complications: rollPair(complications, roll),
   };
 }
