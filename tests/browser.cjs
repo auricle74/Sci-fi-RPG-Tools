@@ -391,7 +391,9 @@ async function main() {
     await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test station" }).click();
     const stationPicture = tpv.locator(".tpv-world-station");
     await stationPicture.waitFor();
-    await tpv.waitForFunction(() => document.querySelector(".tpv-world-station img").naturalWidth > 0);
+    const stationOutline = stationPicture.locator("svg.tpv-site-trace");
+    await stationOutline.waitFor();
+    assert.equal(await stationOutline.locator("ellipse").count(), 2);
     await stationPicture.click();
     await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
