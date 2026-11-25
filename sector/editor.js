@@ -61,7 +61,7 @@ const generationStatus = element("generation-status");
 const roll = (sides) => 1 + Math.floor(Math.random() * sides);
 const tpvSelected = () => rules.value === tpvRules.id;
 const isTpv = () => sector.ruleset.id === tpvRules.id;
-const dimensions = () => tpvSelected() ? presets.void : presets[size.value] ?? [widthInput.valueAsNumber, heightInput.valueAsNumber];
+const dimensions = () => presets[size.value] ?? [widthInput.valueAsNumber, heightInput.valueAsNumber];
 
 function createSector(rulesetId, preset, width, height) {
   return {
@@ -87,6 +87,7 @@ let sector = loadSector() ?? createSector("swn-revised", "swn", 8, 10);
 const hexes = new Map();
 const hexCentres = new Map();
 let systems = new Map();
+const nebulaHexes = new Map();
 
 function saveSector() {
   try {
@@ -98,11 +99,10 @@ function saveSector() {
 
 function syncCustomInputs() {
   const tpv = tpvSelected();
-  size.disabled = tpv;
   element("tpv-start-control").hidden = !tpv;
   element("tpv-swn-tags-control").hidden = !tpv;
   for (const input of setup.querySelectorAll("[data-swn-only]")) input.closest("label").hidden = tpv;
-  const custom = !tpv && size.value === "custom";
+  const custom = size.value === "custom";
   element("custom").hidden = !custom;
   widthInput.disabled = !custom;
   heightInput.disabled = !custom;
@@ -140,7 +140,8 @@ function selectHex(column, row, focus = false) {
   sector.selectedHex = { column, row };
   const system = systems.get(code);
   tradeRoutes.querySelector(".highlighted-route")?.classList.remove("highlighted-route");
-  element("selection").textContent = system ? `Hex ${code}` : `Hex ${code} · Empty`;
+  const nebulae = nebulaHexes.get(code) ?? [];
+  element("selection").textContent = system || nebulae.length ? `Hex ${code}` : `Hex ${code} · Empty`;
   if (isTpv()) {
     selectChartRow(code);
     const usedNames = new Set([system?.name]);
@@ -153,6 +154,19 @@ function selectHex(column, row, focus = false) {
         setProfileOpen(false);
         selectHex(column, row, true);
       }, showSettingOverview);
+    const coverage = nebulae.filter(nebula => nebula !== system);
+    if (coverage.length) {
+      const details = document.createElement("section");
+      const heading = document.createElement("h4");
+      heading.textContent = coverage.length === 1 ? "Nebula" : "Nebulae";
+      details.append(heading);
+      for (const nebula of coverage) {
+        const entry = document.createElement("p");
+        entry.textContent = `${nebula.name} · ${nebula.type}`;
+        details.append(entry);
+      }
+      element("world").append(details);
+    }
     element("world").querySelector(".tpv-open-profile")?.addEventListener("click", () => {
       setProfileOpen(true);
       element("tpv-profile").querySelector("h2")?.focus();
@@ -294,8 +308,16 @@ function renderMap() {
   const fragment = document.createDocumentFragment();
   hexes.clear();
   hexCentres.clear();
-  const nebulaHexes = new Set(isTpv() ? sector.systems.flatMap(feature =>
-    (feature.coverage ?? []).map(cell => coordinate(cell.column, cell.row))) : []);
+  nebulaHexes.clear();
+  if (isTpv()) {
+    for (const nebula of sector.systems.filter(feature => feature.kind === "nebula")) {
+      for (const cell of nebula.coverage ?? []) {
+        const code = coordinate(cell.column, cell.row);
+        if (!nebulaHexes.has(code)) nebulaHexes.set(code, []);
+        nebulaHexes.get(code).push(nebula);
+      }
+    }
+  }
   systems = new Map(sector.systems.map((system) => [coordinate(system.column, system.row), system]));
 
   for (let column = 1; column <= width; column += 1) {
@@ -476,13 +498,13 @@ function generateSector() {
   if (!validDimension(width) || !validDimension(height)) return;
   let next;
   try {
-    next = createSector(rules.value, tpvSelected() ? "void" : size.value, width, height);
+    next = createSector(rules.value, size.value, width, height);
     next.name = rollName(roll, new Set([sector.name?.trim()]));
     if (tpvSelected()) {
       next.addSwnTags = element("tpv-swn-tags").checked;
       const usedNames = new Set();
       next.systems = generateTpvSector(roll, () => crypto.randomUUID(),
-        () => rollName(roll, usedNames), element("tpv-start").checked);
+        () => rollName(roll, usedNames), element("tpv-start").checked, next.grid);
     } else {
       next.starCountPolicy = element("density-control").hidden ? "fixed" : density.value;
       next.generateTradeRoutes = element("generate-trade-routes").value === "yes";
@@ -577,7 +599,10 @@ element("tpv-swn-tags").addEventListener("change", event => {
   saveSector();
   renderMap();
 });
-rules.addEventListener("change", syncCustomInputs);
+rules.addEventListener("change", () => {
+  size.value = tpvSelected() ? "void" : "swn";
+  syncCustomInputs();
+});
 size.addEventListener("change", syncCustomInputs);
 for (const control of [widthInput, heightInput, density]) control.addEventListener("input", syncDensity);
 activateSector(sector);

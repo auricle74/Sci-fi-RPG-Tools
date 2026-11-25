@@ -362,6 +362,20 @@ async function main() {
     await tpv.getByRole("button", { name: "Setting Overview", exact: true }).click();
     await profile.getByRole("heading", { name: "Order of the Cinder Arc" }).waitFor();
     await profile.getByRole("heading", { name: "Faction Notation" }).waitFor();
+    await tpv.getByLabel("Sector size").selectOption("custom");
+    await tpv.getByLabel("Width", { exact: true }).fill("3");
+    await tpv.getByLabel("Height", { exact: true }).fill("2");
+    await tpv.evaluate(() => { Math.random = () => 0.9; });
+    await tpv.getByRole("button", { name: "Generate sector", exact: true }).click();
+    await tpv.locator("#confirm-generate").click();
+    assert.equal(await tpv.locator(".hex").count(), 6);
+    await tpv.locator(".hex.tpv-nebula-coverage:not(.occupied)").first().dispatchEvent("click");
+    await tpv.locator("#world").getByRole("heading", { name: "Nebulae", exact: true }).waitFor();
+    assert.match(await tpv.locator("#world").innerText(), /Supergiant shell nebula/);
+    assert.doesNotMatch(await tpv.locator("#selection").innerText(), /Empty/);
+    await tpv.reload();
+    assert.equal(await tpv.locator(".hex").count(), 6);
+    assert.equal(await tpv.getByLabel("Sector size").inputValue(), "custom");
     assert.deepEqual(tpvErrors, []);
   } finally {
     await browser.close();
