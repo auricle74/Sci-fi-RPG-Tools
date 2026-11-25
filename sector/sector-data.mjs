@@ -95,7 +95,7 @@ export function readSector(json) {
   check(sector.starCountPolicy === undefined || ["fixed", "scaled"].includes(sector.starCountPolicy));
   const { grid } = sector;
   check(validDimension(grid.width) && validDimension(grid.height) && validHex(sector.selectedHex, grid));
-  if (tpv) check(grid.preset === "void" && !sector.generateTradeRoutes);
+  if (tpv) check(!sector.generateTradeRoutes);
   if (grid.preset === "traveller" && grid.width === 32 && grid.height === 40) grid.preset = "custom";
   if (grid.preset !== "custom") {
     check(Object.hasOwn(presets, grid.preset) &&

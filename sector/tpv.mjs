@@ -40,25 +40,34 @@ function rollStars(roll) {
 }
 
 
-const cells = Array.from({ length: 100 }, (_, index) => ({
-  column: 1 + Math.floor(index / 10), row: 1 + index % 10,
-}));
 const shifted = ({ column, row }) => ({ column, row: row + column % 2 });
 export const tpvDistance = (cell, other) => hexDistance(shifted(cell), shifted(other));
 const adjacent = (cell, other) => tpvDistance(cell, other) === 1;
 export const jumpRisk = (distance) => ["Safe", "Unsafe", "Dangerous"][distance - 1];
 
 // Sector Creation, pp. 32–37.
-export function generateTpvSector(roll, makeId, nameFor, starting) {
+export function generateTpvSector(roll, makeId, nameFor, starting, { width = 10, height = 10 } = {}) {
+  const area = width * height;
+  const cells = Array.from({ length: area }, (_, index) => ({
+    column: 1 + Math.floor(index / height), row: 1 + index % height,
+  }));
+  const count = Math.max(1, Math.round(area / 5), starting && area > 1 ? 2 : 0);
   const placed = new Set();
   if (starting) {
-    const central = [35, 44, 45, 55];
-    for (let count = 0; count < 2; count += 1) {
-      placed.add(cells[central.splice(roll(central.length) - 1, 1)[0]]);
+    const middle = Math.ceil(width / 2);
+    const row = Math.ceil(height / 2);
+    const central = [
+      [middle - 1, row + 1], [middle, row], [middle, row + 1], [middle + 1, row + 1],
+    ].map(([column, row]) => cells.find(cell => cell.column === column && cell.row === row)).filter(Boolean);
+    if (central.length < Math.min(2, count)) {
+      central.push(cells.find(cell => !central.includes(cell)));
+    }
+    for (let index = 0; index < Math.min(2, count); index += 1) {
+      placed.add(central.splice(roll(central.length) - 1, 1)[0]);
     }
   }
-  while (placed.size < 20) {
-    const chosen = cells[(roll(10) - 1) * 10 + roll(10) - 1];
+  while (placed.size < count) {
+    const chosen = cells[(roll(width) - 1) * height + roll(height) - 1];
     const free = cells.filter(cell => !placed.has(cell));
     const neighbours = free.filter(cell => adjacent(chosen, cell));
     const alternatives = neighbours.length ? neighbours : free;
@@ -77,7 +86,7 @@ export function generateTpvSector(roll, makeId, nameFor, starting) {
       const coverage = [cell];
       if (index >= 8) {
         const extent = roll(10) + roll(10) + (index === 9 ? 18 : 0);
-        for (let i = 0; i < extent; i += 1) {
+        for (let i = 0; i < extent && coverage.length < area; i += 1) {
           const frontier = cells.filter(other => !coverage.includes(other) &&
             coverage.some(existing => adjacent(existing, other)));
           coverage.push(frontier[roll(frontier.length) - 1]);
