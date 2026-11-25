@@ -8,9 +8,9 @@ const pick = (values, roll) => values[roll(values.length) - 1];
 const weighted = (rows, result) => rows.find(([limit]) => result <= limit)[1];
 const dice = (count, roll) => Array.from({ length: count }, () => roll(10)).reduce((a, b) => a + b);
 const counts = [5, 15, 30, 50, 70, 85, 95, 100].map((limit, index) => [limit, index]);
-const districts = ["Mixed", "Slum", "Residential", "Industrial", "Transit", "Commercial",
+export const districtTypes = ["Mixed", "Slum", "Residential", "Industrial", "Transit", "Commercial",
   "Financial/Corporate", "Religious/Historic", "Academic", "Science/Medical", "Municipal"];
-const cityOdds = [20, 30, 45, 50, 60, 75, 80, 85, 90, 95, 100].map((limit, index) => [limit, districts[index]]);
+const cityOdds = [20, 30, 45, 50, 60, 75, 80, 85, 90, 95, 100].map((limit, index) => [limit, districtTypes[index]]);
 const townFunctions = [
   [20, ["Residential centre", [2, 2, 0], [0, 0, 1, 2, 2, 2, 5, 5, 7, 10]]],
   [45, ["Industrial centre", [3, 3, 0], [0, 1, 1, 2, 3, 3, 3, 4, 4, 7]]],
@@ -46,13 +46,13 @@ const facilityAreas = {
 const special = [[35, ""], [40, "Historic site"], [45, "Ecological relationship"], [50, "Burial structures"],
   [55, "Novel architecture"], [60, "Tunnels"], [65, "Caldera"], [70, "Monument"], [75, "Grove"],
   [80, "Waterfall"], [85, "Chasm"], [90, "Dramatic terrain"], [95, "Energy collection zone"]];
-const mixedOdds = [5, 35, 40, 50, 70, 75, 80, 85, 90, 100].map((limit, index) => [limit, districts[index + 1]]);
+const mixedOdds = [5, 35, 40, 50, 70, 75, 80, 85, 90, 100].map((limit, index) => [limit, districtTypes[index + 1]]);
 
 function districtEntry(type, column, roll, depth = 0) {
   const district = type === "Mixed" ? weighted(mixedOdds, roll(100)) : type;
   const rows = districtTables[district][column];
   const result = weighted(rows, roll(depth < 4 ? 100 : 98));
-  const reference = districts.find(name => name.toUpperCase() === result.replace(/^Roll /i, ""));
+  const reference = districtTypes.find(name => name.toUpperCase() === result.replace(/^Roll /i, ""));
   return reference ? districtEntry(reference, column, roll, depth + 1) : result;
 }
 
@@ -114,7 +114,7 @@ export function makeCommunity(type, roll, world) {
     site.summary.push(["Function", purpose]);
     const count = 3 + weighted(counts, roll(100));
     const types = [...base, ...Array.from({ length: count - base.length }, () => pick(extra, roll))];
-    site.children = types.map(index => makeDistrict(districts[index], roll));
+    site.children = types.map(index => makeDistrict(districtTypes[index], roll));
   }
   if (type === "City") site.children = makeDistricts(roll, true);
   if (type === "Megacity") {

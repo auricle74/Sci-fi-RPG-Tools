@@ -1,4 +1,4 @@
-import { developCommunity, makeCommunity, makeDistrict, makeRegion, siteTypes } from "./tpv-communities.mjs";
+import { districtTypes, developCommunity, makeCommunity, makeDistrict, makeRegion, siteTypes } from "./tpv-communities.mjs";
 import { svg } from "./tpv-globe.mjs";
 
 function element(tag, text) {
@@ -144,7 +144,7 @@ function detailRows(rows) {
   return table;
 }
 
-export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies, region }) {
+export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies, region, station }) {
   if (region) {
     const parent = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies });
     openCommunity(region, { roll, world, save, profile, inspector, breadcrumb,
@@ -156,9 +156,9 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
     site.developed = true;
     save();
   }
-  const title = element("h2", `${site.name} · ${site.type}`);
+  const title = element("h2", `${site.name} · ${station ? "Site Profile" : site.type}`);
   title.tabIndex = -1;
-  const refresh = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies });
+  const refresh = station?.refresh ?? (() => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies }));
   const current = societies.find(candidate => candidate.id === site.societyId) ?? society;
   const open = child => {
     if (child.type === "Location") {
@@ -187,13 +187,14 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
     label.append(picker);
     info.append(label);
   }
-  inspector.replaceChildren(info);
+  inspector.replaceChildren(...(station?.details ?? [info]));
   const content = element("section");
   const isMegacity = site.type === "Megacity";
-  const childTypes = isMegacity ? ["Region", "Facility"] :
+  const childTypes = station ? [...districtTypes.map(type => `${type} District`), "Facility"] : isMegacity ? ["Region", "Facility"] :
     ["Town", "City", "Region"].includes(site.type) ? ["District", "Facility"] : ["Facility"];
   const create = type => {
     if (type === "Region") return makeRegion(roll);
+    if (station && type.endsWith(" District")) return makeDistrict(type.slice(0, -" District".length), roll);
     if (type === "District") return makeDistrict("Mixed", roll);
     return makeCommunity(type, roll, world);
   };
@@ -223,6 +224,7 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
     content.append(siteEditor(site.children, { roll, world, save: saveChildren, refresh, types: childTypes, create }),
       siteList(site.children, { open, save: saveChildren, refresh, reroll }));
   }
-  profile.replaceChildren(breadcrumb(...ancestry, [site.name, () => title.focus()]), title, content);
+  if (station) content.append(station.extra);
+  profile.replaceChildren(breadcrumb(...ancestry, [station ? "Site Profile" : site.name, () => title.focus()]), title, content);
   title.focus();
 }

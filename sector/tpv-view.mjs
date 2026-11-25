@@ -1,4 +1,4 @@
-import { initialWorldSites, makeCommunity } from "./tpv-communities.mjs";
+import { initialWorldSites, makeCommunity, makeDistrict } from "./tpv-communities.mjs";
 import { openCommunity, siteEditor, siteList, siteProfileVisual, siteTypeLabel } from "./tpv-community-view.mjs";
 import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
 import { svg, worldGlobe } from "./tpv-globe.mjs";
@@ -686,11 +686,20 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               pointcrawl = layout;
               selectPlace(Math.max(0, settlement.places.indexOf(developedPlace)));
             }
-            content.append(siteProfileVisual(centre?.type ?? body.type, pointcrawl));
+            const isSpaceStation = /^(Orbital space|Deep-space) station$/i.test(body.type);
+            const overview = isSpaceStation ? node("div") : content;
+            if (isSpaceStation) {
+              overview.className = "inspector-fields tpv-detail-fields";
+              overview.append(node("p", `Host: ${worldProfile ? body.name : feature.name}`));
+              if (pointcrawl) content.append(pointcrawl);
+            } else {
+              content.append(siteProfileVisual(centre?.type ?? body.type, pointcrawl));
+            }
             if (centre) {
-              content.append(centreOverview(centre), centreDetails(centre, roll, save, renderSettlement, selectPlace));
-              appendSwnTags(centre, content, centre.type, body);
-              content.append(societyDetails(sector, feature, centre, body.name, false, roll, save,
+              overview.append(centreOverview(centre));
+              (centre.settlement ? content : overview).append(centreDetails(centre, roll, save, renderSettlement, selectPlace));
+              appendSwnTags(centre, overview, centre.type, body);
+              overview.append(societyDetails(sector, feature, centre, body.name, false, roll, save,
                 () => renderSettlement(developedPlace)));
             } else {
               content.append(node("p", body.type));
@@ -711,7 +720,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             if (body.facilityInterior) content.append(button("Open Facility Interior", () =>
               openCommunity(body.facilityInterior, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
                 ancestry: [worldSettingStep, chartStep, systemStep, siteStep], societies: sector.societies ?? [] })));
-            content.append(siteEditor(facilities, options), siteList(facilities, {
+            if (!isSpaceStation) content.append(siteEditor(facilities, options), siteList(facilities, {
               ...options,
               reroll: () => makeCommunity("Facility", roll),
               open: site => openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
@@ -729,6 +738,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 if (centre) body.development = developBody(body, roll);
                 delete body.facilityInterior;
                 delete body.facilities;
+                delete body.stationDistrictsInitialised;
                 save();
                 redraw();
               }), button("Delete Installation", () => {
@@ -737,6 +747,20 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 save();
                 redraw();
               }));
+            }
+            if (isSpaceStation) {
+              if (!body.stationDistrictsInitialised) {
+                facilities.unshift(...["Transit", "Residential", "Industrial"].map(type => makeDistrict(type, roll)));
+                body.stationDistrictsInitialised = true;
+                save();
+              }
+              openCommunity({ name: siteName, type: body.type, children: facilities }, {
+                roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
+                ancestry: [worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : [])],
+                societies: sector.societies ?? [], society: sector.societies?.find(society => society.id === centre?.societyId),
+                station: { details: [header, fields, overview], extra: content, refresh },
+              });
+              return;
             }
             inspector.replaceChildren(header, fields);
             profile.replaceChildren(trail, title, node("p", `Host: ${worldProfile ? body.name : feature.name}`), content);
@@ -837,9 +861,11 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                   if (action === "Delete") {
                     delete data.centre;
                     delete body.facilities;
+                    delete body.stationDistrictsInitialised;
                   } else {
                     data.centre = { ...developBody(body, roll).centre, societyId: centre.societyId };
                     delete body.facilities;
+                    delete body.stationDistrictsInitialised;
                   }
                 } else {
                   const offset = sites.indexOf(site);

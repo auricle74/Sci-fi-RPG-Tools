@@ -140,6 +140,7 @@ export function readSector(json) {
           body.band <= 10 && typeof body.name === "string" && typeof body.type === "string" &&
           ["planet", "moon", "station", "giant", "asteroid", "phenomenon"].includes(body.kind) &&
           (body.size === undefined || ["Tiny", "Small", "Medium", "Large", "Huge"].includes(body.size)) &&
+          (body.stationDistrictsInitialised === undefined || typeof body.stationDistrictsInitialised === "boolean") &&
           (body.facilities === undefined || validWorldSites(body.facilities)) &&
           (body.facilityInterior === undefined || validWorldSites([body.facilityInterior])) &&
           (body.development === undefined || validDevelopment(body.development)) &&
