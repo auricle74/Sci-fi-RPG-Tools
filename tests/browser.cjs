@@ -228,6 +228,7 @@ async function main() {
     const tpv = await browser.newPage();
     const tpvErrors = [];
     tpv.on("pageerror", error => tpvErrors.push(error.message));
+    tpv.on("dialog", dialog => dialog.accept());
     await tpv.addInitScript(() => { Math.random = () => 0.75; });
     await tpv.goto("http://127.0.0.1:8000/sector/");
     await tpv.getByLabel("Generation rules").selectOption("perilous-void");
@@ -296,6 +297,55 @@ async function main() {
     await detailsPane.locator(".tpv-swn-tag-controls select").first().waitFor();
     await detailsPane.getByRole("button", { name: "Cancel", exact: true }).click();
     assert.ok(await editTags.isVisible());
+    const worldControls = tpv.locator(".tpv-world-globe + section");
+    for (const type of ["Village", "Town", "City", "Megacity", "Facility"]) {
+      await worldControls.getByLabel("Site type").selectOption(type);
+      await worldControls.getByRole("button", { name: "Add Site", exact: true }).click();
+    }
+    const markerCount = await tpv.locator(".tpv-globe-site").count();
+    assert.ok(markerCount >= 5);
+    const town = worldControls.locator("tbody tr").filter({ has: tpv.getByRole("cell", { name: "Town", exact: true }) }).last().locator("td:nth-child(2) button");
+    await worldControls.getByRole("row").filter({ has: tpv.getByRole("cell", { name: "Village", exact: true }) })
+      .last().locator("td:nth-child(2) button").click();
+    await town.click();
+    assert.equal(await worldControls.locator(".tpv-selected-site:visible").count(), 1);
+    assert.equal(await worldControls.locator(".tpv-site-selected").count(), 1);
+    await worldControls.getByRole("button", { name: "Open Site Profile", exact: true }).click();
+    const district = tpv.locator(".tpv-community-map button").first();
+    await district.click();
+    assert.match(await tpv.locator("#tpv-profile h2").innerText(), / · District$/);
+    await tpv.locator(".tpv-community-map button").first().click();
+    await detailsPane.getByText("Inhabitant", { exact: true }).waitFor();
+    await tpv.getByRole("button", { name: "World Profile", exact: true }).click();
+    const megacity = worldControls.getByRole("row").filter({ has: tpv.getByRole("cell", { name: "Megacity", exact: true }) }).last();
+    await megacity.locator("td:nth-child(2) button").click();
+    await worldControls.getByRole("button", { name: "Open Site Profile", exact: true }).click();
+    const regionRows = tpv.locator(".tpv-site-list li").filter({ hasText: / · Region/ });
+    const initialRegions = await regionRows.count();
+    await tpv.getByLabel("Site type").selectOption("Region");
+    await tpv.getByRole("button", { name: "Add Site", exact: true }).click();
+    assert.equal(await regionRows.count(), initialRegions + 1);
+    await tpv.getByRole("button", { name: "World Profile", exact: true }).click();
+    const coverage = tpv.locator(".tpv-globe-coverage");
+    assert.ok(await coverage.count() > 0);
+    await coverage.last().dispatchEvent("click");
+    assert.equal(await worldControls.locator(".tpv-site-selected").count(), 1);
+    await worldControls.getByRole("button", { name: "Open Site Profile", exact: true }).click();
+    assert.match(await tpv.locator("#tpv-profile h2").innerText(), / · Region$/);
+    assert.ok(await tpv.locator(".tpv-community-map button").count() >= 5);
+    await tpv.getByRole("button", { name: "World Profile", exact: true }).click();
+    const facility = worldControls.locator("tbody tr").filter({ has: tpv.getByRole("cell", { name: "Facility", exact: true }) }).last();
+    const originalFacilityRow = await facility.elementHandle();
+    await facility.getByRole("button", { name: /^Reroll/ }).click();
+    await tpv.waitForFunction(row => !row.isConnected, originalFacilityRow);
+    assert.equal(await tpv.locator(".tpv-globe-site").count(), markerCount);
+    await facility.getByRole("button", { name: /^Delete/ }).click();
+    await tpv.waitForFunction(count => document.querySelectorAll(".tpv-globe-site").length === count, markerCount - 1);
+    const savedSites = await worldControls.locator("tbody tr").count();
+    await tpv.reload();
+    await tpv.getByRole("button", { name: "Open System Profile" }).click();
+    await planet.click();
+    assert.equal(await worldControls.locator("tbody tr").count(), savedSites);
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
 
     assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
@@ -331,15 +381,52 @@ async function main() {
       const system = sector.systems.find(entry => entry.column === column && entry.row === row);
       system.satellites.push({ band: 4, kind: "station", type: "Orbital outpost", name: "Test outpost" });
       system.satellites.push({ band: 5, kind: "station", type: "Beacon network", name: "Test beacon" });
+      system.satellites.push({ band: 6, kind: "station", type: "Orbital space station", name: "Test station" });
+      system.satellites.push({ band: 7, kind: "station", type: "Deep-space station", name: "Test deep station" });
       localStorage.setItem(key, JSON.stringify(sector));
     });
     await tpv.reload();
     await tpv.getByRole("button", { name: "Develop System" }).click();
+    await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test station" }).click();
+    const stationPicture = tpv.locator(".tpv-world-station");
+    await stationPicture.waitFor();
+    await tpv.waitForFunction(() => document.querySelector(".tpv-world-station img").naturalWidth > 0);
+    await stationPicture.click();
+    await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
+    await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
+    await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test deep station" }).click();
+    const stationProfile = tpv.locator("#tpv-profile");
+    const stationSites = stationProfile.locator(".tpv-site-list li");
+    assert.equal(await stationSites.count(), 3);
+    assert.equal(await stationProfile.getByText("Population Centres", { exact: true }).count(), 0);
+    await stationProfile.getByRole("group", { name: "Connected site map" }).waitFor();
+    await stationProfile.getByLabel("Site type").selectOption("Science/Medical District");
+    await stationProfile.getByRole("button", { name: "Add Site", exact: true }).click();
+    const newDistrict = stationSites.filter({ hasText: "Science/Medical District" });
+    await newDistrict.getByRole("button", { name: /Science\/Medical District/ }).click();
+    await stationProfile.getByRole("heading", { name: /· District$/ }).waitFor();
+    await stationProfile.getByRole("navigation").getByRole("button").nth(3).click();
+    await newDistrict.getByRole("button", { name: /^Delete / }).click();
+    assert.equal(await stationSites.count(), 3);
+    await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test outpost" }).click();
     await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
     assert.equal(await tpv.getByRole("button", { name: "World Profile", exact: true }).count(), 0);
     await tpv.getByRole("button", { name: "Develop Settlement", exact: true }).click();
     await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
+    const outpostPlaces = stationProfile.locator(".tpv-settlement-places > details");
+    assert.equal(await outpostPlaces.filter({ visible: true }).count(), 1);
+    const outpostChoices = stationProfile.getByRole("group", { name: "Select pointcrawl location" }).getByRole("button");
+    if (await outpostChoices.count() > 1) {
+      await outpostChoices.nth(1).click();
+      assert.equal(await outpostPlaces.nth(0).isVisible(), false);
+      assert.equal(await outpostPlaces.nth(1).isVisible(), true);
+    }
+    await stationProfile.getByRole("button", { name: "Add Site", exact: true }).click();
+    assert.equal(await stationProfile.locator(".tpv-site-list li").count(), 1);
+    assert.ok(await stationProfile.locator(".tpv-site-list").evaluate(list =>
+      Boolean(list.compareDocumentPosition(list.closest("#tpv-profile").querySelector(".tpv-swn-tags")) &
+        Node.DOCUMENT_POSITION_FOLLOWING)));
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator("#tpv-profile tbody").getByRole("button", { name: "Test beacon", exact: true }).click();
     await tpv.getByRole("heading", { name: "Beacon network · Site Profile", exact: true }).waitFor();

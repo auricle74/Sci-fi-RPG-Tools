@@ -26,7 +26,7 @@ for (let hemisphere = 0; hemisphere < originX.length; hemisphere += 1) {
         const angle = (corner * 60 + 30) * Math.PI / 180;
         return project(x + hexSize * Math.cos(angle), y + hexSize * Math.sin(angle), hemisphere).join(",");
       }).join(" ");
-      cells.push({ points, centre: project(x, y, hemisphere), markable: Math.hypot(x, y) < radius * .68 });
+      cells.push({ x, y, hemisphere, points, centre: project(x, y, hemisphere), markable: Math.hypot(x, y) < radius * .68 });
     }
   }
 }
@@ -37,51 +37,76 @@ function hash(text) {
   return value >>> 0;
 }
 
-export function worldGlobe(worldKey, sites, colour, openSite, siteName) {
+function neighbours(first, second) {
+  if (first.hemisphere === second.hemisphere) {
+    return Math.hypot(first.x - second.x, first.y - second.y) < Math.sqrt(3) * hexSize + .01;
+  }
+  return Math.hypot(first.x, first.y) > radius - hexSize &&
+    Math.hypot(second.x, second.y) > radius - hexSize &&
+    Math.hypot(first.x + second.x, first.y - second.y) < Math.sqrt(3) * hexSize + .01;
+}
+
+export function worldGlobe(worldKey, sites, colour, openSite, save) {
   const figure = document.createElement("figure");
   figure.className = "tpv-world-globe";
   const map = svg("svg", { viewBox: "0 0 598 302", role: "group", "aria-label": "Two hemispheres of the world, with numbered site locations" });
   if (colour) map.style.setProperty("--globe-colour", colour);
   for (const cx of originX) map.append(svg("circle", { cx, cy: originY, r: radius }));
-  const available = [];
-  for (const cell of cells) {
-    const polygon = svg("polygon", { points: cell.points });
-    map.append(polygon);
-    if (cell.markable) available.push({ ...cell, polygon });
-  }
+  for (const cell of cells) map.append(svg("polygon", { points: cell.points }));
   figure.append(map);
   if (!sites.length) return figure;
 
-  const legend = document.createElement("figcaption");
-  const list = document.createElement("ol");
+  const available = cells.filter(cell => cell.markable);
+  const markers = [];
+  let changed = false;
+  const reserved = new Set(sites.map(site => cells[site.anchor]).filter(Boolean));
   sites.forEach((site, index) => {
-    const cell = available[hash(JSON.stringify([worldKey, site, index])) % available.length];
-    if (!cell) return;
-    available.splice(available.indexOf(cell), 1);
-    cell.polygon.classList.add("tpv-globe-site");
-    const name = siteName ?? site;
-    const [x, y] = cell.centre;
-    const marker = svg("text", { x, y, "aria-hidden": "true" });
-    marker.textContent = index + 1;
-    const target = svg("g", { role: "button", tabindex: "0", "aria-label": `Open Site Profile for ${name}`, class: "tpv-globe-target" });
-    target.append(cell.polygon, marker);
-    target.addEventListener("click", openSite);
-    target.addEventListener("keydown", event => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openSite(event);
+    const seed = hash(JSON.stringify(site.legacy ? [worldKey, site.key, 0] : [worldKey, site.id]));
+    const unclaimed = available.filter(cell => !reserved.has(cell));
+    const candidates = site.legacy ? cells.filter(cell => cell.markable) :
+      unclaimed.length ? unclaimed : available.length ? available : cells;
+    const anchor = cells[site.anchor] ?? candidates[seed % candidates.length];
+    if (!site.legacy && !cells[site.anchor]) {
+      site.anchor = cells.indexOf(anchor);
+      changed = true;
+    }
+    const offset = available.indexOf(anchor);
+    if (offset >= 0) available.splice(offset, 1);
+    const footprint = [anchor];
+    const regions = site.type === "Megacity" ? site.children.filter(child => child.type === "Region") : [];
+    const wanted = site.worldSpanning ? cells.length : Math.max(1, regions.length);
+    if (site.worldSpanning) footprint.push(...cells.filter(cell => cell !== anchor));
+    while (footprint.length < wanted) {
+      const frontier = cells.filter(cell => !footprint.includes(cell) && footprint.some(other => neighbours(cell, other)));
+      if (!frontier.length) break;
+      footprint.push(frontier[seed % frontier.length]);
+    }
+    footprint.forEach((cell, offset) => {
+      const region = regions[Math.min(regions.length - 1, Math.floor(offset * regions.length / footprint.length))];
+      const label = region ? `${site.name}, ${region.name}` : site.name;
+      const target = svg("g", { role: "button", tabindex: offset ? "-1" : "0",
+        "aria-label": `Select site ${index + 1}, ${label}`, class: "tpv-globe-target" });
+      const polygon = svg("polygon", { points: cell.points, class: offset ? "tpv-globe-coverage" : "tpv-globe-site" });
+      target.append(polygon);
+      if (!offset) {
+        const [x, y] = cell.centre;
+        const marker = svg("text", { x, y, "aria-hidden": "true" });
+        marker.textContent = index + 1;
+        target.append(marker);
       }
+      const open = event => openSite(site, region, event);
+      target.addEventListener("click", open);
+      target.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open(event);
+        }
+      });
+      if (offset) map.append(target);
+      else markers.push(target);
     });
-    map.append(target);
-    const item = document.createElement("li");
-    const link = document.createElement("button");
-    link.type = "button";
-    link.textContent = name;
-    link.addEventListener("click", openSite);
-    item.append(link);
-    list.append(item);
   });
-  legend.append(list);
-  figure.append(legend);
+  map.append(...markers);
+  if (changed) save?.();
   return figure;
 }

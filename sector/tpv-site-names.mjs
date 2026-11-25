@@ -1,4 +1,4 @@
-import { rollName } from "./swn.mjs";
+import { rollNpcName, rollNpcSurname } from "./tpv-npc-names.mjs";
 import { adjectives, nouns, structures } from "./tpv-faction-tables.mjs";
 
 // TPV settlement and district naming tables, pp. 162–165.
@@ -80,8 +80,8 @@ export function rollSiteName(roll) {
   const optionalThe = () => roll(2) === 1 ? "The " : "";
   const modifier = (table = modifiers) => {
     const value = pick(table, roll);
-    if (value === "[NPC Name]") return `${rollName(roll)} ${rollName(roll)}`;
-    if (value.startsWith("[")) return rollName(roll);
+    if (value === "[NPC Name]") return rollNpcName(roll).name;
+    if (value.startsWith("[")) return rollNpcSurname(roll);
     return value;
   };
 
