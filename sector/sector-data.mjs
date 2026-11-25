@@ -35,13 +35,27 @@ function validSettlement(value) {
       (place.site === undefined || validSite(place.site)));
 }
 
+function validWorldSites(sites) {
+  return Array.isArray(sites) && sites.every(site => record(site) &&
+    ["id", "type", "name"].every(key => typeof site[key] === "string") &&
+    (site.function === undefined || typeof site.function === "string") &&
+    (site.functions === undefined || strings(site.functions)) &&
+    (site.anchor === undefined || Number.isInteger(site.anchor) && site.anchor >= 0) &&
+    (site.societyId === undefined || typeof site.societyId === "string") &&
+    (site.summary === undefined || Array.isArray(site.summary) && site.summary.every(row =>
+      Array.isArray(row) && row.length === 2 && typeof row[0] === "string" &&
+      (typeof row[1] === "string" || Number.isFinite(row[1])))) &&
+    (site.children === undefined || validWorldSites(site.children)));
+}
+
 function validDevelopment(data) {
   return record(data) && Array.isArray(data.worlds) && data.worlds.every(world => record(world) && validSwnTags(world) &&
     ["classification", "type", "position", "size", "climate", "gravity", "atmosphere", "composition",
       "water", "life", "resources"].every(key => typeof world[key] === "string") &&
     Number.isInteger(world.diameter) && world.diameter > 0 &&
     Number.isInteger(world.waterPercent) && world.waterPercent >= 0 && world.waterPercent <= 100 &&
-    strings(world.notes) && (world.lifeforms === undefined || Array.isArray(world.lifeforms) &&
+    (world.regions === undefined || Number.isInteger(world.regions) && world.regions >= 1 && world.regions <= 40) &&
+    strings(world.notes) && (world.sites === undefined || validWorldSites(world.sites)) && (world.lifeforms === undefined || Array.isArray(world.lifeforms) &&
       world.lifeforms.every(lifeform => record(lifeform) && typeof lifeform.form === "string" &&
         ["Microbial", "Simple", "Complex", "Advanced"].includes(lifeform.level) && strings(lifeform.traits) &&
         (lifeform.size === undefined || typeof lifeform.size === "string") &&
@@ -109,6 +123,7 @@ export function readSector(json) {
     check(!coords.has(hex));
     coords.add(hex);
     if (tpv) {
+      check(system.facilities === undefined || validWorldSites(system.facilities));
       delete system.faction;
       check(validSwnTags(system));
       check(["star", "nebula", "anomaly"].includes(system.kind) && typeof system.type === "string");
@@ -125,6 +140,8 @@ export function readSector(json) {
           body.band <= 10 && typeof body.name === "string" && typeof body.type === "string" &&
           ["planet", "moon", "station", "giant", "asteroid", "phenomenon"].includes(body.kind) &&
           (body.size === undefined || ["Tiny", "Small", "Medium", "Large", "Huge"].includes(body.size)) &&
+          (body.facilities === undefined || validWorldSites(body.facilities)) &&
+          (body.facilityInterior === undefined || validWorldSites([body.facilityInterior])) &&
           (body.development === undefined || validDevelopment(body.development)) &&
           (body.features === undefined || Array.isArray(body.features) &&
             body.features.every(feature => typeof feature === "string"))));
