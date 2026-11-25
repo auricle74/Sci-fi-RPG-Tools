@@ -122,6 +122,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   });
   open.className = "tpv-open-profile";
   const routes = node("section");
+  routes.className = "tpv-jump-routes";
   function refreshRoutes() {
     routes.replaceChildren(node("h4", "Jump Routes"));
     const available = new Map(sector.systems.filter(target => target !== feature && target.stars &&

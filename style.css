@@ -309,7 +309,16 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   grid-template-rows: minmax(0, 1fr);
 }
 .tpv-map:has(#sector-chart-layout[hidden]) { grid-template-rows: minmax(0, 1fr); }
-#tpv-chart { max-height: 50vh; overflow: auto; }
+#world:has(> .tpv-jump-routes) { margin-top: .55rem; gap: .45rem; }
+#world:has(> .tpv-jump-routes) > :is(h3, p) { margin: 0; }
+.tpv-jump-routes h4 { margin: .35rem 0 .55rem; }
+#tpv-chart {
+  max-height: 50vh;
+  overflow: auto;
+  margin-top: .65rem;
+  border-top: 1px solid #52667e;
+}
+#tpv-chart h3 { margin: .65rem 0 .35rem; }
 #tpv-chart table { width: 100%; border-collapse: collapse; text-align: start; }
 #tpv-chart td, #tpv-chart th { padding: .35rem; border-bottom: 1px solid #34495c; }
 #tpv-profile { min-height: 0; overflow: auto; }
@@ -540,6 +549,10 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #tpv-profile > .tpv-system-tags > details > summary > span {
   font-size: 1em;
   font-weight: 700;
+}
+.tpv-swn-tag-row > details > summary { cursor: pointer; }
+#tpv-profile .tpv-system-tags .tpv-swn-tag-row > details > summary {
+  padding-inline-start: calc(.4rem + .7rem);
 }
 .tpv-swn-tags .tpv-swn-tag-row > details > summary::before {
   content: none;
