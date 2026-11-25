@@ -699,7 +699,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               overview.append(node("p", `Host: ${worldProfile ? body.name : feature.name}`));
               if (pointcrawl) content.append(pointcrawl);
             } else {
-              content.append(siteProfileVisual(centre?.type ?? body.type, pointcrawl));
+              const iconType = body.kind === "station" && centre?.type === "Outpost" ? "Station" : centre?.type ?? body.type;
+              content.append(siteProfileVisual(iconType, pointcrawl));
             }
             if (centre) {
               overview.append(centreOverview(centre));

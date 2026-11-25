@@ -380,6 +380,7 @@ async function main() {
       const { column, row } = sector.selectedHex;
       const system = sector.systems.find(entry => entry.column === column && entry.row === row);
       system.satellites.push({ band: 4, kind: "station", type: "Orbital outpost", name: "Test outpost" });
+      system.satellites.push({ band: 4, kind: "station", type: "Deep-space outpost", name: "Test deep outpost" });
       system.satellites.push({ band: 5, kind: "station", type: "Beacon network", name: "Test beacon" });
       system.satellites.push({ band: 6, kind: "station", type: "Orbital space station", name: "Test station" });
       system.satellites.push({ band: 7, kind: "station", type: "Deep-space station", name: "Test deep station" });
@@ -397,6 +398,8 @@ async function main() {
     await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test deep station" }).click();
     const stationProfile = tpv.locator("#tpv-profile");
     const stationSites = stationProfile.locator(".tpv-site-list li");
+    const siteIcon = stationProfile.locator(".tpv-site-illustration path");
+    const stationIcon = await siteIcon.getAttribute("d");
     assert.equal(await stationSites.count(), 3);
     assert.equal(await stationProfile.getByText("Population Centres", { exact: true }).count(), 0);
     await stationProfile.getByRole("group", { name: "Connected site map" }).waitFor();
@@ -409,7 +412,11 @@ async function main() {
     await newDistrict.getByRole("button", { name: /^Delete / }).click();
     assert.equal(await stationSites.count(), 3);
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
+    await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test deep outpost" }).click();
+    assert.equal(await siteIcon.getAttribute("d"), stationIcon);
+    await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test outpost" }).click();
+    assert.equal(await siteIcon.getAttribute("d"), stationIcon);
     await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
     assert.equal(await tpv.getByRole("button", { name: "World Profile", exact: true }).count(), 0);
     await tpv.getByRole("button", { name: "Develop Settlement", exact: true }).click();
