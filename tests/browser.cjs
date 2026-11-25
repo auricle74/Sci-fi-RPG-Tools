@@ -381,6 +381,7 @@ async function main() {
       const system = sector.systems.find(entry => entry.column === column && entry.row === row);
       system.satellites.push({ band: 4, kind: "station", type: "Orbital outpost", name: "Test outpost" });
       system.satellites.push({ band: 4, kind: "station", type: "Deep-space outpost", name: "Test deep outpost" });
+      system.satellites.push({ band: 4, kind: "station", type: "Planetary outpost", name: "Test planetary outpost" });
       system.satellites.push({ band: 5, kind: "station", type: "Beacon network", name: "Test beacon" });
       system.satellites.push({ band: 6, kind: "station", type: "Orbital space station", name: "Test station" });
       system.satellites.push({ band: 7, kind: "station", type: "Deep-space station", name: "Test deep station" });
@@ -436,6 +437,18 @@ async function main() {
     assert.ok(await stationProfile.locator(".tpv-site-list").evaluate(list =>
       Boolean(list.compareDocumentPosition(list.closest("#tpv-profile").querySelector(".tpv-swn-tags")) &
         Node.DOCUMENT_POSITION_FOLLOWING)));
+    await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
+    await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test planetary outpost" }).click();
+    await stationProfile.locator(".tpv-world-site-table tbody tr").first().locator("td:nth-child(2) button").click();
+    await stationProfile.getByRole("button", { name: "Open Site Profile", exact: true }).click();
+    assert.match(await siteIcon.getAttribute("d"), /^M2 21h20 M5 21/);
+    await stationProfile.getByRole("button", { name: "Develop Settlement", exact: true }).click();
+    assert.equal(await outpostPlaces.filter({ visible: true }).count(), 1);
+    if (await outpostChoices.count() > 1) {
+      await outpostChoices.nth(1).click();
+      assert.equal(await outpostPlaces.nth(0).isVisible(), false);
+      assert.equal(await outpostPlaces.nth(1).isVisible(), true);
+    }
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator("#tpv-profile tbody").getByRole("button", { name: "Test beacon", exact: true }).click();
     await tpv.getByRole("heading", { name: "Beacon network · Site Profile", exact: true }).waitFor();
