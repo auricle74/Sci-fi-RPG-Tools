@@ -153,7 +153,10 @@ function selectHex(column, row, focus = false) {
         setProfileOpen(false);
         selectHex(column, row, true);
       }, showSettingOverview);
-    element("world").querySelector(".tpv-open-profile")?.addEventListener("click", () => setProfileOpen(true));
+    element("world").querySelector(".tpv-open-profile")?.addEventListener("click", () => {
+      setProfileOpen(true);
+      element("tpv-profile").querySelector("h2")?.focus();
+    });
   } else showInspector(element("world"), sector, system, {
     save() {
       if (system) {
@@ -241,33 +244,6 @@ function renderTradeRoutes() {
 
 const chartLayout = element("sector-chart-layout");
 const chartList = element("tpv-chart");
-const chartDivider = element("tpv-divider");
-let mapShare = 65;
-
-function resizeChart(value) {
-  mapShare = Math.max(20, Math.min(85, Math.round(value)));
-  chartLayout.style.setProperty("--map-share", `${mapShare}fr`);
-  chartLayout.style.setProperty("--list-share", `${100 - mapShare}fr`);
-  chartDivider.setAttribute("aria-valuenow", mapShare);
-}
-
-chartDivider.addEventListener("pointerdown", event => {
-  if (event.button !== 0 || !event.isPrimary) return;
-  chartDivider.setPointerCapture(event.pointerId);
-});
-chartDivider.addEventListener("pointermove", event => {
-  if (!chartDivider.hasPointerCapture(event.pointerId)) return;
-  const available = chartLayout.clientHeight - chartDivider.offsetHeight;
-  if (available > 0) resizeChart((event.clientY - chartLayout.getBoundingClientRect().top -
-    chartDivider.offsetHeight / 2) / available * 100);
-});
-chartDivider.addEventListener("keydown", event => {
-  const values = { ArrowUp: mapShare - 5, ArrowDown: mapShare + 5, Home: 20, End: 85 };
-  if (!Object.hasOwn(values, event.key)) return;
-  event.preventDefault();
-  resizeChart(values[event.key]);
-});
-
 function selectChartRow(code) {
   chartList.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
   const row = chartList.querySelector(`[data-hex="${code}"]`);
@@ -281,8 +257,9 @@ function selectChartRow(code) {
 
 function setProfileOpen(open) {
   element("tpv-profile").hidden = !open;
-  chartList.hidden = !isTpv();
-  chartDivider.hidden = !isTpv();
+  chartList.hidden = open || !isTpv();
+  const openProfile = element("world").querySelector(".tpv-open-profile");
+  if (openProfile) openProfile.hidden = open;
   chartLayout.hidden = open;
   element("map-title").parentElement.hidden = open;
 }
@@ -306,8 +283,10 @@ function renderMap() {
   settingOverview.hidden = !isTpv();
   setProfileOpen(false);
   map.closest(".sector-map").classList.toggle("tpv-map", isTpv());
-  if (isTpv()) renderChart(element("tpv-chart"), sector.systems, coordinate, feature =>
-    selectHex(feature.column, feature.row, true), system => factionPresence(sector, system.id));
+  if (isTpv()) renderChart(chartList, sector.systems, coordinate, feature => {
+    selectHex(feature.column, feature.row, true);
+    element("world").querySelector(".tpv-open-profile")?.click();
+  }, system => factionPresence(sector, system.id));
   const { width, height } = sector.grid;
   const radius = 32;
   const halfHeight = Math.sqrt(3) * radius / 2;
