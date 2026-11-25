@@ -640,7 +640,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.tpv-world-station img { display: block; width: 100%; height: auto; }
+.tpv-world-station svg { display: block; width: 100%; height: auto; }
 .tpv-world-locations > .tpv-selected-site:not([hidden]) {
   width: min(100%, 48rem);
   margin: 1rem 0 0;

@@ -699,7 +699,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               overview.append(node("p", `Host: ${worldProfile ? body.name : feature.name}`));
               if (pointcrawl) content.append(pointcrawl);
             } else {
-              content.append(siteProfileVisual(centre?.type ?? body.type, pointcrawl));
+              const iconType = body.kind === "station" && centre?.type === "Outpost" ? "Station" : centre?.type ?? body.type;
+              content.append(siteProfileVisual(iconType, pointcrawl));
             }
             if (centre) {
               overview.append(centreOverview(centre));
@@ -841,10 +842,14 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           const station = button("", () => open(orbitalSite));
           station.className = "tpv-world-station";
           station.setAttribute("aria-label", `Open Site Profile for ${orbitalSite.name}`);
-          const picture = node("img");
-          picture.src = "./orbital-station.webp";
-          picture.alt = "";
-          station.append(picture, node("span", orbitalSite.name));
+          const icon = svg("svg", { viewBox: "0 0 64 46", class: "tpv-site-trace", "aria-hidden": "true" });
+          icon.append(
+            svg("ellipse", { cx: 32, cy: 24, rx: 22, ry: 14 }),
+            svg("ellipse", { cx: 32, cy: 24, rx: 17, ry: 10 }),
+            svg("path", { d: "M15 24h11m12 0h11M32 14v5m0 10v5 M27 20l5-3 5 3v8l-5 3-5-3z M32 17V7m-2 3h4" }),
+            svg("path", { d: "M47 15l4-3m-2-2 10-6 4 4-10 6z M12 33l-3 3m2-1L1 41l4 4 10-6z M54 7l4 4 M6 38l4 4" }),
+          );
+          station.append(icon, node("span", orbitalSite.name));
           globe.prepend(station);
           globe.classList.add("tpv-world-globe-with-station");
         }
