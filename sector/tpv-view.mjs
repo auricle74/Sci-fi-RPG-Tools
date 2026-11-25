@@ -410,7 +410,7 @@ function centreOverview(centre) {
   ]);
 }
 
-function centreDetails(centre, roll, save, refresh, selectPlace) {
+function centreDetails(centre, roll, save, refresh, selectPlace, placeDetails) {
   const group = node("section");
   const settlement = centre.settlement;
   if (settlement) {
@@ -423,7 +423,8 @@ function centreDetails(centre, roll, save, refresh, selectPlace) {
     places.classList.add("tpv-settlement-places");
     for (const [placeIndex, place] of settlement.places.entries()) {
       const location = detailSection(`${placeIndex + 1}. ${place.name}`);
-      if (selectPlace) location.firstElementChild.addEventListener("click", () => selectPlace(placeIndex));
+      placeDetails?.push(location);
+      if (selectPlace && !placeDetails) location.firstElementChild.addEventListener("click", () => selectPlace(placeIndex));
       location.append(node("p", place.detail));
       if (place.site) {
         location.append(button("Reroll Layout", () => {
@@ -665,6 +666,9 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             const content = node("section");
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
             const settlement = centre?.settlement;
+            const isOrbitalOutpost = /^orbital outpost$/i.test(body.type);
+            const placeDetails = isOrbitalOutpost ? [] : undefined;
+            let selectedPlace = developedPlace;
             let selectPlace;
             let pointcrawl;
             if (settlement?.places.length) {
@@ -678,13 +682,15 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               const buttons = settlement.places.map((place, index) =>
                 button(place.name, () => selectPlace(index)));
               selectPlace = index => {
+                selectedPlace = settlement.places[index];
+                placeDetails?.forEach((detail, offset) => { detail.hidden = offset !== index; });
                 buttons.forEach((control, offset) => control.setAttribute("aria-pressed", offset === index));
                 diagram.replaceChildren(settlementPointcrawl(settlement.places[index], index));
               };
               choices.append(...buttons);
               layout.append(choices, diagram);
               pointcrawl = layout;
-              selectPlace(Math.max(0, settlement.places.indexOf(developedPlace)));
+
             }
             const isSpaceStation = /^(Orbital space|Deep-space) station$/i.test(body.type);
             const overview = isSpaceStation ? node("div") : content;
@@ -697,12 +703,17 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             }
             if (centre) {
               overview.append(centreOverview(centre));
-              (centre.settlement ? content : overview).append(centreDetails(centre, roll, save, renderSettlement, selectPlace));
-              appendSwnTags(centre, overview, centre.type, body);
-              overview.append(societyDetails(sector, feature, centre, body.name, false, roll, save,
-                () => renderSettlement(developedPlace)));
+              (centre.settlement ? content : overview).append(centreDetails(centre, roll, save, renderSettlement, selectPlace, placeDetails));
             } else {
               content.append(node("p", body.type));
+            }
+            if (selectPlace) selectPlace(Math.max(0, settlement.places.indexOf(selectedPlace)));
+            const communityDetails = node("div");
+            if (centre) {
+              const destination = isOrbitalOutpost ? communityDetails : overview;
+              appendSwnTags(centre, destination, centre.type, body);
+              destination.append(societyDetails(sector, feature, centre, body.name, false, roll, save,
+                () => renderSettlement(selectedPlace)));
             }
             const worldStep = ["World Profile", () => {
               show();
@@ -710,7 +721,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             }];
             const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : []), ["Site Profile", () => title.focus()]);
             const facilities = body.facilities ??= [];
-            const refresh = () => renderSettlement(developedPlace);
+            const refresh = () => renderSettlement(selectedPlace);
             const siteStep = ["Site Profile", refresh];
             const options = { roll, save, refresh, types: ["Facility"] };
             if (!centre && body.kind === "station" && !body.facilityInterior) {
@@ -727,6 +738,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 ancestry: [worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : []), siteStep],
                 societies: sector.societies ?? [] }),
             }));
+            if (isOrbitalOutpost) content.append(communityDetails);
             if (body.kind === "station" && !worldProfile) {
               const redraw = () => {
                 inspector.replaceChildren(...systemInspector);

@@ -414,6 +414,19 @@ async function main() {
     assert.equal(await tpv.getByRole("button", { name: "World Profile", exact: true }).count(), 0);
     await tpv.getByRole("button", { name: "Develop Settlement", exact: true }).click();
     await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
+    const outpostPlaces = stationProfile.locator(".tpv-settlement-places > details");
+    assert.equal(await outpostPlaces.filter({ visible: true }).count(), 1);
+    const outpostChoices = stationProfile.getByRole("group", { name: "Select pointcrawl location" }).getByRole("button");
+    if (await outpostChoices.count() > 1) {
+      await outpostChoices.nth(1).click();
+      assert.equal(await outpostPlaces.nth(0).isVisible(), false);
+      assert.equal(await outpostPlaces.nth(1).isVisible(), true);
+    }
+    await stationProfile.getByRole("button", { name: "Add Site", exact: true }).click();
+    assert.equal(await stationProfile.locator(".tpv-site-list li").count(), 1);
+    assert.ok(await stationProfile.locator(".tpv-site-list").evaluate(list =>
+      Boolean(list.compareDocumentPosition(list.closest("#tpv-profile").querySelector(".tpv-swn-tags")) &
+        Node.DOCUMENT_POSITION_FOLLOWING)));
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator("#tpv-profile tbody").getByRole("button", { name: "Test beacon", exact: true }).click();
     await tpv.getByRole("heading", { name: "Beacon network · Site Profile", exact: true }).waitFor();
