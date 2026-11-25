@@ -317,6 +317,15 @@ async function main() {
     await tpv.locator(".tpv-community-map button").first().click();
     await detailsPane.getByText("Inhabitant", { exact: true }).waitFor();
     await tpv.getByRole("button", { name: "World Profile", exact: true }).click();
+    const megacity = worldControls.getByRole("row").filter({ has: tpv.getByRole("cell", { name: "Megacity", exact: true }) }).last();
+    await megacity.locator("td:nth-child(2) button").click();
+    await worldControls.getByRole("button", { name: "Open Site Profile", exact: true }).click();
+    const regionRows = tpv.locator(".tpv-site-list li").filter({ hasText: / · Region/ });
+    const initialRegions = await regionRows.count();
+    await tpv.getByLabel("Site type").selectOption("Region");
+    await tpv.getByRole("button", { name: "Add Site", exact: true }).click();
+    assert.equal(await regionRows.count(), initialRegions + 1);
+    await tpv.getByRole("button", { name: "World Profile", exact: true }).click();
     const coverage = tpv.locator(".tpv-globe-coverage");
     assert.ok(await coverage.count() > 0);
     await coverage.last().dispatchEvent("click");

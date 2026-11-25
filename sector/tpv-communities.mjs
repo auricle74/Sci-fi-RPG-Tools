@@ -126,10 +126,14 @@ export function makeCommunity(type, roll, world) {
     const worldRegions = world ? (world.regions ??= weighted([1, 3, 7, 9, 10].map((limit, index) =>
       [limit, (regionCounts[world.size] ?? regionCounts.Medium)[index]]), roll(10))) : 16;
     site.worldSpanning = scope >= worldRegions;
-    site.children = Array.from({ length: Math.min(scope, worldRegions) }, () => named("Region", roll));
+    site.children = Array.from({ length: Math.min(scope, worldRegions) }, () => makeRegion(roll));
     site.summary.push(["Scope", site.worldSpanning ? "World-spanning" : `${scope} regions`]);
   }
   return site;
+}
+
+export function makeRegion(roll) {
+  return named("Region", roll);
 }
 
 export function makeDistrict(type, roll) {

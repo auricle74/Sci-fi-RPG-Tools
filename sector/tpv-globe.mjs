@@ -73,7 +73,7 @@ export function worldGlobe(worldKey, sites, colour, openSite, save) {
     const offset = available.indexOf(anchor);
     if (offset >= 0) available.splice(offset, 1);
     const footprint = [anchor];
-    const regions = site.type === "Megacity" ? site.children : [];
+    const regions = site.type === "Megacity" ? site.children.filter(child => child.type === "Region") : [];
     const wanted = site.worldSpanning ? cells.length : Math.max(1, regions.length);
     if (site.worldSpanning) footprint.push(...cells.filter(cell => cell !== anchor));
     while (footprint.length < wanted) {

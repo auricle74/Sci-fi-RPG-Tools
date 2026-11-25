@@ -1,4 +1,4 @@
-import { developCommunity, makeCommunity, makeDistrict, siteTypes } from "./tpv-communities.mjs";
+import { developCommunity, makeCommunity, makeDistrict, makeRegion, siteTypes } from "./tpv-communities.mjs";
 import { svg } from "./tpv-globe.mjs";
 
 function element(tag, text) {
@@ -189,12 +189,26 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
   }
   inspector.replaceChildren(info);
   const content = element("section");
-  const childTypes = ["Town", "City", "Region"].includes(site.type)
-    ? ["District", "Facility"] : ["Facility"];
-  const create = type => type === "District" ? makeDistrict("Mixed", roll) : makeCommunity(type, roll, world);
+  const isMegacity = site.type === "Megacity";
+  const childTypes = isMegacity ? ["Region", "Facility"] :
+    ["Town", "City", "Region"].includes(site.type) ? ["District", "Facility"] : ["Facility"];
+  const create = type => {
+    if (type === "Region") return makeRegion(roll);
+    if (type === "District") return makeDistrict("Mixed", roll);
+    return makeCommunity(type, roll, world);
+  };
+  const saveChildren = () => {
+    if (isMegacity) {
+      const regions = site.children.filter(child => child.type === "Region").length;
+      if (world?.regions !== undefined) site.worldSpanning = regions >= world.regions;
+      const scope = site.worldSpanning ? "World-spanning" : `${regions} ${regions === 1 ? "region" : "regions"}`;
+      site.summary = [...(site.summary ?? []).filter(([label]) => label !== "Scope"), ["Scope", scope]];
+    }
+    save();
+  };
   const reroll = child => {
     if (child.type === "District") return makeDistrict(child.function, roll);
-    if (child.type === "Region") return { type: "Region", name: makeDistrict("Mixed", roll).name };
+    if (child.type === "Region") return makeRegion(roll);
     if (child.type === "Location") {
       const refreshed = { ...site, children: [] };
       developCommunity(refreshed, roll);
@@ -206,8 +220,8 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
     const map = site.children.length ? routeMap(site.children, open, ["City", "Megacity", "Region"].includes(site.type),
       site.type === "Village" && !site.functions.includes("Mining")) : undefined;
     content.append(siteProfileVisual(site.type, map));
-    content.append(siteEditor(site.children, { roll, world, save, refresh, types: childTypes, create }),
-      siteList(site.children, { open, save, refresh, reroll }));
+    content.append(siteEditor(site.children, { roll, world, save: saveChildren, refresh, types: childTypes, create }),
+      siteList(site.children, { open, save: saveChildren, refresh, reroll }));
   }
   profile.replaceChildren(breadcrumb(...ancestry, [site.name, () => title.focus()]), title, content);
   title.focus();
