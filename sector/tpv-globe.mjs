@@ -56,8 +56,6 @@ export function worldGlobe(worldKey, sites, colour, openSite, save) {
   figure.append(map);
   if (!sites.length) return figure;
 
-  const legend = document.createElement("figcaption");
-  const list = document.createElement("ol");
   const available = cells.filter(cell => cell.markable);
   const markers = [];
   let changed = false;
@@ -87,7 +85,7 @@ export function worldGlobe(worldKey, sites, colour, openSite, save) {
       const region = regions[Math.min(regions.length - 1, Math.floor(offset * regions.length / footprint.length))];
       const label = region ? `${site.name}, ${region.name}` : site.name;
       const target = svg("g", { role: "button", tabindex: offset ? "-1" : "0",
-        "aria-label": `Open Site Profile for ${label}`, class: "tpv-globe-target" });
+        "aria-label": `Select site ${index + 1}, ${label}`, class: "tpv-globe-target" });
       const polygon = svg("polygon", { points: cell.points, class: offset ? "tpv-globe-coverage" : "tpv-globe-site" });
       target.append(polygon);
       if (!offset) {
@@ -107,17 +105,8 @@ export function worldGlobe(worldKey, sites, colour, openSite, save) {
       if (offset) map.append(target);
       else markers.push(target);
     });
-    const item = document.createElement("li");
-    const link = document.createElement("button");
-    link.type = "button";
-    link.textContent = site.legacy ? site.name : `${site.name} · ${site.type}`;
-    link.addEventListener("click", event => openSite(site, undefined, event));
-    item.append(link);
-    list.append(item);
   });
   map.append(...markers);
   if (changed) save?.();
-  legend.append(list);
-  figure.append(legend);
   return figure;
 }

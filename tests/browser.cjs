@@ -304,7 +304,7 @@ async function main() {
     }
     const markerCount = await tpv.locator(".tpv-globe-site").count();
     assert.ok(markerCount >= 5);
-    const town = worldControls.getByRole("button", { name: / · Town$/ }).last();
+    const town = worldControls.locator("tbody tr").filter({ has: tpv.getByRole("cell", { name: "Town", exact: true }) }).last().locator("td:nth-child(2) button");
     await town.click();
     const district = tpv.locator(".tpv-community-map button").first();
     await district.click();
@@ -315,19 +315,23 @@ async function main() {
     const coverage = tpv.locator(".tpv-globe-coverage");
     assert.ok(await coverage.count() > 0);
     await coverage.last().dispatchEvent("click");
+    assert.equal(await worldControls.locator(".tpv-site-selected").count(), 1);
+    await detailsPane.getByRole("button", { name: "Open Site Profile", exact: true }).click();
     assert.match(await tpv.locator("#tpv-profile h2").innerText(), / · Region$/);
     assert.ok(await tpv.locator(".tpv-community-map button").count() >= 5);
     await tpv.getByRole("button", { name: "World Profile", exact: true }).click();
-    const facility = worldControls.locator(".tpv-site-list li").filter({ hasText: / · Facility/ }).last();
+    const facility = worldControls.locator("tbody tr").filter({ has: tpv.getByRole("cell", { name: "Facility", exact: true }) }).last();
+    const originalFacilityRow = await facility.elementHandle();
     await facility.getByRole("button", { name: /^Reroll/ }).click();
+    await tpv.waitForFunction(row => !row.isConnected, originalFacilityRow);
     assert.equal(await tpv.locator(".tpv-globe-site").count(), markerCount);
     await facility.getByRole("button", { name: /^Delete/ }).click();
-    assert.equal(await tpv.locator(".tpv-globe-site").count(), markerCount - 1);
-    const savedSites = await worldControls.locator(".tpv-site-list li").count();
+    await tpv.waitForFunction(count => document.querySelectorAll(".tpv-globe-site").length === count, markerCount - 1);
+    const savedSites = await worldControls.locator("tbody tr").count();
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await planet.click();
-    assert.equal(await worldControls.locator(".tpv-site-list li").count(), savedSites);
+    assert.equal(await worldControls.locator("tbody tr").count(), savedSites);
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
 
     assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);

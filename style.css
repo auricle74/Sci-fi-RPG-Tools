@@ -611,3 +611,17 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   padding: .25rem;
 }
 .tpv-community-map small { color: #c4d2df; }
+
+.tpv-world-site-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem 1rem;
+  margin-block: .5rem;
+}
+.tpv-world-site-heading h3, .tpv-world-site-heading .tpv-site-editor { margin: 0; }
+.tpv-world-site-table th:first-child, .tpv-world-site-table th:last-child { width: 1%; }
+.tpv-world-site-table td:last-child .tpv-site-actions { flex-wrap: nowrap; }
+.tpv-world-site-table td button { text-align: start; }
+.tpv-site-selected { background: #233e50; }
+.tpv-selected-site { margin-bottom: 1rem; border-bottom: 1px solid #52667e; }
