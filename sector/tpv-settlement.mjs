@@ -1,5 +1,5 @@
 import { rollSiteName } from "./tpv-site-names.mjs";
-import { rollName } from "./swn.mjs";
+import { rollNpcName } from "./tpv-npc-names.mjs";
 
 // Adapted from TPV's community problems, settlement locations and inhabitants (pp. 103–109).
 const problems = [
@@ -15,14 +15,14 @@ const locations = {
 };
 
 const purposeSites = {
-  "Resupply Depot": "Fuel processing bay",
-  "Mining Outpost": "Excavation control",
-  "Communications Relay": "Communications array",
-  "Weather Station": "Sensor array",
-  "Research Outpost": "Specimen laboratory",
-  "Military Outpost": "Watch post",
-  Shipyard: "Fabrication bay",
-  Prison: "Detention level",
+  "resupply depot": "Fuel processing bay",
+  "mining outpost": "Excavation control",
+  "communications relay": "Communications array",
+  "weather station": "Sensor array",
+  "research outpost": "Specimen laboratory",
+  "military outpost": "Watch post",
+  shipyard: "Fabrication bay",
+  prison: "Detention level",
 };
 
 const roles = {
@@ -54,24 +54,27 @@ export function developSettlement(centre, roll) {
   const problem = pick(problems[problemType], roll);
   const type = Object.hasOwn(locations, centre.type) ? centre.type : "Outpost";
   const available = [...new Set([
-    ...locations[type], ...centre.purposes.map(purpose => purposeSites[purpose]).filter(Boolean),
+    ...locations[type], ...centre.purposes.map(purpose => purposeSites[purpose.toLowerCase()]).filter(Boolean),
   ])];
-  const first = available.splice(roll(available.length) - 1, 1)[0];
-  const second = available.splice(roll(available.length) - 1, 1)[0];
-  const firstName = rollSiteName(roll);
-  const secondName = rollSiteName(roll);
-  const places = [
-    { name: `${firstName} (${first})`, detail: "Residents are gathering here to demand answers." },
-    { name: `${secondName} (${second})`, detail: "The last shift left behind a record that contradicts the official account." },
-  ];
-  const names = new Set();
+  const count = roll(available.length);
+  const places = Array.from({ length: count }, (_, index) => {
+    const [location] = available.splice(roll(available.length) - 1, 1);
+    return {
+      name: `${rollSiteName(roll)} (${location})`,
+      detail: index === 0 ? "Residents are gathering here to demand answers." :
+        index === 1 ? "The last shift left behind a record that contradicts the official account." :
+          `The crew at the ${location.toLowerCase()} is adjusting its work after reports of ${problem.toLowerCase()}.`,
+    };
+  });
+  let previousName;
   const people = roles[type].map((role, index) => ({
-    name: rollName(roll, names),
+    name: previousName = rollNpcName(roll, previousName).name,
     role,
     motive: index === 0 ? "Keep essential services running and avoid a public panic." :
       "Get an independent witness to check the last shift’s account.",
   }));
-  const arrival = pick(arrivals[problemType], roll)(people[1].name, `${secondName} ${second.toLowerCase()}`);
+  const arrivalPlace = pick(places, roll);
+  const arrival = pick(arrivals[problemType], roll)(people[1].name, arrivalPlace.name);
   return { problem, places, people, arrival };
 }
 
