@@ -51,14 +51,14 @@ function table(headers) {
 }
 
 export function renderChart(container, features, coordinate, select, presence) {
-  const chart = table(["Hex", "Contents"]);
+  const chart = table(["Hex, name and type"]);
   const body = chart.createTBody();
   for (const feature of features) {
     const row = body.insertRow();
     row.dataset.hex = coordinate(feature.column, feature.row);
-    row.insertCell().append(button(row.dataset.hex, () => select(feature)));
     const details = row.insertCell();
-    details.textContent = `${feature.name} · ${feature.type}`;
+    const link = button(`${row.dataset.hex} · ${feature.name}`, () => select(feature));
+    details.append(link, node("div", feature.type));
     for (const entry of presence(feature)) details.append(node("div", `${entry.role} · ${entry.name}`));
   }
   container.replaceChildren(node("h3", "Subsectors of interest"), chart);
@@ -122,6 +122,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   });
   open.className = "tpv-open-profile";
   const routes = node("section");
+  routes.className = "tpv-jump-routes";
   function refreshRoutes() {
     routes.replaceChildren(node("h4", "Jump Routes"));
     const available = new Map(sector.systems.filter(target => target !== feature && target.stars &&
@@ -306,9 +307,12 @@ let nextTagFieldId = 0;
 
 function swnTagDetails(target, choices, catalogue, roll, save) {
   const group = detailSection("SWN Tags");
+  group.classList.add("tpv-swn-tags");
   const rows = node("div");
   let draft;
-  const edit = button("Edit Tags", () => {
+  const edit = button("Edit Tags", event => {
+    event.preventDefault();
+    group.open = true;
     draft = [...tags()];
     render();
     (rows.querySelector("select") ?? add).focus();
@@ -387,7 +391,9 @@ function swnTagDetails(target, choices, catalogue, roll, save) {
     });
     add.hidden = !draft || !available.length || tags().length >= 2;
   }
-  group.append(edit, rows, add, commands);
+  edit.className = "tpv-inline-tag-edit";
+  group.firstElementChild.append(edit);
+  group.append(rows, add, commands);
   render();
   return group;
 }
@@ -402,32 +408,32 @@ function centreOverview(centre) {
   ]);
 }
 
-function centreDetails(centre, roll, save, refresh, numbered = false, selectPlace) {
-  const group = numbered ? node("section") : centreOverview(centre);
+function centreDetails(centre, roll, save, refresh, selectPlace) {
+  const group = node("section");
   const settlement = centre.settlement;
   if (settlement) {
     group.append(
       detailSection("Settlement Situation", [["Local problem", settlement.problem], ["On arrival", settlement.arrival]]),
-      detailSection(numbered ? "Notable NPCs" : "Key People", settlement.people.map(person => [person.name, `${person.role}. ${person.motive}`])),
+      detailSection("Notable NPCs", settlement.people.map(person => [person.name, `${person.role}. ${person.motive}`])),
 
     );
     const places = detailSection("Places to Visit");
     places.classList.add("tpv-settlement-places");
     for (const [placeIndex, place] of settlement.places.entries()) {
-      const location = detailSection(numbered ? `${placeIndex + 1}. ${place.name}` : place.name);
+      const location = detailSection(`${placeIndex + 1}. ${place.name}`);
       if (selectPlace) location.firstElementChild.addEventListener("click", () => selectPlace(placeIndex));
       location.append(node("p", place.detail));
       if (place.site) {
-        if (numbered) location.append(button("Reroll Layout", () => {
+        location.append(button("Reroll Layout", () => {
           place.site = layOutSite(place.site, roll);
           save();
           refresh(place);
         }));
         location.append(...place.site.map((area, index) =>
-          detailSection(`${numbered ? `${placeIndex + 1}.` : ""}${index + 1}. ${area.name}`, [
+          detailSection(`${placeIndex + 1}.${index + 1}. ${area.name}`, [
             ["Occupant", area.occupant], ["Obstacle", area.obstacle],
             ...(area.discovery ? [["Discovery", area.discovery]] : []),
-            ["Connects to areas", area.connects.map(number => numbered ? `${placeIndex + 1}.${number}` : number).join(", ")],
+            ["Connects to areas", area.connects.map(number => `${placeIndex + 1}.${number}`).join(", ")],
           ])));
       } else {
         const develop = button("Develop Site", () => {
@@ -546,7 +552,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     }
   }
   const systemTagPanel = node("section");
-  systemTagPanel.className = "tpv-world-locations tpv-detail-fields";
+  systemTagPanel.className = "tpv-world-locations tpv-detail-fields tpv-system-tags";
   appendSwnTags(feature, systemTagPanel, "System");
   const systemTrail = profileBreadcrumb(settingStep, chartStep, ["System Profile", () => heading.focus()]);
   const details = node("p");
@@ -631,7 +637,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             overview.append(settlementAction);
             locationFields.append(node("h4", siteName), overview);
           } else {
-            locationFields.append(centreDetails(centre, roll, save, () => show()));
+            locationFields.append(centreOverview(centre));
           }
           appendSwnTags(centre, locationFields, centre.type, body);
           locationFields.append(societyDetails(sector, feature, centre, body.name, false, roll, save, show));
@@ -665,14 +671,6 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           notation.append(...descriptions().slice(0, worlds.length).map(text => node("p", text)));
           fields.append(notation);
         }
-        if (!worldProfile) {
-          inspector.replaceChildren(header, fields);
-          return;
-        }
-        if (!centre) locationFields.append(node("p", "No sites or settlements are recorded for this world."));
-        const worldHeading = node("h2", `${body.name} · World Profile`);
-        worldHeading.tabIndex = -1;
-        fields.prepend(node("h3", "World Details"));
         function returnToSystem() {
           profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries, systemTagPanel);
           inspector.replaceChildren(...systemInspector);
@@ -690,7 +688,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             title.tabIndex = -1;
             const content = node("section");
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
-            const settlement = centre.settlement;
+            const settlement = centre?.settlement;
             let selectPlace;
             if (settlement?.places.length) {
               const layout = node("div");
@@ -711,18 +709,31 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               content.append(layout);
               selectPlace(Math.max(0, settlement.places.indexOf(developedPlace)));
             }
-            content.append(centreDetails(centre, roll, save, renderSettlement, true, selectPlace));
-            appendSwnTags(centre, content, centre.type, body);
+            if (centre) {
+              content.append(centreDetails(centre, roll, save, renderSettlement, selectPlace));
+              if (worldProfile) appendSwnTags(centre, content, centre.type, body);
+            } else {
+              content.append(node("p", body.type));
+            }
             const worldStep = ["World Profile", () => {
               show(undefined, true);
               if (trigger?.classList.contains("tpv-globe-target")) profile.querySelector(".tpv-globe-target")?.focus();
             }];
-            const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, worldStep, ["Site Profile", () => title.focus()]);
-            profile.replaceChildren(trail, title, node("p", `Host: ${body.name}`), content);
+            const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : []), ["Site Profile", () => title.focus()]);
+            profile.replaceChildren(trail, title, node("p", `Host: ${worldProfile ? body.name : feature.name}`), content);
             title.focus();
           }
           renderSettlement();
         }
+        if (!worldProfile) {
+          inspector.replaceChildren(header, fields);
+          if (centre || body.kind === "station") openSettlement();
+          return;
+        }
+        if (!centre) locationFields.append(node("p", "No sites or settlements are recorded for this world."));
+        const worldHeading = node("h2", `${body.name} · World Profile`);
+        worldHeading.tabIndex = -1;
+        fields.prepend(node("h3", "World Details"));
         const globeSites = centre ? [body.type] : [];
         const globe = worldGlobe([feature.id, body.name, band, feature.satellites.indexOf(body)],
           globeSites, appearance.colour, openSettlement, siteName);

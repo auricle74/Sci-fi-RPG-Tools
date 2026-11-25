@@ -308,24 +308,24 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   display: grid;
   grid-template-rows: minmax(0, 1fr);
 }
-.tpv-map #sector-chart-layout {
-  grid-template-rows: minmax(0, var(--map-share, 65fr)) 16px minmax(0, var(--list-share, 35fr));
-}
 .tpv-map:has(#sector-chart-layout[hidden]) { grid-template-rows: minmax(0, 1fr); }
-#tpv-divider {
-  background: #172637;
-  cursor: row-resize;
-  touch-action: none;
-  display: grid;
-  place-items: center;
+#world:has(> .tpv-jump-routes) { margin-top: .55rem; gap: .45rem; }
+#world:has(> .tpv-jump-routes) > :is(h3, p) { margin: 0; }
+.tpv-jump-routes h4 { margin: .35rem 0 .55rem; }
+#tpv-chart {
+  max-height: 50vh;
+  overflow: auto;
+  margin-top: .65rem;
+  border-top: 1px solid #52667e;
 }
-#tpv-divider::before { content: ""; width: 2.5rem; height: 3px; border-radius: 2px; background: #9de7e1; }
-#tpv-divider:hover { background: #294253; }
-#tpv-chart, #tpv-profile { min-height: 0; overflow: auto; }
+#tpv-chart h3 { margin: .65rem 0 .35rem; }
+#tpv-chart table { width: 100%; border-collapse: collapse; text-align: start; }
+#tpv-chart td, #tpv-chart th { padding: .35rem; border-bottom: 1px solid #34495c; }
+#tpv-profile { min-height: 0; overflow: auto; }
 #tpv-chart tr:has(button[aria-current="true"]) { background: #233e50; }
 #tpv-chart tr:has(button[aria-current="true"]) td:first-child { box-shadow: inset 3px 0 #9de7e1; }
 .tpv-feature-mark { pointer-events: none; }
-#tpv-chart, #tpv-profile { padding: 1rem; }
+#tpv-profile { padding: 1rem; }
 .tpv-map table { width: 100%; border-collapse: collapse; text-align: left; }
 .tpv-map td, .tpv-map th { border-bottom: 1px solid #34495c; padding: .4rem; }
 .tpv-orbits {
@@ -407,7 +407,6 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .tpv-orbit-star { background: radial-gradient(circle at 50% 75%, #bd713a, transparent 55%); }
 .trade-routes .tpv-jump-1 line, .trade-routes .tpv-jump-2 { stroke-dasharray: none; }
 
-#tpv-divider[hidden] { display: none; }
 
 :is(#world .tpv-detail-fields, .tpv-world-locations) .inspector-group summary span { font-size: 1.15rem; }
 :is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > .inspector-group,
@@ -419,9 +418,6 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 :is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > details > summary > span {
   font-size: 1rem;
   color: #9de7e1;
-}
-:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > details .tpv-swn-tag-row > details > summary > span {
-  font-size: .9rem;
 }
 :is(#world .tpv-detail-fields, .tpv-world-locations) dd > small {
   display: block;
@@ -549,18 +545,31 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 
 .inspector-group ul.tpv-swn-tag-hooks { list-style: disc; padding-inline-start: 1.5rem; margin-block: .25rem .75rem; }
 
-/* System profile tags use the same typography as the satellite table. */
-#tpv-profile > section.tpv-world-locations > details > summary > span {
+/* Match the system tag heading to the satellite table heading. */
+#tpv-profile > .tpv-system-tags > details > summary > span {
   font-size: 1em;
   font-weight: 700;
 }
-#tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details > summary > span {
-  font-size: 1em;
+.tpv-swn-tag-row > details > summary { cursor: pointer; }
+#tpv-profile .tpv-system-tags .tpv-swn-tag-row > details > summary {
+  padding-inline-start: calc(.4rem + .7rem);
+}
+.tpv-swn-tags .tpv-swn-tag-row > details > summary::before {
+  content: none;
+}
+:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-swn-tag-row > details > summary > span {
+  font-size: .9rem;
   font-weight: 600;
   color: #9de7e1;
 }
-#tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details > summary { cursor: pointer; }
-#tpv-profile > section.tpv-world-locations > details .tpv-swn-tag-row > details:not([open]) > summary::before { content: "+"; }
+
+.sector-workspace .tpv-swn-tags > summary .tpv-inline-tag-edit {
+  color: #aab9c8;
+  font-size: .8rem;
+  font-weight: 500;
+  min-height: 0;
+  padding: .2rem .35rem;
+}
 
 :is(#world, .tpv-world-locations) .tpv-swn-tag-controls.edit-field.has-reroll {
   display: grid;
