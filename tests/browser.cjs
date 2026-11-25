@@ -276,6 +276,14 @@ async function main() {
     assert.equal(await tag.evaluate(summary => summary.parentElement.open), false);
     await tag.click();
     assert.equal(await tag.evaluate(summary => summary.parentElement.open), true);
+    const detailsPane = tpv.locator(".sector-details");
+    const editTags = detailsPane.locator(".tpv-swn-tags > summary").getByRole("button", { name: "Edit Tags" });
+    const fontSize = locator => locator.evaluate(element => getComputedStyle(element).fontSize);
+    assert.equal(await fontSize(tag.locator("span")), await fontSize(detailsPane.locator(".inspector-attributes dt").first()));
+    await editTags.click();
+    await detailsPane.locator(".tpv-swn-tag-controls select").first().waitFor();
+    await detailsPane.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.ok(await editTags.isVisible());
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
 
     assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);

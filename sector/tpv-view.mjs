@@ -304,12 +304,14 @@ function settlementPointcrawl(place, index) {
 
 let nextTagFieldId = 0;
 
-function swnTagDetails(target, choices, catalogue, roll, save) {
+function swnTagDetails(target, choices, catalogue, roll, save, inlineEdit) {
   const group = detailSection("SWN Tags");
   group.classList.add("tpv-swn-tags");
   const rows = node("div");
   let draft;
-  const edit = button("Edit Tags", () => {
+  const edit = button("Edit Tags", event => {
+    event.preventDefault();
+    group.open = true;
     draft = [...tags()];
     render();
     (rows.querySelector("select") ?? add).focus();
@@ -388,7 +390,13 @@ function swnTagDetails(target, choices, catalogue, roll, save) {
     });
     add.hidden = !draft || !available.length || tags().length >= 2;
   }
-  group.append(edit, rows, add, commands);
+  if (inlineEdit) {
+    edit.className = "tpv-inline-tag-edit";
+    group.firstElementChild.append(edit);
+  } else {
+    group.append(edit);
+  }
+  group.append(rows, add, commands);
   render();
   return group;
 }
@@ -543,7 +551,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     if (!catalogue) return;
     const choices = tpvTagChoices(catalogue, type, body);
     if (choices.length || target.swnTags?.length) {
-      container.append(swnTagDetails(target, choices, catalogue, roll, save));
+      container.append(swnTagDetails(target, choices, catalogue, roll, save, type !== "System"));
     }
   }
   const systemTagPanel = node("section");

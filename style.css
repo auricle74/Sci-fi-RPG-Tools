@@ -410,9 +410,6 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   font-size: 1rem;
   color: #9de7e1;
 }
-:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > details .tpv-swn-tag-row > details > summary > span {
-  font-size: .9rem;
-}
 :is(#world .tpv-detail-fields, .tpv-world-locations) dd > small {
   display: block;
   margin-top: .25rem;
@@ -555,10 +552,18 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 :is(#world, .tpv-world-locations:not(.tpv-system-tags)) .tpv-swn-tags summary::before {
   content: none;
 }
-:is(#world, .tpv-world-locations:not(.tpv-system-tags)) .tpv-swn-tag-row > details > summary > span {
+:is(#world .tpv-detail-fields, .tpv-world-locations:not(.tpv-system-tags)) .tpv-swn-tag-row > details > summary > span {
   font-size: .9rem;
   font-weight: 600;
   color: #9de7e1;
+}
+
+.sector-workspace .tpv-swn-tags > summary .tpv-inline-tag-edit {
+  color: #aab9c8;
+  font-size: .8rem;
+  font-weight: 500;
+  min-height: 0;
+  padding: .2rem .35rem;
 }
 
 :is(#world, .tpv-world-locations) .tpv-swn-tag-controls.edit-field.has-reroll {
