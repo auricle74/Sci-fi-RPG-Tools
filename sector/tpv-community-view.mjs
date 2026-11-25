@@ -7,6 +7,44 @@ function element(tag, text) {
   return control;
 }
 
+const siteTraces = {
+  Village: "M2 20h20 M4 20v-7l4-4 4 4v7 M13 20v-5l4-4 4 4v5",
+  Town: "M2 20h20 M3 20v-7l4-4 4 4v7 M11 20V8h5v12 M16 20v-6l3-3 3 3v6",
+  City: "M2 21h20 M4 21V10h5v11 M9 21V4h6v17 M15 21v-8h5v8 M11 8h2m-2 4h2m-2 4h2",
+  Megacity: "M1 22h22 M2 22V13h4v9 M6 22V8h4v14 M10 22V3h5v19 M15 22V6h4v16 M19 22V11h3v11 M7 16h12 M12.5 3V1",
+  Facility: "M2 21h20 M3 21v-9l6 3v-4l6 3v-4l6 3v8 M17 10V4h3v8 M6 18h2m3 0h2m3 0h2",
+  Outpost: "M2 21h20 M5 21v-8l7-5 7 5v8 M12 8V3m0 0 5 2-5 2 M10 21v-5h4v5",
+  Colony: "M2 21h20 M4 21v-4a8 8 0 0 1 16 0v4 M8 21v-4a4 4 0 0 1 8 0v4 M12 9V5",
+  District: "M3 3h18v18H3z M3 10h18 M10 3v18 M10 16h11",
+  Region: "M3 8l5-5 8 2 5 5-2 8-7 3-8-4z M8 3l2 9 9 6 M4 17l6-5 11-2",
+  Station: "M12 3v18 M3 12h18 M8 8h8v8H8z M2 8h4v8H2z M18 8h4v8h-4z",
+};
+
+function siteTypeIcon(type) {
+  const icon = svg("svg", { viewBox: "0 0 24 24", class: "tpv-site-trace", "aria-hidden": "true", focusable: "false" });
+  const trace = siteTraces[type] ?? (/orbital|station/i.test(type) ? siteTraces.Station : "M12 3l9 9-9 9-9-9Z M9 12h6");
+  icon.append(svg("path", { d: trace }));
+  return icon;
+}
+
+export function siteTypeLabel(type) {
+  const label = element("span");
+  label.className = "tpv-site-type";
+  label.append(siteTypeIcon(type), type);
+  return label;
+}
+
+export function siteProfileVisual(type, map) {
+  const layout = element("div");
+  layout.className = "tpv-site-visual";
+  const illustration = element("div");
+  illustration.className = "tpv-site-illustration";
+  illustration.append(siteTypeIcon(type));
+  layout.append(illustration);
+  if (map) layout.append(map);
+  return layout;
+}
+
 function button(label, action, name = label) {
   const control = element("button", label);
   control.type = "button";
@@ -165,8 +203,9 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
     return makeCommunity(child.type, roll, world);
   };
   if (site.type !== "Location") {
-    if (site.children.length) content.append(routeMap(site.children, open, ["City", "Megacity", "Region"].includes(site.type),
-      site.type === "Village" && !site.functions.includes("Mining")));
+    const map = site.children.length ? routeMap(site.children, open, ["City", "Megacity", "Region"].includes(site.type),
+      site.type === "Village" && !site.functions.includes("Mining")) : undefined;
+    content.append(siteProfileVisual(site.type, map));
     content.append(siteEditor(site.children, { roll, world, save, refresh, types: childTypes, create }),
       siteList(site.children, { open, save, refresh, reroll }));
   }

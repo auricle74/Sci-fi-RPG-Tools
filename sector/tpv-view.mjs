@@ -1,5 +1,5 @@
 import { initialWorldSites, makeCommunity } from "./tpv-communities.mjs";
-import { openCommunity, siteEditor, siteList } from "./tpv-community-view.mjs";
+import { openCommunity, siteEditor, siteList, siteProfileVisual, siteTypeLabel } from "./tpv-community-view.mjs";
 import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
 import { svg, worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
@@ -40,27 +40,6 @@ function profileBreadcrumb(...steps) {
   return nav;
 }
 
-
-const siteTraces = {
-  Village: "M2 20h20 M4 20v-7l4-4 4 4v7 M13 20v-5l4-4 4 4v5",
-  Town: "M2 20h20 M3 20v-7l4-4 4 4v7 M11 20V8h5v12 M16 20v-6l3-3 3 3v6",
-  City: "M2 21h20 M4 21V10h5v11 M9 21V4h6v17 M15 21v-8h5v8 M11 8h2m-2 4h2m-2 4h2",
-  Megacity: "M1 22h22 M2 22V13h4v9 M6 22V8h4v14 M10 22V3h5v19 M15 22V6h4v16 M19 22V11h3v11 M7 16h12 M12.5 3V1",
-  Facility: "M2 21h20 M3 21v-9l6 3v-4l6 3v-4l6 3v8 M17 10V4h3v8 M6 18h2m3 0h2m3 0h2",
-  Outpost: "M2 21h20 M5 21v-8l7-5 7 5v8 M12 8V3m0 0 5 2-5 2 M10 21v-5h4v5",
-  Colony: "M2 21h20 M4 21v-4a8 8 0 0 1 16 0v4 M8 21v-4a4 4 0 0 1 8 0v4 M12 9V5",
-  Station: "M12 3v18 M3 12h18 M8 8h8v8H8z M2 8h4v8H2z M18 8h4v8h-4z",
-};
-
-function siteTypeLabel(type) {
-  const label = node("span");
-  label.className = "tpv-site-type";
-  const icon = svg("svg", { viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false" });
-  const trace = siteTraces[type] ?? (/orbital|station/i.test(type) ? siteTraces.Station : "M12 3l9 9-9 9-9-9Z M9 12h6");
-  icon.append(svg("path", { d: trace }));
-  label.append(icon, type);
-  return label;
-}
 
 function table(headers) {
   const result = node("table");
@@ -687,6 +666,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
             const settlement = centre?.settlement;
             let selectPlace;
+            let pointcrawl;
             if (settlement?.places.length) {
               const layout = node("div");
               layout.className = "tpv-pointcrawl-layout";
@@ -703,9 +683,10 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               };
               choices.append(...buttons);
               layout.append(choices, diagram);
-              content.append(layout);
+              pointcrawl = layout;
               selectPlace(Math.max(0, settlement.places.indexOf(developedPlace)));
             }
+            content.append(siteProfileVisual(centre?.type ?? body.type, pointcrawl));
             if (centre) {
               content.append(centreOverview(centre), centreDetails(centre, roll, save, renderSettlement, selectPlace));
               appendSwnTags(centre, content, centre.type, body);

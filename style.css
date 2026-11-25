@@ -658,10 +658,37 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   flex: none;
   width: 1.5rem;
   height: 1.5rem;
+}
+.tpv-site-trace {
   fill: none;
   stroke: #76caff;
   stroke-width: 1.25;
   stroke-linecap: round;
   stroke-linejoin: round;
   filter: drop-shadow(0 0 2px #3899ee);
+}
+
+
+.tpv-site-visual {
+  display: grid;
+  grid-template-columns: clamp(7rem, 18%, 16rem) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+.tpv-site-illustration {
+  display: grid;
+  place-items: center;
+  min-height: 9rem;
+}
+.tpv-site-illustration .tpv-site-trace {
+  width: min(76%, 10rem);
+  height: auto;
+  stroke-width: .65;
+  filter: drop-shadow(0 0 5px #3899ee);
+}
+.tpv-site-visual > .tpv-pointcrawl-layout { min-width: 0; }
+@media (max-width: 42rem) {
+  .tpv-site-visual { grid-template-columns: minmax(0, 1fr); }
+  .tpv-site-illustration { justify-items: start; min-height: 0; }
+  .tpv-site-illustration .tpv-site-trace { width: 5rem; }
 }
