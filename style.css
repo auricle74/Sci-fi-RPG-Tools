@@ -536,23 +536,15 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 
 .inspector-group ul.tpv-swn-tag-hooks { list-style: disc; padding-inline-start: 1.5rem; margin-block: .25rem .75rem; }
 
-/* System profile tags use the same typography as the satellite table. */
+/* Match the system tag heading to the satellite table heading. */
 #tpv-profile > .tpv-system-tags > details > summary > span {
   font-size: 1em;
   font-weight: 700;
 }
-#tpv-profile > .tpv-system-tags > details .tpv-swn-tag-row > details > summary > span {
-  font-size: 1em;
-  font-weight: 600;
-  color: #9de7e1;
-}
-#tpv-profile > .tpv-system-tags > details .tpv-swn-tag-row > details > summary { cursor: pointer; }
-#tpv-profile > .tpv-system-tags > details .tpv-swn-tag-row > details:not([open]) > summary::before { content: "+"; }
-
-:is(#world, .tpv-world-locations:not(.tpv-system-tags)) .tpv-swn-tags summary::before {
+.tpv-swn-tags .tpv-swn-tag-row > details > summary::before {
   content: none;
 }
-:is(#world .tpv-detail-fields, .tpv-world-locations:not(.tpv-system-tags)) .tpv-swn-tag-row > details > summary > span {
+:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-swn-tag-row > details > summary > span {
   font-size: .9rem;
   font-weight: 600;
   color: #9de7e1;

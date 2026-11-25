@@ -261,6 +261,18 @@ async function main() {
     assert.equal(await tpv.locator("#tpv-profile .tpv-orbits section").count(), 11);
     assert.equal(await selectedSystem.getAttribute("data-system-status"), "Core");
     assert.notEqual(await hexFill(), wildFill);
+    const systemTagPanel = tpv.locator(".tpv-system-tags");
+    const tagHeading = systemTagPanel.locator(".tpv-swn-tags > summary");
+    const symbol = locator => locator.evaluate(summary => getComputedStyle(summary, "::before").content);
+    assert.equal(await symbol(tagHeading), '"−"');
+    await tagHeading.locator("span").click();
+    assert.equal(await symbol(tagHeading), '"+"');
+    const systemTag = systemTagPanel.locator(".tpv-swn-tag-row summary").first();
+    assert.equal(await systemTag.isVisible(), false);
+    await tagHeading.getByRole("button", { name: "Edit Tags" }).click();
+    await systemTagPanel.locator(".tpv-swn-tag-controls select").first().waitFor();
+    await systemTagPanel.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.equal(await symbol(systemTag), "none");
     const developedRows = tpv.locator("#tpv-profile tbody tr");
     const worldDetails = await developedRows.locator("td:last-child").allTextContents();
     assert.ok(worldDetails.length > 0);
