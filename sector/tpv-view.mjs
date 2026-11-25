@@ -667,7 +667,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
             const settlement = centre?.settlement;
             const isOrbitalOutpost = /^orbital outpost$/i.test(body.type);
-            const placeDetails = isOrbitalOutpost ? [] : undefined;
+            const placeDetails = centre?.type === "Outpost" ? [] : undefined;
             let selectedPlace = developedPlace;
             let selectPlace;
             let pointcrawl;
@@ -699,7 +699,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               overview.append(node("p", `Host: ${worldProfile ? body.name : feature.name}`));
               if (pointcrawl) content.append(pointcrawl);
             } else {
-              const iconType = body.kind === "station" && centre?.type === "Outpost" ? "Station" : centre?.type ?? body.type;
+              const iconType = orbital && centre?.type === "Outpost" ? "Station" : centre?.type ?? body.type;
               content.append(siteProfileVisual(iconType, pointcrawl));
             }
             if (centre) {
