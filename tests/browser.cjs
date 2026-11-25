@@ -305,7 +305,12 @@ async function main() {
     const markerCount = await tpv.locator(".tpv-globe-site").count();
     assert.ok(markerCount >= 5);
     const town = worldControls.locator("tbody tr").filter({ has: tpv.getByRole("cell", { name: "Town", exact: true }) }).last().locator("td:nth-child(2) button");
+    await worldControls.getByRole("row").filter({ has: tpv.getByRole("cell", { name: "Village", exact: true }) })
+      .last().locator("td:nth-child(2) button").click();
     await town.click();
+    assert.equal(await worldControls.locator(".tpv-selected-site:visible").count(), 1);
+    assert.equal(await worldControls.locator(".tpv-site-selected").count(), 1);
+    await worldControls.getByRole("button", { name: "Open Site Profile", exact: true }).click();
     const district = tpv.locator(".tpv-community-map button").first();
     await district.click();
     assert.match(await tpv.locator("#tpv-profile h2").innerText(), / · District$/);
@@ -316,7 +321,7 @@ async function main() {
     assert.ok(await coverage.count() > 0);
     await coverage.last().dispatchEvent("click");
     assert.equal(await worldControls.locator(".tpv-site-selected").count(), 1);
-    await detailsPane.getByRole("button", { name: "Open Site Profile", exact: true }).click();
+    await worldControls.getByRole("button", { name: "Open Site Profile", exact: true }).click();
     assert.match(await tpv.locator("#tpv-profile h2").innerText(), / · Region$/);
     assert.ok(await tpv.locator(".tpv-community-map button").count() >= 5);
     await tpv.getByRole("button", { name: "World Profile", exact: true }).click();
@@ -367,10 +372,18 @@ async function main() {
       const system = sector.systems.find(entry => entry.column === column && entry.row === row);
       system.satellites.push({ band: 4, kind: "station", type: "Orbital outpost", name: "Test outpost" });
       system.satellites.push({ band: 5, kind: "station", type: "Beacon network", name: "Test beacon" });
+      system.satellites.push({ band: 6, kind: "station", type: "Orbital space station", name: "Test station" });
       localStorage.setItem(key, JSON.stringify(sector));
     });
     await tpv.reload();
     await tpv.getByRole("button", { name: "Develop System" }).click();
+    await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test station" }).click();
+    const stationPicture = tpv.locator(".tpv-world-station");
+    await stationPicture.waitFor();
+    await tpv.waitForFunction(() => document.querySelector(".tpv-world-station img").naturalWidth > 0);
+    await stationPicture.click();
+    await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
+    await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test outpost" }).click();
     await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
     assert.equal(await tpv.getByRole("button", { name: "World Profile", exact: true }).count(), 0);

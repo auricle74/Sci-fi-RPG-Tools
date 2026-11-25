@@ -772,6 +772,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const legacySite = centre && (legacy || orbital)
           ? { legacy: true, name: siteName, key: body.type, type: orbital ? body.type : centre.type }
           : undefined;
+        const orbitalSite = orbital ? legacySite : undefined;
         const globeSites = legacy ? [legacySite, ...sites] : sites;
         const listedSites = legacySite && !legacy ? [...globeSites, legacySite] : globeSites;
         const rows = new Map();
@@ -783,12 +784,32 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           summary.hidden = false;
           summary.replaceChildren(node("h3", site.name), node("p", site.type));
           if (region) summary.append(node("p", `Region: ${region.name}`));
-          const population = site.legacy ? centre.population : site.summary?.find(([label]) => label === "Population")?.[1];
-          if (population !== undefined) summary.append(node("p", `Population: ${population.toLocaleString()}`));
+          if (site.legacy) {
+            summary.append(centreOverview(centre));
+          } else {
+            const attributes = [
+              ...(site.function ? [["Function", site.function]] : []),
+              ...(site.summary ?? []).map(([label, value]) =>
+                [label, typeof value === "number" ? value.toLocaleString() : value]),
+              ...(site.children?.length ? [["Mapped areas", String(site.children.length)]] : []),
+            ];
+            if (attributes.length) summary.append(detailSection("Site Details", attributes));
+          }
           summary.append(button("Open Site Profile", () => open(site, region)));
         }
         const globe = worldGlobe([feature.id, body.name, band, feature.satellites.indexOf(body), ...(surface?.classification === "moon" ? ["moon"] : [])],
           globeSites, appearance.colour, selectSite, save);
+        if (orbitalSite && surface?.classification === "planet") {
+          const station = button("", () => open(orbitalSite));
+          station.className = "tpv-world-station";
+          station.setAttribute("aria-label", `Open Site Profile for ${orbitalSite.name}`);
+          const picture = node("img");
+          picture.src = "./orbital-station.webp";
+          picture.alt = "";
+          station.append(picture, node("span", orbitalSite.name));
+          globe.prepend(station);
+          globe.classList.add("tpv-world-globe-with-station");
+        }
         const siteHeading = node("header");
         siteHeading.className = "tpv-world-site-heading";
         siteHeading.append(node("h3", "Sites and Locations"));
@@ -802,7 +823,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             const row = list.insertRow();
             rows.set(site, row);
             row.insertCell().textContent = index < globeSites.length ? String(index + 1) : "—";
-            row.insertCell().append(button(site.name, () => open(site)));
+            row.insertCell().append(button(site.name, () => site === orbitalSite ? open(site) : selectSite(site)));
             row.insertCell().textContent = site.type;
             const actions = node("div");
             actions.className = "tpv-site-actions";
@@ -851,7 +872,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         }
         const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ["World Profile", () => worldHeading.focus()]);
         profile.replaceChildren(trail, worldHeading, context, globe, locationFields);
-        inspector.replaceChildren(summary, fields);
+        locationFields.append(summary);
+        inspector.replaceChildren(fields);
         worldHeading.focus();
       }
       const graphic = node("span");
