@@ -648,3 +648,20 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   border-block: 1px solid #52667e;
 }
 .tpv-world-locations > .tpv-selected-site h3 { margin: 0; }
+
+.tpv-site-type {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+.tpv-site-type svg {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: none;
+  stroke: #76caff;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 2px #3899ee);
+}
