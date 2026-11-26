@@ -982,12 +982,12 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const icon = marker.firstElementChild;
         const badge = node("span");
         badge.className = "tpv-orbit-home";
-        const dot = node("span");
-        dot.className = "tpv-home-dot";
-        dot.setAttribute("aria-hidden", "true");
+        const square = node("span");
+        square.className = "tpv-home-square";
+        square.setAttribute("aria-hidden", "true");
         badge.title = `Home of ${homeLabel}`;
         icon.replaceWith(badge);
-        badge.append(icon, dot);
+        badge.append(icon, square);
         marker.setAttribute("aria-label", `${marker.getAttribute("aria-label") ?? body.name} · Home of ${homeLabel}`);
       }
       lane.append(marker);
