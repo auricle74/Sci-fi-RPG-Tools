@@ -162,54 +162,77 @@ export function simulateRound(baseline, locations, round, order, overrides, roll
     const defaultChoice = preferred[roll(preferred.length) - 1];
     const chosen = choices.find(choice => JSON.stringify(choice) === override.action);
     const action = chosen ?? defaultChoice;
-    const asset = faction.assets.find(item => item.id === action.asset);
-    const template = catalogue.get(asset?.name ?? action.name);
     const lines = [];
-    if (action.type === "Attack") {
-      const rival = factions.find(candidate => candidate.id === action.rival);
-      const target = rival.assets.find(item => item.id === action.target);
-      const [, attack, defend] = template.attack.match(/(Force|Cunning|Wealth) vs\.? (Force|Cunning|Wealth)/i);
-      const attackRoll = override.attackRoll ?? roll(10);
-      const defenceRoll = override.defenceRoll ?? roll(10);
-      const margin = attackRoll + faction[attack.toLowerCase()] - defenceRoll - rival[defend.toLowerCase()];
-      lines.push(`Attack roll ${attackRoll}, defence roll ${defenceRoll}.`);
-      if (margin >= 0) lines.push(`${target.name} took ${hurt(rival, target, damage(template.attack, roll))} damage.`);
-      if (margin <= 0) lines.push(`${asset.name} took ${hurt(faction, asset, damage(catalogue.get(target.name)?.counter, roll))} counterattack damage.`);
-    } else if (action.type === "Expand Influence") {
-      faction.credits -= 1;
-      faction.assets.push({ ...newAsset({ name: "Base of Influence", hp: 1 }, action.location, `${id}-base-${round}`), ready: round + 1 });
-    } else if (action.type === "Use Asset Ability") {
-      const die = roll(asset.name === "Pretech Manufactory" ? 8 : 6);
-      const gained = asset.name === "Harvesters" ? Number(die >= 3) :
-        asset.name === "Pretech Manufactory" ? Math.ceil(die / 2) : die === 1 ? -1 : die < 5 ? 1 : 2;
-      if (faction.credits + gained < 0) {
-        asset.hp = 0;
-        lines.push("Postech Industry was lost because its shortfall could not be paid.");
-      } else {
-        faction.credits += gained;
-        lines.push(`Asset roll ${die} · FacCred change ${gained}.`);
+    const operations = [];
+    const publicNews = [];
+    const used = new Set();
+    const multiple = ["Attack", "Repair Asset", "Use Asset Ability", "Expand Influence"].includes(action.type);
+    let operation = action;
+    while (operation) {
+      const action = operation;
+      const asset = faction.assets.find(item => item.id === action.asset);
+      const template = catalogue.get(asset?.name ?? action.name);
+      const publicAction = !asset?.stealth && !template?.notes.includes("S");
+      const place = locations.find(location => location.id === (action.location ?? asset?.location));
+      operations.push(action.label);
+      if (action.type === "Attack") {
+        const rival = factions.find(candidate => candidate.id === action.rival);
+        const target = rival.assets.find(item => item.id === action.target);
+        const [, attack, defend] = template.attack.match(/(Force|Cunning|Wealth) vs\.? (Force|Cunning|Wealth)/i);
+        const attackRoll = override.attackRoll ?? roll(10);
+        const defenceRoll = override.defenceRoll ?? (rival.tags?.includes("Deep Rooted") && target.location === rival.home
+          ? Math.max(roll(10), roll(10)) : roll(10));
+        const margin = attackRoll + faction[attack.toLowerCase()] - defenceRoll - rival[defend.toLowerCase()];
+        lines.push(`Attack roll ${attackRoll}, defence roll ${defenceRoll}.`);
+        if (publicAction && margin >= 0) publicNews.push(
+          `Reports of a clash between ${faction.name} and ${rival.name}${place ? ` at ${place.name}` : ""} have reached local news services.`);
+        if (margin >= 0) lines.push(`${target.name} took ${hurt(rival, target, override.damage ?? damage(template.attack, roll))} damage.`);
+        if (margin <= 0) lines.push(`${asset.name} took ${hurt(faction, asset, override.counterDamage ?? damage(catalogue.get(target.name)?.counter, roll))} counterattack damage.`);
+      } else if (action.type === "Expand Influence") {
+        publicNews.push(`${faction.name} has established a presence at ${place.name}.`);
+        faction.credits -= 1;
+        faction.assets.push({ ...newAsset({ name: "Base of Influence", hp: 1 }, action.location, `${id}-base-${round}-${action.location}`), ready: round + 1 });
+      } else if (action.type === "Use Asset Ability") {
+        const die = roll(asset.name === "Pretech Manufactory" ? 8 : 6);
+        const gained = asset.name === "Harvesters" ? Number(die >= 3) :
+          asset.name === "Pretech Manufactory" ? Math.ceil(die / 2) : die === 1 ? -1 : die < 5 ? 1 : 2;
+        if (faction.credits + gained < 0) {
+          asset.hp = 0;
+          lines.push("Postech Industry was lost because its shortfall could not be paid.");
+        } else {
+          faction.credits += gained;
+          lines.push(`Asset roll ${die} · FacCred change ${gained}.`);
+        }
+      } else if (action.type === "Buy Asset") {
+        faction.credits -= template.cost;
+        faction.assets.push({ ...newAsset(template, action.location, `${id}-round-${round}`), ready: round + 1, stealth: faction.tags?.includes("Secretive") ?? false });
+      } else if (action.type === "Sell Asset") {
+        faction.credits += Math.floor(template.cost / 2);
+        faction.assets = faction.assets.filter(item => item !== asset);
+      } else if (action.type === "Repair Asset") {
+        const amount = faction[template.rating];
+        for (let cost = 1; asset.hp < asset.maxHp && faction.credits >= cost; cost += 1) {
+          faction.credits -= cost;
+          asset.hp = Math.min(asset.maxHp, asset.hp + amount);
+        }
+      } else if (action.type === "Repair Faction") {
+        faction.credits -= 1;
+        const values = ratings.map(rating => faction[rating]);
+        faction.hp = Math.min(maxHp(faction), faction.hp + Math.round((Math.max(...values) + Math.min(...values)) / 2));
+      } else if (action.type === "Raise Rating") {
+        faction.xp -= xpCosts[++faction[action.rating]];
       }
-    } else if (action.type === "Buy Asset") {
-      faction.credits -= template.cost;
-      faction.assets.push({ ...newAsset(template, action.location, `${id}-round-${round}`), ready: round + 1 });
-    } else if (action.type === "Sell Asset") {
-      faction.credits += Math.floor(template.cost / 2);
-      faction.assets = faction.assets.filter(item => item !== asset);
-    } else if (action.type === "Repair Asset") {
-      faction.credits -= 1;
-      asset.hp = Math.min(asset.maxHp, asset.hp + faction[template.rating]);
-    } else if (action.type === "Repair Faction") {
-      faction.credits -= 1;
-      const values = ratings.map(rating => faction[rating]);
-      faction.hp = Math.min(maxHp(faction), faction.hp + Math.round((Math.max(...values) + Math.min(...values)) / 2));
-    } else if (action.type === "Raise Rating") {
-      faction.xp -= xpCosts[++faction[action.rating]];
+      used.add(action.asset ?? action.location);
+      operation = multiple && (!chosen || override.multiple)
+        ? choicesFor(faction, factions, locations, round).find(next =>
+          next.type === action.type && !used.has(next.asset ?? next.location))
+        : undefined;
     }
     for (const field of ["credits", "hp", "xp"]) {
       if (override[field] !== undefined) faction[field] = override[field];
     }
     if (override.note) lines.push(override.note);
-    entries.push({ id, faction: faction.name, earned, paid, action: action.label, type: action.type, lines, choices, covert: Boolean(asset?.stealth || template?.notes.includes("S")),
+    entries.push({ id, faction: faction.name, earned, paid, action: action.label, type: action.type, lines, choices, publicNews, operations,
       overrides: Object.fromEntries(Object.entries(override).filter(([, value]) => value !== undefined && value !== "")),
       invalidOverride: Boolean(override.action && !chosen) });
   }

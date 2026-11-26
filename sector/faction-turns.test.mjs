@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { sectorLocations } from "./faction-manager.mjs";
-import { deleteFaction, income, maxHp, simulateRound, syncFactions } from "./faction-turns.mjs";
+import { deleteFaction, income, newAsset, catalogue, maxHp, simulateRound, syncFactions } from "./faction-turns.mjs";
 
 test("TPV faction import is idempotent and preserves manual ratings", () => {
   const sector = { societies: [{ id: "a", name: "Company", homeSystemId: "system",
@@ -66,4 +66,17 @@ test("known TPV worlds appear before their profiles are developed", () => {
   const locations = sectorLocations({ systems: [{ id: "home", name: "Erizi", column: 6, row: 6,
     satellites: [{ kind: "planet", band: 4, name: "Erizi II", type: "Planet" }] }] });
   assert.deepEqual(locations.map(({ systemId, name }) => [systemId, name]), [["home", "Erizi II · Erizi 0606"]]);
+});
+
+test("automated repairs use one action type and share the faction budget", () => {
+  const template = catalogue.get("Security Personnel");
+  const assets = ["guard-a", "guard-b"].map(id => ({ ...newAsset(template, "home", id), hp: 1 }));
+  const faction = { id: "a", name: "Guards", force: 1, cunning: 1, wealth: 1,
+    hp: 7, credits: 3, xp: 0, home: "home", goal: "", assets };
+  const result = simulateRound([faction], [], 1, ["a"], {}, () => () => 1);
+  assert.equal(result.entries[0].type, "Repair Asset");
+  assert.equal(result.entries[0].operations.length, 2);
+  assert.deepEqual(result.factions[0].assets.map(asset => asset.hp), [3, 2]);
+  assert.equal(result.factions[0].credits, 0);
+  assert.equal(faction.credits, 3);
 });

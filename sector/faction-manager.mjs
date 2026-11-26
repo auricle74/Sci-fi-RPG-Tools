@@ -286,8 +286,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       const round = manager.history.length + 1;
       const result = simulateRound(manager.factions, locations, round, draft.order, draft.overrides,
         id => seeded(draft.seed ^ manager.factions.findIndex(faction => faction.id === id)));
-      const generatedNews = result.entries.filter(entry => entry.type === "Attack" && !entry.covert)
-        .map(entry => `Reports of tensions involving ${entry.faction} have reached sector news services.`).join("\n");
+      const generatedNews = [...new Set(result.entries.flatMap(entry => entry.publicNews))].join("\n");
       const news = draft.news ?? generatedNews;
       content.append(node("h4", `Round ${round} preview`));
       select(content, "First faction", draft.order.map(id => [id, manager.factions.find(faction => faction.id === id).name]),
@@ -301,6 +300,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
         const card = node("details");
         card.append(node("summary", `${entry.faction} · ${entry.action}`),
           node("p", `Income ${entry.earned} · Upkeep ${entry.paid}`));
+        if (entry.operations?.length > 1) card.append(node("p", entry.operations.join(" · ")));
         for (const line of entry.lines) card.append(node("p", line));
         if (entry.invalidOverride) card.append(node("p", "The overridden action is unavailable. Choose another action or return to automatic selection."));
         const controls = node("div");
@@ -311,6 +311,16 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
         }, limits);
         select(controls, "Action override", [["", "Automatic"], ...entry.choices.map(choice => [JSON.stringify(choice), choice.label])],
           override.action ?? "", value => { override.action = value; refreshCard(entry.id); });
+        const batch = node("label", "Continue with other eligible assets or worlds");
+        const checkbox = node("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = Boolean(override.multiple);
+        checkbox.disabled = !override.action;
+        checkbox.onchange = () => { override.multiple = checkbox.checked; refreshCard(entry.id); };
+        batch.append(checkbox);
+        controls.append(batch);
+        overrideField("Damage override per attack", "damage", [0, 999]);
+        overrideField("Counterattack damage override", "counterDamage", [0, 999]);
         overrideField("Income override", "income", [0, 999999]);
         for (const asset of manager.factions.find(faction => faction.id === entry.id).assets) {
           field(controls, `Upkeep override for ${asset.name}`, override.upkeep?.[asset.id], value => {
@@ -349,7 +359,8 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       history.append(node("summary", `Round ${record.round}`));
       for (const entry of record.entries) {
         history.append(node("h4", `${entry.faction} · ${entry.action}`),
-          node("p", `Income ${entry.earned} · Upkeep ${entry.paid}`), ...entry.lines.map(line => node("p", line)));
+          node("p", `Income ${entry.earned} · Upkeep ${entry.paid}`), ...(entry.operations?.length > 1 ? [node("p", entry.operations.join(" · "))] : []),
+          ...entry.lines.map(line => node("p", line)));
         if (Object.keys(entry.overrides ?? {}).length) history.append(node("p", "Manual overrides recorded."));
       }
       field(history, "Sector news", record.news, value => { record.news = value; save(); });
