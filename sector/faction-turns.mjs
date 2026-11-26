@@ -13,7 +13,9 @@ export function newAsset(template, location, id) {
 export function syncFactions(sector, locations) {
   const manager = sector.factionManager ??= { factions: [], history: [] };
   const known = new Set(manager.factions.map(faction => faction.sourceId));
+  const excluded = new Set(manager.excludedSocietyIds ?? []);
   for (const society of sector.societies ?? []) {
+    if (excluded.has(society.id)) continue;
     if (known.has(society.id)) {
       manager.factions.find(faction => faction.sourceId === society.id).name = society.name;
       continue;
@@ -44,6 +46,13 @@ export function syncFactions(sector, locations) {
     known.add(society.id);
   }
   return manager;
+}
+
+export function deleteFaction(manager, id) {
+  const index = manager.factions.findIndex(faction => faction.id === id);
+  if (index === -1) return;
+  const [faction] = manager.factions.splice(index, 1);
+  if (faction.sourceId) (manager.excludedSocietyIds ??= []).push(faction.sourceId);
 }
 
 function active(asset, round) {

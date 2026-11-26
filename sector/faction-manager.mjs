@@ -1,5 +1,5 @@
 import { assets } from "./faction-assets.mjs";
-import { catalogue, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
+import { catalogue, deleteFaction, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
 
 function node(tag, text) {
   const element = document.createElement(tag);
@@ -133,6 +133,14 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     select(content, "Faction", manager.factions.map(faction => [faction.id, faction.name]), selected,
       id => { selected = id; render(); });
     const faction = manager.factions.find(item => item.id === selected);
+    content.append(button("Delete Faction", () => {
+      const context = faction.sourceId ? " Its TPV society and location links will be kept." : "";
+      if (!confirm(`Delete ${faction.name} and its assets from the Faction Manager?${context}`)) return;
+      deleteFaction(manager, faction.id);
+      selected = manager.factions[0]?.id;
+      save();
+      render();
+    }));
     const form = node("div");
     form.className = "faction-form";
     content.append(form);
