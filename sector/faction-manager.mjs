@@ -45,7 +45,10 @@ function select(parent, label, options, current, update) {
   return input;
 }
 
-const locationOptions = locations => [["", "Choose a location"], ...locations.map(location => [location.id, location.name])];
+const locationOptions = (locations, showType = false) => [
+  ["", "Choose a location"],
+  ...locations.map(location => [location.id, showType ? location.typedName : location.name]),
+];
 
 export function sectorLocations(sector) {
   const societies = new Map((sector.societies ?? []).map(society => [society.id, society]));
@@ -53,7 +56,7 @@ export function sectorLocations(sector) {
     const hex = String(system.column).padStart(2, "0") + String(system.row).padStart(2, "0");
     if (system.mainWorld) {
       const world = system.mainWorld;
-      return [{ id: world.id, systemId: system.id, name: `${world.name} · ${hex}`,
+      return [{ id: world.id, systemId: system.id, name: `${world.name} · ${hex}`, typedName: `${world.name} (Planet) · ${hex}`,
         tech: Number(world.profile?.["Tech level"]?.match(/\d+/)?.[0] ?? NaN) || (world.profile?.["Tech level"] === "TL0" ? 0 : undefined),
         population: /several million|hundreds of millions|billions/i.test(world.profile?.Population) ? 1000000 : undefined }];
     }
@@ -66,11 +69,13 @@ export function sectorLocations(sector) {
       const societyIds = [data?.centre?.societyId, surface?.societyId].filter(Boolean);
       const id = satelliteLocationId(system, body, index);
       const primary = { id, systemId: system.id, name: `${body.name} · ${system.name} ${hex}`,
+        typedName: `${body.name} (${body.type}) · ${system.name} ${hex}`,
         societyIds, tech: societies.get(societyIds[0])?.tech, population: data?.centre?.population };
       const host = surface?.classification === "moon" && worlds.find(world => world.classification === "planet");
       if (!host) return [primary];
       return [primary, { id: `${id}:host`, systemId: system.id,
         name: `${body.name} (host planet) · ${system.name} ${hex}`,
+        typedName: `${body.name} (Host planet) · ${system.name} ${hex}`,
         societyIds: host.societyId ? [host.societyId] : [], tech: societies.get(host.societyId)?.tech }];
 
     });
@@ -234,7 +239,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     const homeSystem = sector.systems.find(system => system.id === society?.homeSystemId);
     const homeLocations = homeSystem ? locations.filter(place => place.systemId === homeSystem.id) : locations;
     const homeField = node("div");
-    const homePicker = select(homeField, "Homeworld", locationOptions(homeLocations), faction.home, id => {
+    const homePicker = select(homeField, "Homeworld", locationOptions(homeLocations, true), faction.home, id => {
       faction.home = id;
       if (id && !faction.assets.some(asset => asset.name === "Base of Influence" && asset.location === id)) {
         faction.assets.push(newAsset({ name: "Base of Influence", hp: maxHp(faction) }, id, crypto.randomUUID()));
