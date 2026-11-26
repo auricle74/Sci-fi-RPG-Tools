@@ -237,11 +237,12 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #world .inspector-entry small { font-size: .78rem; }
 #world .inspector-controls > summary { font-size: .88rem; }
 
-.inspector-header {
+.inspector-header, .tpv-area-details {
   width: 100%;
   padding-bottom: .55rem;
   border-bottom: 1px solid #34495c;
 }
+.tpv-area-details { margin-bottom: .55rem; }
 .inspector-commands {
   display: flex;
   flex-wrap: wrap;
@@ -409,16 +410,6 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 
 
 :is(#world .tpv-detail-fields, .tpv-world-locations) .inspector-group summary span { font-size: 1.15rem; }
-:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > .inspector-group,
-:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > .inspector-group > .inspector-group {
-  margin-inline-start: .35rem;
-  padding-inline-start: .65rem;
-  border-inline-start: 1px solid #52667e;
-}
-:is(#world .tpv-detail-fields, .tpv-world-locations) .tpv-settlement-places > details > summary > span {
-  font-size: 1rem;
-  color: #9de7e1;
-}
 :is(#world .tpv-detail-fields, .tpv-world-locations) dd > small {
   display: block;
   margin-top: .25rem;
@@ -621,6 +612,8 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 }
 .tpv-world-site-heading h3, .tpv-world-site-heading .tpv-site-editor { margin: 0; }
 .tpv-world-site-table th:first-child, .tpv-world-site-table th:last-child { width: 1%; }
+.tpv-place-areas th:last-child { width: auto; }
+.tpv-settlement-places td:last-child button { white-space: nowrap; }
 .tpv-world-site-table td:last-child .tpv-site-actions { flex-wrap: nowrap; }
 .tpv-world-site-table td button { text-align: start; }
 .tpv-site-selected { background: #233e50; }
