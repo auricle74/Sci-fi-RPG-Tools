@@ -424,14 +424,21 @@ async function main() {
     assert.equal(await tpv.getByRole("button", { name: "World Profile", exact: true }).count(), 0);
     await tpv.getByRole("button", { name: "Develop Settlement", exact: true }).click();
     await tpv.getByRole("heading", { name: /Site Profile$/ }).waitFor();
-    const outpostPlaces = stationProfile.locator(".tpv-settlement-places > details");
-    assert.equal(await outpostPlaces.filter({ visible: true }).count(), 1);
+    const outpostPlaces = stationProfile.locator(".tpv-settlement-places tbody tr");
+    assert.equal(await stationProfile.locator(".tpv-settlement-places + .tpv-selected-site:visible").count(), 1);
     const outpostChoices = stationProfile.getByRole("group", { name: "Select pointcrawl location" }).getByRole("button");
     if (await outpostChoices.count() > 1) {
-      await outpostChoices.nth(1).click();
-      assert.equal(await outpostPlaces.nth(0).isVisible(), false);
-      assert.equal(await outpostPlaces.nth(1).isVisible(), true);
+      await outpostPlaces.nth(1).getByRole("button").first().click();
+      assert.equal(await outpostChoices.nth(1).getAttribute("aria-pressed"), "true");
+      assert.equal(await outpostPlaces.nth(0).getByRole("button").first().getAttribute("aria-pressed"), "false");
+      assert.equal(await outpostPlaces.nth(1).getByRole("button").first().getAttribute("aria-pressed"), "true");
     }
+    await outpostPlaces.first().getByRole("button", { name: /^Develop Site/ }).click();
+    const areas = stationProfile.locator(".tpv-place-areas");
+    await areas.getByRole("button").nth(1).click();
+    assert.equal(await areas.locator(".tpv-site-selected").count(), 1);
+    assert.equal(await areas.getByRole("button").nth(1).getAttribute("aria-pressed"), "true");
+    assert.equal(await stationProfile.locator(".tpv-selected-site").getByText("Occupant", { exact: true }).count(), 1);
     await stationProfile.getByRole("button", { name: "Add Site", exact: true }).click();
     assert.equal(await stationProfile.locator(".tpv-site-list li").count(), 1);
     assert.ok(await stationProfile.locator(".tpv-site-list").evaluate(list =>
@@ -443,11 +450,12 @@ async function main() {
     await stationProfile.getByRole("button", { name: "Open Site Profile", exact: true }).click();
     assert.match(await siteIcon.getAttribute("d"), /^M2 21h20 M5 21/);
     await stationProfile.getByRole("button", { name: "Develop Settlement", exact: true }).click();
-    assert.equal(await outpostPlaces.filter({ visible: true }).count(), 1);
+    assert.equal(await stationProfile.locator(".tpv-settlement-places + .tpv-selected-site:visible").count(), 1);
     if (await outpostChoices.count() > 1) {
-      await outpostChoices.nth(1).click();
-      assert.equal(await outpostPlaces.nth(0).isVisible(), false);
-      assert.equal(await outpostPlaces.nth(1).isVisible(), true);
+      await outpostPlaces.nth(1).getByRole("button").first().click();
+      assert.equal(await outpostChoices.nth(1).getAttribute("aria-pressed"), "true");
+      assert.equal(await outpostPlaces.nth(0).getByRole("button").first().getAttribute("aria-pressed"), "false");
+      assert.equal(await outpostPlaces.nth(1).getByRole("button").first().getAttribute("aria-pressed"), "true");
     }
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator("#tpv-profile tbody").getByRole("button", { name: "Test beacon", exact: true }).click();

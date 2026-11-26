@@ -410,7 +410,7 @@ function centreOverview(centre) {
   ]);
 }
 
-function centreDetails(centre, roll, save, refresh, selectPlace, placeDetails) {
+function centreDetails(centre, roll, save, refresh, selectPlace, showPlace) {
   const group = node("section");
   const settlement = centre.settlement;
   if (settlement) {
@@ -419,37 +419,81 @@ function centreDetails(centre, roll, save, refresh, selectPlace, placeDetails) {
       detailSection("Notable NPCs", settlement.people.map(person => [person.name, `${person.role}. ${person.motive}`])),
 
     );
-    const places = detailSection("Places to Visit");
-    places.classList.add("tpv-settlement-places");
-    for (const [placeIndex, place] of settlement.places.entries()) {
-      const location = detailSection(`${placeIndex + 1}. ${place.name}`);
-      placeDetails?.push(location);
-      if (selectPlace && !placeDetails) location.firstElementChild.addEventListener("click", () => selectPlace(placeIndex));
-      location.append(node("p", place.detail));
-      if (place.site) {
-        location.append(button("Reroll Layout", () => {
-          place.site = layOutSite(place.site, roll);
-          save();
-          refresh(place);
-        }));
-        location.append(...place.site.map((area, index) =>
-          detailSection(`${placeIndex + 1}.${index + 1}. ${area.name}`, [
-            ["Occupant", area.occupant], ["Obstacle", area.obstacle],
-            ...(area.discovery ? [["Discovery", area.discovery]] : []),
-            ["Connects to areas", area.connects.map(number => `${placeIndex + 1}.${number}`).join(", ")],
-          ])));
-      } else {
-        const develop = button("Develop Site", () => {
-          place.site = developSite(settlement, roll);
-          save();
-          refresh(place);
+    const heading = node("header");
+    heading.className = "tpv-world-site-heading";
+    heading.append(node("h3", "Places to Visit"));
+    const listing = table(["#", "Location", "Type", "Actions"]);
+    listing.className = "tpv-world-site-table tpv-settlement-places";
+    const rows = listing.createTBody();
+    const summary = node("section");
+    summary.className = "tpv-selected-site";
+
+    function locationDetails(place, placeIndex) {
+      const typedName = place.name.match(/^(.*) \(([^()]+)\)$/);
+      summary.replaceChildren(node("h3", typedName?.[1] ?? place.name));
+      if (typedName) summary.append(node("p", typedName[2]));
+      summary.append(node("p", place.detail));
+      if (!place.site?.length) return;
+
+      const areas = table(["#", "Area"]);
+      areas.className = "tpv-world-site-table tpv-place-areas";
+      const areaRows = areas.createTBody();
+      const areaSummary = node("section");
+      const areaButtons = [];
+      summary.append(areas, areaSummary);
+
+      function selectArea(index) {
+        const area = place.site[index];
+        areaButtons.forEach((control, offset) => {
+          control.setAttribute("aria-pressed", offset === index);
+          areaRows.rows[offset].classList.toggle("tpv-site-selected", offset === index);
         });
-        develop.setAttribute("aria-label", `Develop Site for ${place.name}`);
-        location.append(develop);
+        areaSummary.replaceChildren(detailSection(area.name, [
+          ["Occupant", area.occupant], ["Obstacle", area.obstacle],
+          ...(area.discovery ? [["Discovery", area.discovery]] : []),
+          ["Connects to areas", area.connects.map(number => `${placeIndex + 1}.${number}`).join(", ")],
+        ]));
       }
-      places.append(location);
+      for (const [index, area] of place.site.entries()) {
+        const row = areaRows.insertRow();
+        row.insertCell().textContent = `${placeIndex + 1}.${index + 1}`;
+        const control = button(area.name, () => selectArea(index));
+        areaButtons.push(control);
+        row.insertCell().append(control);
+      }
+      selectArea(0);
     }
-    group.append(places);
+
+    const controls = settlement.places.map((place, index) => {
+      const typedName = place.name.match(/^(.*) \(([^()]+)\)$/);
+      const row = rows.insertRow();
+      row.insertCell().textContent = index + 1;
+      const control = button(typedName?.[1] ?? place.name, () => selectPlace(index));
+      row.insertCell().append(control);
+      row.insertCell().textContent = typedName?.[2] ?? "Location";
+      const action = button(place.site ? "Reroll Layout" : "Develop Site", () => {
+        place.site = place.site ? layOutSite(place.site, roll) : developSite(settlement, roll);
+        save();
+        refresh(place);
+      });
+      action.setAttribute("aria-label", `${action.textContent} for ${place.name}`);
+      row.insertCell().append(action);
+      return control;
+    });
+
+    if (controls.length) {
+      showPlace(index => {
+        controls.forEach((control, offset) => {
+          control.setAttribute("aria-pressed", offset === index);
+          rows.rows[offset].classList.toggle("tpv-site-selected", offset === index);
+        });
+        locationDetails(settlement.places[index], index);
+      });
+      group.classList.add("tpv-world-locations");
+      group.append(heading, listing, summary);
+    } else {
+      group.append(heading, node("p", "No places are recorded for this settlement."));
+    }
   } else {
     group.append(button("Develop Settlement", () => {
       centre.settlement = developSettlement(centre, roll);
@@ -667,7 +711,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
             const settlement = centre?.settlement;
             const isOrbitalOutpost = /^orbital outpost$/i.test(body.type);
-            const placeDetails = centre?.type === "Outpost" ? [] : undefined;
+            let updatePlaceDetails;
             let selectedPlace = developedPlace;
             let selectPlace;
             let pointcrawl;
@@ -683,7 +727,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 button(place.name, () => selectPlace(index)));
               selectPlace = index => {
                 selectedPlace = settlement.places[index];
-                placeDetails?.forEach((detail, offset) => { detail.hidden = offset !== index; });
+                updatePlaceDetails(index);
                 buttons.forEach((control, offset) => control.setAttribute("aria-pressed", offset === index));
                 diagram.replaceChildren(settlementPointcrawl(settlement.places[index], index));
               };
@@ -704,7 +748,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             }
             if (centre) {
               overview.append(centreOverview(centre));
-              (centre.settlement ? content : overview).append(centreDetails(centre, roll, save, renderSettlement, selectPlace, placeDetails));
+              (centre.settlement ? content : overview).append(centreDetails(centre, roll, save, renderSettlement, selectPlace, update => { updatePlaceDetails = update; }));
             } else {
               content.append(node("p", body.type));
             }
