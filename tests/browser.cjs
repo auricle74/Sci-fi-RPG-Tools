@@ -166,7 +166,7 @@ async function main() {
     assert.equal(await inspector.locator("h3").innerText(), "New Horizon");
     assert.equal(await inspector.locator(".planet-tags h4").first().innerText(), "Handwritten tag");
     const popupReady = page.waitForEvent("popup");
-    await page.getByRole("link", { name: /Tag editor/ }).click();
+    await page.getByRole("link", { name: "Tag Editor (opens in a new tab)", exact: true }).click();
     const tags = await popupReady;
     await tags.getByRole("button", { name: "Abandoned Colony · Planet · Book", exact: true }).click();
     assert.equal(await tags.getByRole("textbox", { name: "Name", exact: true }).isEnabled(), false);
