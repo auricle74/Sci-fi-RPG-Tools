@@ -237,11 +237,12 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #world .inspector-entry small { font-size: .78rem; }
 #world .inspector-controls > summary { font-size: .88rem; }
 
-.inspector-header {
+.inspector-header, .tpv-area-details {
   width: 100%;
   padding-bottom: .55rem;
   border-bottom: 1px solid #34495c;
 }
+.tpv-area-details { margin-bottom: .55rem; }
 .inspector-commands {
   display: flex;
   flex-wrap: wrap;
