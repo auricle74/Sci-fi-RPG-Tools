@@ -1,3 +1,4 @@
+import { renderFactionManager } from "./faction-manager.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
 import { renderSetting } from "./tpv-setting-view.mjs";
 import { generateTpvSector, tpvDistance, tpvRules } from "./tpv.mjs";
@@ -280,6 +281,11 @@ function setProfileOpen(open) {
 
 const settingOverview = element("tpv-setting-overview");
 settingOverview.addEventListener("click", showSettingOverview);
+
+element("faction-manager").addEventListener("click", () => {
+  setProfileOpen(true);
+  renderFactionManager(element("tpv-profile"), element("world"), sector, saveSector, renderMap, roll);
+});
 
 function showSettingOverview() {
   setProfileOpen(true);

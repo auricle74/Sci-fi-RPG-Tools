@@ -685,3 +685,13 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   .tpv-site-illustration { justify-items: start; min-height: 0; }
   .tpv-site-illustration .tpv-site-trace { width: 5rem; }
 }
+
+.faction-controls { display: flex; flex-wrap: wrap; gap: .5rem; margin-block: 1rem; }
+.faction-controls [aria-pressed="true"] { background: #233e50; }
+.faction-manager { display: grid; gap: .65rem; }
+.faction-manager > button { justify-self: start; }
+.faction-manager details { border-block-start: 1px solid #34495c; padding: .6rem 0; }
+.faction-manager summary { cursor: pointer; }
+.faction-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .5rem 1rem; }
+.faction-manager label { display: grid; gap: .3rem; }
+.faction-manager textarea { min-height: 6rem; }
