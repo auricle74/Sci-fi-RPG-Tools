@@ -722,3 +722,13 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   inset-inline-end: 0;
   padding: .1rem .25rem;
 }
+.tpv-orbit-home { position: relative; display: inline-flex; align-items: center; }
+.tpv-home-dot {
+  position: absolute;
+  inset-inline-start: calc(100% + .25rem);
+  width: .55rem;
+  height: .55rem;
+  border-radius: 50%;
+  background: #9de7e1;
+  box-shadow: 0 0 .3rem #9de7e1;
+}

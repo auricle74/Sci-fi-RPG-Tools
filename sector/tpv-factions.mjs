@@ -36,3 +36,15 @@ export function factionPresence(sector, systemId) {
     return role ? [{ name: society.name, role }] : [];
   });
 }
+
+export function satelliteLocationId(system, body, index = system.satellites.indexOf(body)) {
+  return body.id ?? `${system.id}:${body.band}:${body.name}:${index}`;
+}
+
+export function satelliteHomeSocieties(sector, system, body) {
+  const id = satelliteLocationId(system, body);
+  const homes = new Set((sector.factionManager?.factions ?? [])
+    .filter(faction => faction.home === id || faction.home === `${id}:host`)
+    .map(faction => faction.sourceId));
+  return (sector.societies ?? []).filter(society => society.homeSystemId === system.id && homes.has(society.id));
+}

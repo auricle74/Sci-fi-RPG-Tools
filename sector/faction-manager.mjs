@@ -1,3 +1,4 @@
+import { satelliteLocationId } from "./tpv-factions.mjs";
 import { assets } from "./faction-assets.mjs";
 import { catalogue, deleteFaction, factionTags, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
 
@@ -70,7 +71,7 @@ export function sectorLocations(sector) {
       const worlds = data?.worlds ?? [];
       const surface = worlds.find(world => world.classification === "moon") ?? worlds[0];
       const societyIds = [data?.centre?.societyId, surface?.societyId].filter(Boolean);
-      const id = body.id ?? `${system.id}:${body.band}:${body.name}:${index}`;
+      const id = satelliteLocationId(system, body, index);
       const primary = { id, systemId: system.id, name: `${body.name} · ${system.name} ${hex}`,
         societyIds, tech: societies.get(societyIds[0])?.tech, population: data?.centre?.population };
       const host = surface?.classification === "moon" && worlds.find(world => world.classification === "planet");

@@ -4,7 +4,7 @@ import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoic
 import { svg, worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows } from "./tpv-faction-profile.mjs";
-import { factionPresence } from "./tpv-factions.mjs";
+import { factionPresence, satelliteHomeSocieties } from "./tpv-factions.mjs";
 import { bearsLife, generateLifeforms } from "./tpv-lifeforms.mjs";
 import { orbitalAppearance } from "./tpv-graphics.mjs";
 import { canDevelopBody, developBody, worldNotation } from "./tpv-development.mjs";
@@ -976,13 +976,29 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       } else {
         marker.prepend(graphic);
       }
+      const homeSocieties = satelliteHomeSocieties(sector, feature, body);
+      const homeLabel = homeSocieties.map(society => society.name).join(", ");
+      if (homeLabel) {
+        const icon = marker.firstElementChild;
+        const badge = node("span");
+        badge.className = "tpv-orbit-home";
+        const dot = node("span");
+        dot.className = "tpv-home-dot";
+        dot.setAttribute("aria-hidden", "true");
+        badge.title = `Home of ${homeLabel}`;
+        icon.replaceWith(badge);
+        badge.append(icon, dot);
+        marker.setAttribute("aria-label", `${marker.getAttribute("aria-label") ?? body.name} · Home of ${homeLabel}`);
+      }
       lane.append(marker);
       const row = rows.insertRow();
       row.insertCell().append(button(body.name, show));
       row.insertCell().textContent = String(band);
       const details = descriptions();
       if (namedMoons.length) details.push(summary, ...namedMoons.map(([name, moonlets]) => `${name} · ${moonlets}`));
-      row.insertCell().append(...(details.length ? details : [summary]).map(text => node("div", text)));
+      const description = row.insertCell();
+      description.append(...(details.length ? details : [summary]).map(text => node("div", text)));
+      if (homeLabel) description.append(node("div", `Home of ${homeLabel}`));
     }
     orbits.append(lane);
   }
