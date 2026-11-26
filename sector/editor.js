@@ -284,7 +284,10 @@ settingOverview.addEventListener("click", showSettingOverview);
 
 element("faction-manager").addEventListener("click", () => {
   setProfileOpen(true);
-  renderFactionManager(element("tpv-profile"), element("world"), sector, saveSector, renderMap, roll);
+  renderFactionManager(element("tpv-profile"), element("world"), sector, saveSector, renderMap, roll, system => {
+    selectHex(system.column, system.row, true);
+    renderMap();
+  });
 });
 
 function showSettingOverview() {

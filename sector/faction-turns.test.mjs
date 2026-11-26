@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { sectorLocations } from "./faction-manager.mjs";
 import { deleteFaction, income, maxHp, simulateRound, syncFactions } from "./faction-turns.mjs";
 
 test("TPV faction import is idempotent and preserves manual ratings", () => {
@@ -51,4 +52,18 @@ test("deleted imported factions stay out of the roster after a reload", () => {
   assert.deepEqual(syncFactions(saved, []).factions, []);
   assert.equal(saved.societies[0].name, "Syndicate");
   assert.deepEqual(saved.factionManager.history, [{ round: 1 }]);
+});
+
+
+test("a single saved faction tag is supplemented while keeping the existing tag", () => {
+  const sector = { factionManager: { factions: [{ id: "manual", tags: "Secretive" }], history: [] } };
+  const [faction] = syncFactions(sector, []).factions;
+  assert.deepEqual(faction.tags, ["Secretive", "Deep Rooted"]);
+  assert.deepEqual(syncFactions(sector, []).factions[0].tags, faction.tags);
+});
+
+test("known TPV worlds appear before their profiles are developed", () => {
+  const locations = sectorLocations({ systems: [{ id: "home", name: "Erizi", column: 6, row: 6,
+    satellites: [{ kind: "planet", band: 4, name: "Erizi II", type: "Planet" }] }] });
+  assert.deepEqual(locations.map(({ systemId, name }) => [systemId, name]), [["home", "Erizi II · Erizi 0606"]]);
 });

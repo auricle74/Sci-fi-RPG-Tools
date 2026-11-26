@@ -1,5 +1,5 @@
 import { assets } from "./faction-assets.mjs";
-import { catalogue, deleteFaction, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
+import { catalogue, deleteFaction, factionTags, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
 
 function node(tag, text) {
   const element = document.createElement(tag);
@@ -45,7 +45,7 @@ function select(parent, label, options, current, update) {
 
 const locationOptions = locations => [["", "Choose a location"], ...locations.map(location => [location.id, location.name])];
 
-function sectorLocations(sector) {
+export function sectorLocations(sector) {
   const societies = new Map((sector.societies ?? []).map(society => [society.id, society]));
   return sector.systems.flatMap(system => {
     const hex = String(system.column).padStart(2, "0") + String(system.row).padStart(2, "0");
@@ -57,12 +57,20 @@ function sectorLocations(sector) {
     }
     return (system.satellites ?? []).flatMap((body, index) => {
       const data = body.development;
-      if (!data?.worlds?.length && !data?.centre) return [];
-      const societyIds = [data.centre?.societyId, ...(data.worlds ?? []).map(world => world.societyId)].filter(Boolean);
-      const societyId = data.centre?.societyId ?? data.worlds?.find(world => world.societyId)?.societyId;
-      return [{ id: body.id ?? `${system.id}:${body.band}:${body.name}:${index}`, systemId: system.id,
-        name: `${body.name} · ${system.name} ${hex}`, societyId, societyIds, tech: societies.get(societyId)?.tech,
-        population: data.centre?.population }];
+      if (!data?.worlds?.length && !data?.centre &&
+        !["planet", "moon"].includes(body.kind) && !/planetary|lunar|orbital space station/i.test(body.type)) return [];
+      const worlds = data?.worlds ?? [];
+      const surface = worlds.find(world => world.classification === "moon") ?? worlds[0];
+      const societyIds = [data?.centre?.societyId, surface?.societyId].filter(Boolean);
+      const id = body.id ?? `${system.id}:${body.band}:${body.name}:${index}`;
+      const primary = { id, systemId: system.id, name: `${body.name} · ${system.name} ${hex}`,
+        societyIds, tech: societies.get(societyIds[0])?.tech, population: data?.centre?.population };
+      const host = surface?.classification === "moon" && worlds.find(world => world.classification === "planet");
+      if (!host) return [primary];
+      return [primary, { id: `${id}:host`, systemId: system.id,
+        name: `${body.name} (host planet) · ${system.name} ${hex}`,
+        societyIds: host.societyId ? [host.societyId] : [], tech: societies.get(host.societyId)?.tech }];
+
     });
   });
 }
@@ -75,7 +83,7 @@ function seeded(seed) {
   };
 }
 
-export function renderFactionManager(profile, inspector, sector, save, back, roll) {
+export function renderFactionManager(profile, inspector, sector, save, back, roll, showHomeSystem) {
   const locations = sectorLocations(sector);
   const manager = syncFactions(sector, locations);
   save();
@@ -110,7 +118,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     }
     content.append(button("Add Faction", () => {
       const faction = { id: crypto.randomUUID(), name: "New faction", force: 1, cunning: 1, wealth: 1,
-        credits: 0, xp: 0, hp: 7, home: "", tags: "", goal: "", assets: [] };
+        credits: 0, xp: 0, hp: 7, home: "", tags: factionTags(), goal: "", assets: [] };
       manager.factions.push(faction);
       selected = faction.id;
       save();
@@ -161,9 +169,22 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     edit("Hit points", "hp", [0, 999]);
     edit("FacCreds", "credits", [0, 999999]);
     edit("Experience", "xp", [0, 999999]);
-    edit("Tags", "tags");
+    faction.tags.forEach((tag, index) => {
+      const input = field(form, `Tag ${index + 1}`, tag, value => {
+        const next = value.trim();
+        if (!next || faction.tags.some((other, offset) => offset !== index && other.toLowerCase() === next.toLowerCase())) {
+          input.value = faction.tags[index];
+          return;
+        }
+        faction.tags[index] = next;
+        save();
+      });
+    });
     edit("Goal", "goal").parentElement.classList.add("faction-goal-field");
-    select(form, "Homeworld", locationOptions(locations), faction.home, id => {
+    const society = sector.societies?.find(item => item.id === faction.sourceId);
+    const homeSystem = sector.systems.find(system => system.id === society?.homeSystemId);
+    const homeLocations = homeSystem ? locations.filter(place => place.systemId === homeSystem.id) : locations;
+    const homePicker = select(form, "Homeworld", locationOptions(homeLocations), faction.home, id => {
       faction.home = id;
       if (id && !faction.assets.some(asset => asset.name === "Base of Influence" && asset.location === id)) {
         faction.assets.push(newAsset({ name: "Base of Influence", hp: maxHp(faction) }, id, crypto.randomUUID()));
@@ -171,9 +192,14 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       save();
       render();
     });
+    homePicker.disabled = !homeLocations.length;
+    if (homeSystem && !homeLocations.length) {
+      content.append(node("p", `No worlds are listed in ${homeSystem.name} yet.`),
+        button("Open home system on chart", () => showHomeSystem(homeSystem)));
+    }
     updateStatistics();
     inspector.append(node("h3", faction.name), statistics);
-    const source = sector.societies?.find(society => society.id === faction.sourceId)?.faction;
+    const source = society?.faction;
     if (source) inspector.append(node("p", `TPV profile · ${source.reach} · ${source.type.join(" / ")}`),
       node("p", `TPV special assets · ${source.assets.join(", ")}`));
     const home = locations.find(location => location.id === faction.home);

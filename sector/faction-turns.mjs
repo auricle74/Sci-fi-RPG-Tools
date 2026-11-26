@@ -10,8 +10,15 @@ export function newAsset(template, location, id) {
   return { id, name: template.name, location, hp: template.hp, maxHp: template.hp, stealth: false, missed: 0 };
 }
 
+export function factionTags(tags) {
+  const previous = Array.isArray(tags) ? tags : (tags ?? "").split(/[,·/]/);
+  const pair = [...new Set(previous.map(tag => tag.trim()).filter(Boolean))];
+  return [...new Set([...pair, "Deep Rooted", "Secretive"])].slice(0, 2);
+}
+
 export function syncFactions(sector, locations) {
   const manager = sector.factionManager ??= { factions: [], history: [] };
+  for (const faction of manager.factions) faction.tags = factionTags(faction.tags);
   const known = new Set(manager.factions.map(faction => faction.sourceId));
   const excluded = new Set(manager.excludedSocietyIds ?? []);
   for (const society of sector.societies ?? []) {
@@ -31,7 +38,7 @@ export function syncFactions(sector, locations) {
       (homes.length === 1 ? homes[0] : linked.length === 1 ? linked[0] : undefined);
     const faction = { id: society.id, sourceId: society.id, name: society.name, force: scale - 1,
       cunning: scale - 1, wealth: scale - 1, credits: scale, xp: 0, home: home?.id ?? "",
-      tags: focus === "force" ? "Warlike" : focus === "wealth" ? "Plutocratic" : "Secretive",
+      tags: factionTags(focus === "force" ? "Warlike" : focus === "wealth" ? "Plutocratic" : "Secretive"),
       goal: profile.goal ?? "", assets: [] };
     faction[focus] = scale;
     faction.hp = maxHp(faction);
