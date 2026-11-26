@@ -15,7 +15,7 @@ function button(text, action) {
 }
 
 function field(parent, label, value, update, limits) {
-  const input = node(label === "Sector news" ? "textarea" : "input");
+  const input = node(["Sector news", "Goal"].includes(label) ? "textarea" : "input");
   if (limits) {
     input.type = "number";
     [input.min, input.max] = limits;
@@ -142,7 +142,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       render();
     }));
     const form = node("div");
-    form.className = "faction-form";
+    form.className = "faction-form faction-profile-fields";
     content.append(form);
     const statistics = node("p");
     const updateStatistics = () => { statistics.textContent = `Maximum HP ${maxHp(faction)} · Income ${income(faction)} FacCreds`; };
@@ -156,13 +156,13 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       save();
       updateStatistics();
     }, limits);
-    edit("Name", "name");
+    edit("Name", "name").parentElement.classList.add("faction-name-field");
     for (const rating of ratings) edit(rating[0].toUpperCase() + rating.slice(1), rating, [1, 8]);
     edit("Hit points", "hp", [0, 999]);
     edit("FacCreds", "credits", [0, 999999]);
     edit("Experience", "xp", [0, 999999]);
     edit("Tags", "tags");
-    edit("Goal", "goal");
+    edit("Goal", "goal").parentElement.classList.add("faction-goal-field");
     select(form, "Homeworld", locationOptions(locations), faction.home, id => {
       faction.home = id;
       if (id && !faction.assets.some(asset => asset.name === "Base of Influence" && asset.location === id)) {

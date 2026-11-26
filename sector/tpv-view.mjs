@@ -3,9 +3,8 @@ import { openCommunity, siteEditor, siteList, siteProfileVisual, siteTypeLabel }
 import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
 import { svg, worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
-import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
+import { factionNotation, factionRows } from "./tpv-faction-profile.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
-import { generateSociety } from "./tpv-societies.mjs";
 import { bearsLife, generateLifeforms } from "./tpv-lifeforms.mjs";
 import { orbitalAppearance } from "./tpv-graphics.mjs";
 import { canDevelopBody, developBody, worldNotation } from "./tpv-development.mjs";
@@ -531,7 +530,7 @@ function giantMoons(body) {
   });
 }
 
-function societyDetails(sector, feature, target, homeName, indigenous, roll, save, refresh) {
+function societyDetails(sector, target, save, refresh, showSetting) {
   const societies = sector.societies ?? [];
   const society = societies.find(item => item.id === target.societyId);
   const minimumTech = ["Station", "Outpost"].includes(target.type) ? 3 : 0;
@@ -549,23 +548,8 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
     save();
     refresh();
   };
-  const input = node("input");
-  const create = button("Develop Society", () => {
-    const name = input.value.trim();
-    if (!name) { input.reportValidity(); return; }
-    const generated = generateSociety({ id: crypto.randomUUID(), name, status: feature.status, indigenous, minimumTech, roll });
-    generated.faction = generateFactionProfile(roll, { place: homeName });
-    (sector.societies ??= []).push(generated);
-    link(generated.id);
-  });
   if (!society) {
-    const inputLabel = node("label", "New society name");
-    input.required = true;
-    input.value = rollFactionName(roll, { place: homeName });
-    inputLabel.append(input);
-    group.append(inputLabel, button("New Name", () => {
-      input.value = rollFactionName(roll, { place: homeName });
-    }), create);
+    group.append(button("Create societies in Setting Overview", showSetting));
   } else group.append(button("Unlink society", () => {
     delete target.societyId;
     save();
@@ -663,16 +647,16 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const orbital = /orbital|deep-space/i.test(body.type);
         const locationFields = node("section");
         locationFields.className = "inspector-fields tpv-detail-fields tpv-world-locations";
-        const appendWorld = (world, name) => {
+        const appendWorld = world => {
           fields.append(...worldDetails(world), ...lifeformDetails(world));
           appendSwnTags(world, fields, world.classification);
           const indigenous = world.lifeforms?.some(lifeform => lifeform.level === "Advanced") ?? false;
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
-          if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
+          if (world.societyId || indigenous || populated) fields.append(societyDetails(sector, world, save, show, () => worldSettingStep[1]()));
         };
         if (planets.length) {
           fields.append(node("h4", "Planet"), orbitDetails(band));
-          for (const planet of planets) appendWorld(planet, body.name);
+          for (const planet of planets) appendWorld(planet);
         } else {
           fields.append(orbitDetails(band));
           if (worldProfile && body.size) fields.append(detailSection("Physical Profile", [["Size", body.size]]));
@@ -682,7 +666,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           for (const [index, moon] of moons.entries()) {
             const name = developedMoonName(body, index);
             fields.append(node("h5", name));
-            appendWorld(moon, name);
+            appendWorld(moon);
           }
         }
         if (!worlds.length && !centre) appendSwnTags(body, fields, tpvBodyTagType(body), body);
@@ -762,8 +746,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             if (centre) {
               const destination = isOrbitalOutpost ? communityDetails : overview;
               appendSwnTags(centre, destination, centre.type, body);
-              destination.append(societyDetails(sector, feature, centre, body.name, false, roll, save,
-                () => renderSettlement(selectedPlace)));
+              destination.append(societyDetails(sector, centre, save, () => renderSettlement(selectedPlace), worldSettingStep[1]));
             }
             const worldStep = ["World Profile", () => {
               show();

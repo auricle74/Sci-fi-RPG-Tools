@@ -695,3 +695,19 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .faction-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .5rem 1rem; }
 .faction-manager label { display: grid; gap: .3rem; }
 .faction-manager textarea { min-height: 6rem; }
+.faction-profile-fields { display: flex; flex-wrap: wrap; align-items: start; }
+.faction-profile-fields > label { flex: 1 1 12rem; min-width: 0; }
+.faction-profile-fields > label:has(input[type="number"]) { flex: 0 1 6rem; }
+.faction-profile-fields :is(input, textarea, select) { min-width: 0; width: 100%; }
+.faction-profile-fields .faction-name-field { flex-basis: 15rem; }
+.faction-profile-fields .faction-goal-field { flex: 1 1 min(100%, 24rem); }
+.faction-manager textarea {
+  font: inherit;
+  color: inherit;
+  background: #0c131e;
+  border: 1px solid #647991;
+  border-radius: .4rem;
+  padding: .55rem .7rem;
+  resize: vertical;
+}
+.faction-profile-fields .faction-goal-field textarea { min-height: 3.5rem; }
