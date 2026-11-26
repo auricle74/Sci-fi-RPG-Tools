@@ -16,6 +16,33 @@ export function factionTags(tags) {
   return [...new Set([...pair, "Deep Rooted", "Secretive"])].slice(0, 2);
 }
 
+// Stars Without Number Revised Deluxe, pp. 224–225.
+export const officialFactionTags = [
+  "Colonists", "Deep Rooted", "Eugenics Cult", "Exchange Consulate", "Fanatical",
+  "Imperialists", "Machiavellian", "Mercenary Group", "Perimeter Agency", "Pirates",
+  "Planetary Government", "Plutocratic", "Preceptor Archive", "Psychic Academy",
+  "Savage", "Scavengers", "Secretive", "Technical Expertise", "Theocratic", "Warlike",
+];
+
+export function societyFactionStats(society, roll) {
+  const profile = society.faction ?? {};
+  const scale = /sector|interstellar/i.test(profile.reach) ? 4 : /system|planet|global|nation/i.test(profile.reach) ? 3 : 2;
+  const character = [...(profile.type ?? []), society.politics ?? ""].join(" ");
+  const focus = /military|security|war|mercenar/i.test(character) ? "force" :
+    /commercial|industrial|corporate|trade|wealth/i.test(character) ? "wealth" : "cunning";
+  const stats = { force: scale - 1, cunning: scale - 1, wealth: scale - 1, credits: scale, xp: 0,
+    goal: profile.goal ?? "" };
+  stats[focus] = scale;
+  stats.hp = maxHp(stats);
+  if (roll) {
+    const pool = [...officialFactionTags];
+    stats.tags = Array.from({ length: 2 }, () => pool.splice(roll(pool.length) - 1, 1)[0]);
+  } else {
+    stats.tags = factionTags(focus === "force" ? "Warlike" : focus === "wealth" ? "Plutocratic" : "Secretive");
+  }
+  return stats;
+}
+
 export function syncFactions(sector, locations) {
   const manager = sector.factionManager ??= { factions: [], history: [] };
   for (const faction of manager.factions) faction.tags = factionTags(faction.tags);
@@ -27,24 +54,17 @@ export function syncFactions(sector, locations) {
       manager.factions.find(faction => faction.sourceId === society.id).name = society.name;
       continue;
     }
-    const profile = society.faction ?? {};
-    const scale = /sector|interstellar/i.test(profile.reach) ? 4 : /system|planet|global|nation/i.test(profile.reach) ? 3 : 2;
-    const character = [...(profile.type ?? []), society.politics ?? ""].join(" ");
-    const focus = /military|security|war|mercenar/i.test(character) ? "force" :
-      /commercial|industrial|corporate|trade|wealth/i.test(character) ? "wealth" : "cunning";
+    const stats = societyFactionStats(society);
+    const focus = ratings.find(rating => stats[rating] === stats.credits);
     const homes = locations.filter(place => place.systemId === society.homeSystemId);
     const linked = locations.filter(place => place.societyIds?.includes(society.id) || place.societyId === society.id);
     const home = homes.find(place => linked.includes(place)) ??
       (homes.length === 1 ? homes[0] : linked.length === 1 ? linked[0] : undefined);
-    const faction = { id: society.id, sourceId: society.id, name: society.name, force: scale - 1,
-      cunning: scale - 1, wealth: scale - 1, credits: scale, xp: 0, home: home?.id ?? "",
-      tags: factionTags(focus === "force" ? "Warlike" : focus === "wealth" ? "Plutocratic" : "Secretive"),
-      goal: profile.goal ?? "", assets: [] };
-    faction[focus] = scale;
-    faction.hp = maxHp(faction);
+    const faction = { id: society.id, sourceId: society.id, name: society.name,
+      ...stats, home: home?.id ?? "", assets: [] };
     if (home) {
       faction.assets.push(newAsset({ name: "Base of Influence", hp: faction.hp }, home.id, `${faction.id}-base`));
-      const starters = assets.filter(asset => asset.rating === focus && asset.hp && asset.tier <= scale &&
+      const starters = assets.filter(asset => asset.rating === focus && asset.hp && asset.tier <= faction[focus] &&
         asset.tech <= (home.tech ?? 0) && !asset.notes.includes("P") && !/starship|spaceship/i.test(asset.type));
       const starter = starters.sort((a, b) => b.tier - a.tier)[0];
       if (starter) faction.assets.push(newAsset(starter, home.id, `${faction.id}-starter`));

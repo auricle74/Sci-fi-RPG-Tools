@@ -1,15 +1,7 @@
 import { developInterstellarSociety, rollFactionName, societyEditor, societyRelationships } from "./tpv-society-editor.mjs";
 import { satelliteLocationId } from "./tpv-factions.mjs";
 import { assets } from "./faction-assets.mjs";
-import { catalogue, deleteFaction, factionTags, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
-
-// Stars Without Number Revised Deluxe, pp. 224–225.
-const officialFactionTags = [
-  "Colonists", "Deep Rooted", "Eugenics Cult", "Exchange Consulate", "Fanatical",
-  "Imperialists", "Machiavellian", "Mercenary Group", "Perimeter Agency", "Pirates",
-  "Planetary Government", "Plutocratic", "Preceptor Archive", "Psychic Academy",
-  "Savage", "Scavengers", "Secretive", "Technical Expertise", "Theocratic", "Warlike",
-];
+import { catalogue, deleteFaction, factionTags, income, officialFactionTags, societyFactionStats, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
 
 function node(tag, text) {
   const element = document.createElement(tag);
@@ -194,6 +186,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       }));
       if (!faction.sourceId) nameActions.append(button("Develop Interstellar Society", () => {
         const created = developInterstellarSociety(sector, faction, roll);
+        Object.assign(faction, societyFactionStats(created, roll));
         const home = locations.find(location => location.id === faction.home);
         if (home) created.homeSystemId = home.systemId;
         save();

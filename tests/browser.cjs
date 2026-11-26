@@ -475,6 +475,14 @@ async function main() {
     await tpv.getByRole("button", { name: "Develop Interstellar Society" }).click();
     const profile = tpv.locator(".tpv-setting-society");
     await profile.getByText("Interstellar", { exact: true }).waitFor();
+    const factionForm = tpv.locator(".faction-profile-fields");
+    const ratings = await factionForm.locator('input[type="number"]').evaluateAll(inputs => inputs.map(input => Number(input.value)));
+    assert.deepEqual(ratings.slice(0, 3).sort(), [3, 3, 4]);
+    assert.deepEqual(ratings.slice(3), [18, 4, 0]);
+    assert.ok(await factionForm.locator("textarea").inputValue());
+    const rolledFactionTags = await factionForm.locator(".faction-tag-field select").evaluateAll(pickers => pickers.map(picker => picker.value));
+    assert.equal(new Set(rolledFactionTags).size, 2);
+
     assert.match(await profile.locator("p").last().innerText(), /^THE SILVER DAWN:.* B Unassigned, R Interstellar,/);
     const homes = profile.locator(".faction-home-fields");
     assert.match(await homes.locator("label").nth(0).textContent(), /^Home system/);
