@@ -1,3 +1,4 @@
+import { factionTagDetails } from "./faction-tag-details.mjs";
 import { assets } from "./faction-assets.mjs";
 
 export const ratings = ["force", "cunning", "wealth"];
@@ -16,13 +17,7 @@ export function factionTags(tags) {
   return [...new Set([...pair, "Deep Rooted", "Secretive"])].slice(0, 2);
 }
 
-// Stars Without Number Revised Deluxe, pp. 224–225.
-export const officialFactionTags = [
-  "Colonists", "Deep Rooted", "Eugenics Cult", "Exchange Consulate", "Fanatical",
-  "Imperialists", "Machiavellian", "Mercenary Group", "Perimeter Agency", "Pirates",
-  "Planetary Government", "Plutocratic", "Preceptor Archive", "Psychic Academy",
-  "Savage", "Scavengers", "Secretive", "Technical Expertise", "Theocratic", "Warlike",
-];
+export const officialFactionTags = [...factionTagDetails.keys()];
 
 export function societyFactionStats(society, roll) {
   const profile = society.faction ?? {};
