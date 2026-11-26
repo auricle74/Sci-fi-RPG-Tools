@@ -1,6 +1,14 @@
 import { assets } from "./faction-assets.mjs";
 import { catalogue, deleteFaction, factionTags, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
 
+// Stars Without Number Revised Deluxe, pp. 224–225.
+const officialFactionTags = [
+  "Colonists", "Deep Rooted", "Eugenics Cult", "Exchange Consulate", "Fanatical",
+  "Imperialists", "Machiavellian", "Mercenary Group", "Perimeter Agency", "Pirates",
+  "Planetary Government", "Plutocratic", "Preceptor Archive", "Psychic Academy",
+  "Savage", "Scavengers", "Secretive", "Technical Expertise", "Theocratic", "Warlike",
+];
+
 function node(tag, text) {
   const element = document.createElement(tag);
   if (text !== undefined) element.textContent = text;
@@ -169,16 +177,36 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     edit("Hit points", "hp", [0, 999]);
     edit("FacCreds", "credits", [0, 999999]);
     edit("Experience", "xp", [0, 999999]);
-    faction.tags.forEach((tag, index) => {
-      const input = field(form, `Tag ${index + 1}`, tag, value => {
-        const next = value.trim();
-        if (!next || faction.tags.some((other, offset) => offset !== index && other.toLowerCase() === next.toLowerCase())) {
-          input.value = faction.tags[index];
-          return;
-        }
-        faction.tags[index] = next;
-        save();
+    const tagPickers = [];
+    function updateTag(index, value) {
+      faction.tags[index] = value;
+      tagPickers.forEach((picker, offset) => {
+        const current = faction.tags[offset];
+        const available = new Set([...officialFactionTags, current]);
+        picker.replaceChildren(...[...available].map(tag => {
+          const option = new Option(tag, tag);
+          option.disabled = tag === faction.tags[1 - offset];
+          return option;
+        }));
+        picker.value = current;
       });
+      save();
+    }
+    faction.tags.forEach((tag, index) => {
+      const label = `Tag ${index + 1}`;
+      const slot = node("div");
+      slot.className = "faction-tag-field";
+      form.append(slot);
+      const picker = select(slot, label, [...new Set([...officialFactionTags, tag])].map(value => [value, value]),
+        tag, value => updateTag(index, value));
+      for (const option of picker.options) option.disabled = option.value === faction.tags[1 - index];
+      tagPickers.push(picker);
+      const reroll = button("Reroll", () => {
+        const choices = officialFactionTags.filter(value => !faction.tags.includes(value));
+        updateTag(index, choices[roll(choices.length) - 1]);
+      });
+      reroll.setAttribute("aria-label", `Reroll ${label}`);
+      slot.append(reroll);
     });
     edit("Goal", "goal").parentElement.classList.add("faction-goal-field");
     const society = sector.societies?.find(item => item.id === faction.sourceId);
