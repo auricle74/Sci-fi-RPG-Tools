@@ -58,9 +58,10 @@ function sectorLocations(sector) {
     return (system.satellites ?? []).flatMap((body, index) => {
       const data = body.development;
       if (!data?.worlds?.length && !data?.centre) return [];
+      const societyIds = [data.centre?.societyId, ...(data.worlds ?? []).map(world => world.societyId)].filter(Boolean);
       const societyId = data.centre?.societyId ?? data.worlds?.find(world => world.societyId)?.societyId;
       return [{ id: body.id ?? `${system.id}:${body.band}:${body.name}:${index}`, systemId: system.id,
-        name: `${body.name} · ${system.name} ${hex}`, societyId, tech: societies.get(societyId)?.tech,
+        name: `${body.name} · ${system.name} ${hex}`, societyId, societyIds, tech: societies.get(societyId)?.tech,
         population: data.centre?.population }];
     });
   });
@@ -78,7 +79,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
   const locations = sectorLocations(sector);
   const manager = syncFactions(sector, locations);
   save();
-  let selected = manager.factions[0]?.id;
+  let selected = manager.factions.find(faction => faction.sourceId)?.id ?? manager.factions[0]?.id;
   let tab = "Faction Editor";
   let draft;
   const heading = node("h2", "Faction Manager");
@@ -119,6 +120,16 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       content.append(node("p", "No factions in this sector yet."));
       return;
     }
+    const roster = node("div");
+    roster.className = "faction-controls";
+    roster.setAttribute("role", "group");
+    roster.setAttribute("aria-label", "Sector factions");
+    for (const faction of manager.factions) {
+      const control = button(faction.name, () => { selected = faction.id; render(); });
+      control.setAttribute("aria-pressed", faction.id === selected);
+      roster.append(control);
+    }
+    content.append(roster);
     select(content, "Faction", manager.factions.map(faction => [faction.id, faction.name]), selected,
       id => { selected = id; render(); });
     const faction = manager.factions.find(item => item.id === selected);

@@ -14,14 +14,19 @@ export function syncFactions(sector, locations) {
   const manager = sector.factionManager ??= { factions: [], history: [] };
   const known = new Set(manager.factions.map(faction => faction.sourceId));
   for (const society of sector.societies ?? []) {
-    if (!society.faction || known.has(society.id)) continue;
-    const profile = society.faction;
+    if (known.has(society.id)) {
+      manager.factions.find(faction => faction.sourceId === society.id).name = society.name;
+      continue;
+    }
+    const profile = society.faction ?? {};
     const scale = /sector|interstellar/i.test(profile.reach) ? 4 : /system|planet|global|nation/i.test(profile.reach) ? 3 : 2;
-    const character = (profile.type ?? []).join(" ");
+    const character = [...(profile.type ?? []), society.politics ?? ""].join(" ");
     const focus = /military|security|war|mercenar/i.test(character) ? "force" :
       /commercial|industrial|corporate|trade|wealth/i.test(character) ? "wealth" : "cunning";
     const homes = locations.filter(place => place.systemId === society.homeSystemId);
-    const home = homes.length === 1 ? homes[0] : locations.find(place => place.societyId === society.id);
+    const linked = locations.filter(place => place.societyIds?.includes(society.id) || place.societyId === society.id);
+    const home = homes.find(place => linked.includes(place)) ??
+      (homes.length === 1 ? homes[0] : linked.length === 1 ? linked[0] : undefined);
     const faction = { id: society.id, sourceId: society.id, name: society.name, force: scale - 1,
       cunning: scale - 1, wealth: scale - 1, credits: scale, xp: 0, home: home?.id ?? "",
       tags: focus === "force" ? "Warlike" : focus === "wealth" ? "Plutocratic" : "Secretive",

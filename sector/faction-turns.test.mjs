@@ -26,3 +26,16 @@ test("draft uses SWN income and applies overrides without mutating the roster", 
   assert.equal(result.entries[0].action, "Pass");
   assert.equal(faction.credits, 0);
 });
+
+
+test("a world society in an existing save joins a roster alongside a manual faction", () => {
+  const sector = {
+    societies: [{ id: "world-society", name: "The Parmark Syndicate", politics: "Algorithmic Autocracy" }],
+    factionManager: { factions: [{ id: "manual", name: "New faction" }], history: [] },
+  };
+  const locations = [{ id: "home", societyIds: ["other", "world-society"], tech: 4 }];
+  const manager = syncFactions(sector, locations);
+  assert.deepEqual(manager.factions.map(faction => faction.name), ["New faction", "The Parmark Syndicate"]);
+  assert.equal(manager.factions[1].home, "home");
+  assert.equal(syncFactions(sector, locations).factions.length, 2);
+});
