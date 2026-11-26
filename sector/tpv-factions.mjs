@@ -37,6 +37,32 @@ export function factionPresence(sector, systemId) {
   });
 }
 
+export function chartFactionPresence(sector, locations) {
+  const bySystem = new Map();
+  const systemForLocation = new Map(locations.map(({ id, systemId }) => [id, systemId]));
+  const factions = sector.factionManager?.factions ?? [];
+  const bySociety = new Map(factions.map(faction => [faction.sourceId, faction]));
+  function add(systemId, id, name, colour) {
+    if (!systemId) return;
+    if (!bySystem.has(systemId)) bySystem.set(systemId, new Map());
+    bySystem.get(systemId).set(id, { name, colour: colour ?? "#9de7e1" });
+  }
+  for (const society of sector.societies ?? []) {
+    const faction = bySociety.get(society.id);
+    const systems = [society.homeSystemId, ...(society.coreSystems ?? []), ...(society.frontierSystems ?? [])];
+    for (const systemId of systems) add(systemId, faction?.id ?? society.id, society.name, faction?.colour);
+  }
+  for (const faction of factions) {
+    add(systemForLocation.get(faction.home), faction.id, faction.name, faction.colour);
+    for (const asset of faction.assets ?? []) {
+      if (asset.name === "Base of Influence" && asset.hp > 0) {
+        add(systemForLocation.get(asset.location), faction.id, faction.name, faction.colour);
+      }
+    }
+  }
+  return bySystem;
+}
+
 export function satelliteLocationId(system, body, index = system.satellites.indexOf(body)) {
   return body.id ?? `${system.id}:${body.band}:${body.name}:${index}`;
 }
