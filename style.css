@@ -738,3 +738,8 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   background: var(--faction-colour);
   color: #0c131e;
 }
+.faction-profile-fields .faction-name-field { flex: 1 1 17rem; min-width: 0; }
+.faction-name-actions { display: flex; flex-wrap: wrap; }
+.faction-name-actions button { padding: .35rem .4rem; }
+.faction-home-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 0 1rem; }
+.faction-home-fields select { width: 100%; min-width: 0; }

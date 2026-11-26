@@ -1,4 +1,4 @@
-import { societyCreation, societyEditor, societyRelationships } from "./tpv-society-editor.mjs";
+import { developInterstellarSociety, rollFactionName, societyEditor, societyRelationships } from "./tpv-society-editor.mjs";
 import { satelliteLocationId } from "./tpv-factions.mjs";
 import { assets } from "./faction-assets.mjs";
 import { catalogue, deleteFaction, factionTags, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
@@ -126,7 +126,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       content.append(node("p", "Resolve or discard the draft before editing the roster."));
       return;
     }
-    content.append(button("Add Faction", () => {
+    const addFaction = button("Add Faction", () => {
       const faction = { id: crypto.randomUUID(), name: "New faction", force: 1, cunning: 1, wealth: 1,
         credits: 0, xp: 0, hp: 7, home: "", tags: factionTags(), goal: "", assets: [] };
       manager.factions.push(faction);
@@ -134,14 +134,9 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       selected = faction.id;
       save();
       render();
-    }));
-    if (tpv) content.append(societyCreation(sector, roll, society => {
-      syncFactions(sector, locations);
-      selected = society.id;
-      save();
-      render();
-    }));
+    });
     if (!manager.factions.length) {
+      content.append(addFaction);
       content.append(node("p", "No factions in this sector yet."));
       return;
     }
@@ -158,14 +153,17 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     }
     content.append(roster);
     const faction = manager.factions.find(item => item.id === selected);
-    content.append(button("Delete Faction", () => {
+    const actions = node("div");
+    actions.className = "faction-controls";
+    actions.append(button("Delete Current Faction", () => {
       const context = faction.sourceId ? " Its TPV society and location links will be kept." : "";
       if (!confirm(`Delete ${faction.name} and its assets from the Faction Manager?${context}`)) return;
       deleteFaction(manager, faction.id);
       selected = manager.factions[0]?.id;
       save();
       render();
-    }));
+    }), addFaction);
+    content.append(actions);
     const form = node("div");
     form.className = "faction-form faction-profile-fields";
     content.append(node("h3", faction.name), node("h4", "SWN Faction"), form);
@@ -181,7 +179,28 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       save();
       updateStatistics();
     }, limits);
-    edit("Name", "name").parentElement.classList.add("faction-name-field");
+    const name = edit("Name", "name");
+    const nameBlock = node("div");
+    nameBlock.className = "faction-name-field";
+    name.parentElement.replaceWith(nameBlock);
+    nameBlock.append(name.parentElement);
+    if (tpv) {
+      const nameActions = node("div");
+      nameActions.className = "faction-name-actions";
+      nameActions.append(button("New Name", () => {
+        name.value = rollFactionName(roll, { place: homeSystem?.name ?? sector.name, surname: society?.faction?.leader?.surname });
+        name.dispatchEvent(new Event("change"));
+        render();
+      }));
+      if (!faction.sourceId) nameActions.append(button("Develop Interstellar Society", () => {
+        const created = developInterstellarSociety(sector, faction, roll);
+        const home = locations.find(location => location.id === faction.home);
+        if (home) created.homeSystemId = home.systemId;
+        save();
+        render();
+      }));
+      nameBlock.append(nameActions);
+    }
     for (const rating of ratings) edit(rating[0].toUpperCase() + rating.slice(1), rating, [1, 8]);
     edit("Hit points", "hp", [0, 999]);
     edit("FacCreds", "credits", [0, 999999]);
@@ -220,17 +239,9 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     edit("Goal", "goal").parentElement.classList.add("faction-goal-field");
     const society = sector.societies?.find(item => item.id === faction.sourceId);
     const homeSystem = sector.systems.find(system => system.id === society?.homeSystemId);
-    if (society) {
-      const refreshSociety = () => { syncFactions(sector, locations); save(); render(); };
-      content.append(societyEditor(sector, society, coordinate, roll, refreshSociety, showHomeSystem, systemId => {
-        if (systemId && !locations.some(location => location.systemId === systemId && location.id === faction.home)) {
-          faction.home = "";
-        }
-      }), societyRelationships(sector, society, roll, refreshSociety));
-    }
-
     const homeLocations = homeSystem ? locations.filter(place => place.systemId === homeSystem.id) : locations;
-    const homePicker = select(form, "Homeworld", locationOptions(homeLocations), faction.home, id => {
+    const homeField = node("div");
+    const homePicker = select(homeField, "Homeworld", locationOptions(homeLocations), faction.home, id => {
       faction.home = id;
       if (id && !faction.assets.some(asset => asset.name === "Base of Influence" && asset.location === id)) {
         faction.assets.push(newAsset({ name: "Base of Influence", hp: maxHp(faction) }, id, crypto.randomUUID()));
@@ -239,6 +250,14 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       render();
     });
     homePicker.disabled = !homeLocations.length;
+    if (society) {
+      const refreshSociety = () => { syncFactions(sector, locations); save(); render(); };
+      content.append(societyEditor(sector, society, coordinate, roll, refreshSociety, showHomeSystem, systemId => {
+        if (systemId && !locations.some(location => location.systemId === systemId && location.id === faction.home)) {
+          faction.home = "";
+        }
+      }, homeField), societyRelationships(sector, society, roll, refreshSociety));
+    } else content.append(homeField);
     if (homeSystem && !homeLocations.length) {
       content.append(node("p", `No worlds are listed in ${homeSystem.name} yet.`),
         button("Open home system on chart", () => showHomeSystem(homeSystem)));

@@ -23,41 +23,17 @@ function picker(text, options) {
   return { label, select };
 }
 
-function pickerName(name) {
-  const label = node("label", "Faction name");
-  const input = node("input");
-  input.required = true;
-  input.value = name;
-  label.append(input);
-  return { label, input };
+export { rollFactionName };
+
+export function developInterstellarSociety(sector, faction, roll) {
+  const society = generateSociety({ id: faction.id, name: faction.name, status: "Core", minimumTech: 3, roll });
+  society.faction = generateFactionProfile(roll, { interstellar: true });
+  (sector.societies ??= []).push(society);
+  faction.sourceId = society.id;
+  return society;
 }
 
-export function societyCreation(sector, roll, onCreate) {
-  const create = node("form");
-  const nameLabel = node("label", "New interstellar society name");
-  const name = node("input");
-  name.required = true;
-  name.value = rollFactionName(roll, { place: sector.name });
-  nameLabel.append(name);
-  const submit = node("button", "Develop Interstellar Society");
-  submit.type = "submit";
-  create.append(nameLabel, button("New Name", () => {
-    name.value = rollFactionName(roll, { place: sector.name });
-  }), submit);
-  create.addEventListener("submit", event => {
-    event.preventDefault();
-    if (!name.value.trim()) return;
-    const society = generateSociety({
-      id: crypto.randomUUID(), name: name.value.trim(), status: "Core", minimumTech: 3, roll,
-    });
-    society.faction = generateFactionProfile(roll, { interstellar: true });
-    (sector.societies ??= []).push(society);
-    onCreate(society);
-  });
-  return create;
-}
-
-export function societyEditor(sector, society, coordinate, roll, refresh, openSystem, onHomeChange) {
+export function societyEditor(sector, society, coordinate, roll, refresh, openSystem, onHomeChange, homeworld) {
   const systems = new Map(sector.systems.filter(system => system.stars).map(system => [system.id, system]));
   const systemName = system => `${system.name} · ${coordinate(system.column, system.row)}`;
   const section = node("section");
@@ -76,7 +52,10 @@ export function societyEditor(sector, society, coordinate, roll, refresh, openSy
     onHomeChange(society.homeSystemId);
     refresh();
   });
-  section.append(home.label);
+  const homes = node("div");
+  homes.className = "faction-home-fields";
+  homes.append(home.label, homeworld);
+  section.append(homes);
   if (society.homeSystemId) section.append(button("Show home on chart", () => openSystem(systems.get(society.homeSystemId))));
   for (const [role, key] of [["Core", "coreSystems"], ["Frontier", "frontierSystems"]]) {
     section.append(node("h4", `${role} systems`));
@@ -122,21 +101,6 @@ export function societyEditor(sector, society, coordinate, roll, refresh, openSy
       refresh();
     }));
   }
-  const rename = pickerName(society.name);
-  faction.append(rename.label, button("Roll Faction Name", () => {
-    rename.input.value = rollFactionName(roll, {
-      place: place || society.faction?.base || sector.name,
-      surname: society.faction?.leader.surname,
-    });
-  }), button("Save Name", () => {
-    if (!rename.input.value.trim()) {
-      rename.input.value = "";
-      rename.input.reportValidity();
-      return;
-    }
-    society.name = rename.input.value.trim();
-    refresh();
-  }));
   section.append(faction);
   return section;
 
