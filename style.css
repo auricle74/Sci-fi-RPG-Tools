@@ -25,9 +25,9 @@ fieldset { border: 1px solid #52667e; border-radius: .4rem; margin: 0; }
 fieldset[hidden] { display: none; }
 fieldset input { width: 4rem; }
 label { display: grid; gap: .4rem; font-weight: 600; }
-button, select, input { font: inherit; padding: .55rem .7rem; border-radius: .4rem; }
+button, select, input, .sector-shortcut { font: inherit; padding: .55rem .7rem; border-radius: .4rem; }
 select, input { background: #0c131e; border: 1px solid #647991; color: inherit; max-width: 100%; }
-.sector-workspace button {
+.sector-workspace button, .sector-shortcut {
   background: transparent;
   color: #9de7e1;
   border: 0;
@@ -35,7 +35,8 @@ select, input { background: #0c131e; border: 1px solid #647991; color: inherit; 
   cursor: pointer;
 }
 .sector-workspace button:hover:enabled,
-.sector-workspace button:focus-visible:enabled { background: #243e51; }
+.sector-workspace button:focus-visible:enabled,
+.sector-shortcut:hover, .sector-shortcut:focus-visible { background: #243e51; }
 :focus-visible { outline: 3px solid #ffe1a0; outline-offset: 3px; }
 output { color: #9de7e1; font-weight: 600; }
 #map-help { color: #c7d6e4; font-size: .9rem; }
@@ -96,6 +97,8 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 }
 .sector-options { border-inline-end: 1px solid #34495c; }
 .sector-details { border-inline-start: 1px solid #34495c; }
+.sector-shortcuts { display: grid; justify-items: start; gap: .25rem; }
+.sector-shortcut { text-decoration: none; }
 .sector-options h1 { font-size: 1.45rem; margin: 1rem 0 1.25rem; }
 .sector-options .panel {
   display: grid;
@@ -194,16 +197,16 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 #world .inspector-fields { min-width: 0; width: 100%; }
 #world .inspector-fields > button { margin: .4rem .4rem .4rem 0; }
 
-#world .planet-tags { margin: 1rem 0; }
-#world .planet-tags article + article {
+:is(#world, #tpv-chart) .planet-tags { margin: 1rem 0; }
+:is(#world, #tpv-chart) .planet-tags article + article {
   border-block-start: 1px solid #34495c;
   margin-block-start: 1rem;
 }
-#world .planet-tags h4 { margin: .8rem 0 .4rem; font-size: 1.1rem; }
-#world .planet-tags h5 { margin: .85rem 0 .25rem; font-size: .9rem; }
-#world .planet-tags p, #world .planet-tags ul { line-height: 1.55; margin: .35rem 0 .65rem; }
-#world .planet-tags ul { padding-inline-start: 1.35rem; }
-#world .planet-tags li + li { margin-block-start: .2rem; }
+:is(#world, #tpv-chart) .planet-tags h4 { margin: .8rem 0 .4rem; font-size: 1.1rem; }
+:is(#world, #tpv-chart) .planet-tags h5 { margin: .85rem 0 .25rem; font-size: .9rem; }
+:is(#world, #tpv-chart) .planet-tags p, :is(#world, #tpv-chart) .planet-tags ul { line-height: 1.55; margin: .35rem 0 .65rem; }
+:is(#world, #tpv-chart) .planet-tags ul { padding-inline-start: 1.35rem; }
+:is(#world, #tpv-chart) .planet-tags li + li { margin-block-start: .2rem; }
 
 #world .edit-field.has-reroll {
   display: grid;
@@ -442,7 +445,27 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   transform: rotate(-22deg);
 }
 
-.hex .tpv-home-ring { fill: none; stroke: #f1cc87; stroke-width: 1; }
+#map .hex .chart-faction-stripes { stroke: none; opacity: .38; pointer-events: none; }
+#map .hex[data-system-status="Core"] .chart-faction-stripes { opacity: .64; }
+#map .hex[data-system-status="Wild"] .chart-faction-stripes { opacity: .18; }
+.chart-faction-tooltip {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  box-sizing: border-box;
+  max-width: min(18rem, calc(100vw - 16px));
+  padding: .55rem .7rem;
+  border: 1px solid #496176;
+  border-radius: .4rem;
+  background: #142333;
+  color: #edf4fb;
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}
+.chart-faction-tooltip strong { display: block; margin-bottom: .3rem; }
+.chart-faction-tooltip ul { margin: .2rem 0 0; padding: 0; list-style: none; }
+.chart-faction-tooltip li { display: flex; align-items: baseline; gap: .4rem; }
+.chart-faction-tooltip li span { flex: 0 0 .55rem; height: .55rem; }
 .tpv-setting-society {
   margin-block: 1rem;
   padding: .75rem;
@@ -453,8 +476,6 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .tpv-setting-society:nth-child(even of .tpv-setting-society) { background-color: #203b53; }
 #tpv-profile label { margin-block: .5rem; }
 
-.hex .tpv-presence-ring { fill: none; stroke: #f1cc87; stroke-width: 1; }
-.hex .tpv-presence-frontier { stroke-dasharray: 2 2; }
 
 .tpv-world-globe {
   max-width: 52rem;

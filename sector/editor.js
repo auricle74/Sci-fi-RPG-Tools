@@ -1,5 +1,5 @@
-import { renderFactionManager } from "./faction-manager.mjs";
-import { factionPresence } from "./tpv-factions.mjs";
+import { renderFactionManager, sectorLocations } from "./faction-manager.mjs";
+import { chartFactionPresence, factionPresence } from "./tpv-factions.mjs";
 import { generateTpvSector, tpvDistance, tpvRules } from "./tpv.mjs";
 import { inspectTpv, renderChart } from "./tpv-view.mjs";
 import { bookTags, catalogueTags } from "./tag-catalogue.mjs";
@@ -289,7 +289,50 @@ function showFactionManager() {
   }, coordinate, isTpv());
 }
 
+const factionTooltip = document.createElement("div");
+factionTooltip.className = "chart-faction-tooltip";
+factionTooltip.hidden = true;
+factionTooltip.setAttribute("aria-hidden", "true");
+mapWindow.after(factionTooltip);
+
+function hideFactionTooltip() {
+  factionTooltip.hidden = true;
+}
+mapWindow.addEventListener("scroll", hideFactionTooltip);
+
+function bindFactionTooltip(group, name, code, factions) {
+  group.setAttribute("aria-label", `Hex ${code}, ${name}. Factions: ${factions.map(faction => faction.name).join(", ")}`);
+  function show() {
+    const heading = document.createElement("strong");
+    heading.textContent = `${name} (${code})`;
+    const label = document.createElement("div");
+    label.textContent = "Factions";
+    const list = document.createElement("ul");
+    for (const faction of factions) {
+      const item = document.createElement("li");
+      const swatch = document.createElement("span");
+      swatch.style.backgroundColor = faction.colour;
+      item.append(swatch, faction.name);
+      list.append(item);
+    }
+    factionTooltip.replaceChildren(heading, label, list);
+    factionTooltip.hidden = false;
+    const hex = group.getBoundingClientRect();
+    const { offsetWidth, offsetHeight } = factionTooltip;
+    const left = Math.max(8, Math.min(hex.left, window.innerWidth - offsetWidth - 8));
+    const top = hex.top - offsetHeight - 6;
+    factionTooltip.style.left = `${left}px`;
+    factionTooltip.style.top = `${top >= 8 ? top : Math.max(8, Math.min(hex.bottom + 6, window.innerHeight - offsetHeight - 8))}px`;
+  }
+  group.addEventListener("mouseenter", show);
+  group.addEventListener("mouseleave", hideFactionTooltip);
+  group.addEventListener("focus", show);
+  group.addEventListener("blur", hideFactionTooltip);
+  group.addEventListener("click", hideFactionTooltip);
+}
+
 function renderMap() {
+  hideFactionTooltip();
   setProfileOpen(false);
   map.closest(".sector-map").classList.toggle("tpv-map", isTpv());
   if (isTpv()) renderChart(chartList, sector.systems, coordinate, feature => {
@@ -301,6 +344,8 @@ function renderMap() {
   const halfHeight = Math.sqrt(3) * radius / 2;
   const columnStep = radius * 1.5;
   const fragment = document.createDocumentFragment();
+  const stripePatterns = svgElement("defs", {});
+  const chartPresence = chartFactionPresence(sector, sectorLocations(sector));
   hexes.clear();
   hexCentres.clear();
   nebulaHexes.clear();
@@ -330,9 +375,26 @@ function renderMap() {
       });
       if (isTpv() && system?.stars) group.dataset.systemStatus = system.status ?? "Wild";
       if (nebulaHexes.has(code)) group.classList.add("tpv-nebula-coverage");
-      group.append(svgElement("polygon", {
-        points: `${-radius},0 ${-radius / 2},${-halfHeight} ${radius / 2},${-halfHeight} ${radius},0 ${radius / 2},${halfHeight} ${-radius / 2},${halfHeight}`,
-      }));
+      const points = `${-radius},0 ${-radius / 2},${-halfHeight} ${radius / 2},${-halfHeight} ${radius},0 ${radius / 2},${halfHeight} ${-radius / 2},${halfHeight}`;
+      group.append(svgElement("polygon", { points }));
+      const factions = [...(chartPresence.get(system?.id)?.values() ?? [])];
+      if (factions.length) {
+        const id = `chart-faction-stripes-${code}`;
+        const pattern = svgElement("pattern", {
+          id, width: factions.length * 7, height: 7,
+          patternUnits: "userSpaceOnUse", patternTransform: "rotate(55)",
+        });
+        factions.forEach(({ colour }, index) => {
+          const stripe = svgElement("rect", { x: index * 7, width: 5, height: 7 });
+          stripe.style.fill = colour;
+          pattern.append(stripe);
+        });
+        stripePatterns.append(pattern);
+        const stripes = svgElement("polygon", { points, class: "chart-faction-stripes", "aria-hidden": "true" });
+        stripes.style.fill = `url(#${id})`;
+        group.append(stripes);
+        bindFactionTooltip(group, system.name, code, factions);
+      }
       if (system) {
         const nameBox = svgElement("foreignObject", {
           class: "hex-system-name", x: -22, y: -halfHeight + 8,
@@ -342,17 +404,7 @@ function renderMap() {
         name.textContent = system.name;
         nameBox.append(name);
         group.append(nameBox);
-        if (isTpv()) {
-          const presence = factionPresence(sector, system.id);
-          if (presence.some(entry => entry.role === "Home")) {
-            group.append(svgElement("circle", { r: 9, class: "tpv-home-ring", "aria-hidden": "true" }),
-              svgElement("circle", { r: 12, class: "tpv-home-ring", "aria-hidden": "true" }));
-          } else if (presence.length) {
-            const style = presence.some(entry => entry.role === "Core") ? "core" : "frontier";
-            group.append(svgElement("circle", { r: 9, class: `tpv-presence-ring tpv-presence-${style}`, "aria-hidden": "true" }));
-          }
-          group.append(tpvMarker(system));
-        }
+        if (isTpv()) group.append(tpvMarker(system));
         else group.append(svgElement("circle", { r: 4, "aria-hidden": "true" }));
       }
       const label = svgElement("text", { y: halfHeight - 7, "aria-hidden": "true" });
@@ -367,7 +419,7 @@ function renderMap() {
   mapHeight = 16 + 2 * height * halfHeight + (width > 1 ? halfHeight : 0);
   map.setAttribute("viewBox", `0 0 ${mapWidth} ${mapHeight}`);
   sizeMap();
-  map.replaceChildren(fragment, tradeRoutes);
+  map.replaceChildren(stripePatterns, fragment, tradeRoutes);
   renderTradeRoutes();
   element("map-title").textContent = `${isTpv() ? "Sector Chart" : "Sector map"} · ${width} × ${height}`;
   selectHex(sector.selectedHex.column, sector.selectedHex.row);
