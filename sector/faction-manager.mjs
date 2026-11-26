@@ -1,3 +1,4 @@
+import { factionTagDetails } from "./faction-tag-details.mjs";
 import { developInterstellarSociety, rollFactionName, societyEditor, societyRelationships } from "./tpv-society-editor.mjs";
 import { satelliteLocationId } from "./tpv-factions.mjs";
 import { assets } from "./faction-assets.mjs";
@@ -203,6 +204,25 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     edit("Hit points", "hp", [0, 999]);
     edit("FacCreds", "credits", [0, 999999]);
     edit("Experience", "xp", [0, 999999]);
+    const tagPanel = node("details");
+    tagPanel.className = "inspector-group planet-tags";
+    tagPanel.open = true;
+    const tagSummary = node("summary");
+    tagSummary.append(node("span", "SWN Faction Tags"));
+    const tagArticles = node("div");
+    tagPanel.append(tagSummary, tagArticles);
+    function updateTagDetails() {
+      tagArticles.replaceChildren(...faction.tags.map(tag => {
+        const article = node("article");
+        article.append(node("h4", tag));
+        const details = factionTagDetails.get(tag);
+        if (details) {
+          article.append(node("p", details.description), node("h5", "Effect"), node("p", details.effect));
+        } else article.append(node("p", "No rules reference is available for this tag."));
+        return article;
+      }));
+    }
+    updateTagDetails();
     const tagPickers = [];
     function updateTag(index, value) {
       faction.tags[index] = value;
@@ -216,6 +236,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
         }));
         picker.value = current;
       });
+      updateTagDetails();
       save();
     }
     faction.tags.forEach((tag, index) => {
@@ -261,7 +282,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
         button("Open home system on chart", () => showHomeSystem(homeSystem)));
     }
     updateStatistics();
-    inspector.append(node("h3", faction.name), statistics);
+    inspector.append(node("h3", faction.name), statistics, tagPanel);
     const source = society?.faction;
     if (source) inspector.append(node("p", `TPV profile · ${source.reach} · ${source.type.join(" / ")}`),
       node("p", `TPV special assets · ${source.assets.join(", ")}`));
