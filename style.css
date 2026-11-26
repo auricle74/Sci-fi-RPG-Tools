@@ -723,10 +723,18 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   padding: .1rem .25rem;
 }
 .tpv-orbit-home { position: relative; display: inline-flex; align-items: center; }
-.tpv-home-square {
+.tpv-home-squares {
   position: absolute;
   inset-inline-start: calc(100% + .25rem);
-  width: .55rem;
-  height: .55rem;
-  background: #9de7e1;
+  display: grid;
+  gap: .15rem;
+}
+.tpv-home-square { width: .55rem; height: .55rem; background: var(--faction-colour); }
+.faction-controls .faction-roster-button {
+  border: 1px solid var(--faction-colour);
+  color: var(--faction-colour);
+}
+.faction-controls .faction-roster-button[aria-pressed="true"] {
+  background: var(--faction-colour);
+  color: #0c131e;
 }

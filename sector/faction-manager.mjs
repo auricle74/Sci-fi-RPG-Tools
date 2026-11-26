@@ -1,3 +1,4 @@
+import { societyCreation, societyEditor, societyRelationships } from "./tpv-society-editor.mjs";
 import { satelliteLocationId } from "./tpv-factions.mjs";
 import { assets } from "./faction-assets.mjs";
 import { catalogue, deleteFaction, factionTags, income, maxHp, newAsset, ratings, simulateRound, syncFactions } from "./faction-turns.mjs";
@@ -92,7 +93,7 @@ function seeded(seed) {
   };
 }
 
-export function renderFactionManager(profile, inspector, sector, save, back, roll, showHomeSystem) {
+export function renderFactionManager(profile, inspector, sector, save, back, roll, showHomeSystem, coordinate, tpv) {
   const locations = sectorLocations(sector);
   const manager = syncFactions(sector, locations);
   save();
@@ -129,7 +130,14 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       const faction = { id: crypto.randomUUID(), name: "New faction", force: 1, cunning: 1, wealth: 1,
         credits: 0, xp: 0, hp: 7, home: "", tags: factionTags(), goal: "", assets: [] };
       manager.factions.push(faction);
+      syncFactions(sector, locations);
       selected = faction.id;
+      save();
+      render();
+    }));
+    if (tpv) content.append(societyCreation(sector, roll, society => {
+      syncFactions(sector, locations);
+      selected = society.id;
       save();
       render();
     }));
@@ -144,11 +152,11 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     for (const faction of manager.factions) {
       const control = button(faction.name, () => { selected = faction.id; render(); });
       control.setAttribute("aria-pressed", faction.id === selected);
+      control.className = "faction-roster-button";
+      control.style.setProperty("--faction-colour", faction.colour);
       roster.append(control);
     }
     content.append(roster);
-    select(content, "Faction", manager.factions.map(faction => [faction.id, faction.name]), selected,
-      id => { selected = id; render(); });
     const faction = manager.factions.find(item => item.id === selected);
     content.append(button("Delete Faction", () => {
       const context = faction.sourceId ? " Its TPV society and location links will be kept." : "";
@@ -160,7 +168,7 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     }));
     const form = node("div");
     form.className = "faction-form faction-profile-fields";
-    content.append(form);
+    content.append(node("h3", faction.name), node("h4", "SWN Faction"), form);
     const statistics = node("p");
     const updateStatistics = () => { statistics.textContent = `Maximum HP ${maxHp(faction)} · Income ${income(faction)} FacCreds`; };
     const edit = (label, key, limits) => field(form, label, faction[key], value => {
@@ -212,6 +220,15 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     edit("Goal", "goal").parentElement.classList.add("faction-goal-field");
     const society = sector.societies?.find(item => item.id === faction.sourceId);
     const homeSystem = sector.systems.find(system => system.id === society?.homeSystemId);
+    if (society) {
+      const refreshSociety = () => { syncFactions(sector, locations); save(); render(); };
+      content.append(societyEditor(sector, society, coordinate, roll, refreshSociety, showHomeSystem, systemId => {
+        if (systemId && !locations.some(location => location.systemId === systemId && location.id === faction.home)) {
+          faction.home = "";
+        }
+      }), societyRelationships(sector, society, roll, refreshSociety));
+    }
+
     const homeLocations = homeSystem ? locations.filter(place => place.systemId === homeSystem.id) : locations;
     const homePicker = select(form, "Homeworld", locationOptions(homeLocations), faction.home, id => {
       faction.home = id;

@@ -52,6 +52,15 @@ export function syncFactions(sector, locations) {
     manager.factions.push(faction);
     known.add(society.id);
   }
+  const usedColours = new Set(manager.factions.map(faction => faction.colour));
+  let index = 0;
+  for (const faction of manager.factions) {
+    if (faction.colour) continue;
+    do {
+      faction.colour = `hsl(${(index++ * 137.508 % 360).toFixed(3)} 78% 74%)`;
+    } while (usedColours.has(faction.colour));
+    usedColours.add(faction.colour);
+  }
   return manager;
 }
 

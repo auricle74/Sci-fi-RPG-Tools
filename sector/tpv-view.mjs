@@ -549,7 +549,7 @@ function societyDetails(sector, target, save, refresh, showSetting) {
     refresh();
   };
   if (!society) {
-    group.append(button("Create societies in Setting Overview", showSetting));
+    group.append(button("Create societies in Faction Manager", showSetting));
   } else group.append(button("Unlink society", () => {
     delete target.societyId;
     save();
@@ -574,7 +574,7 @@ function societyDetails(sector, target, save, refresh, showSetting) {
 function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, showSetting, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
-  const settingStep = ["Setting Overview", showSetting];
+  const settingStep = ["Faction Manager", showSetting];
   const chartStep = ["Sector Chart", back];
   const catalogue = sector.addSwnTags ? tpvTagCatalogue() : null;
   function appendSwnTags(target, container, type, body) {
@@ -683,7 +683,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           inspector.replaceChildren(...systemInspector);
           (worldTrigger ?? heading).focus();
         }
-        const worldSettingStep = ["Setting Overview", () => {
+        const worldSettingStep = ["Faction Manager", () => {
           inspector.replaceChildren(...systemInspector);
           showSetting();
         }];
@@ -982,12 +982,18 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const icon = marker.firstElementChild;
         const badge = node("span");
         badge.className = "tpv-orbit-home";
-        const square = node("span");
-        square.className = "tpv-home-square";
-        square.setAttribute("aria-hidden", "true");
-        badge.title = `Home of ${homeLabel}`;
+        const squares = node("span");
+        squares.className = "tpv-home-squares";
+        squares.setAttribute("aria-hidden", "true");
+        for (const home of homeSocieties) {
+          const square = node("span");
+          square.className = "tpv-home-square";
+          square.style.setProperty("--faction-colour", home.colour ?? "#9de7e1");
+          squares.append(square);
+        }
+        badge.title = `Homeworld of ${homeLabel}`;
         icon.replaceWith(badge);
-        badge.append(icon, square);
+        badge.append(icon, squares);
         marker.setAttribute("aria-label", `${marker.getAttribute("aria-label") ?? body.name} · Home of ${homeLabel}`);
       }
       lane.append(marker);
@@ -998,7 +1004,11 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       if (namedMoons.length) details.push(summary, ...namedMoons.map(([name, moonlets]) => `${name} · ${moonlets}`));
       const description = row.insertCell();
       description.append(...(details.length ? details : [summary]).map(text => node("div", text)));
-      if (homeLabel) description.append(node("div", `Home of ${homeLabel}`));
+      for (const home of homeSocieties) {
+        const label = node("div", `Homeworld of ${home.name}`);
+        label.style.color = home.colour ?? "#9de7e1";
+        description.append(label);
+      }
     }
     orbits.append(lane);
   }
