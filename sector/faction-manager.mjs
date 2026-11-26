@@ -273,6 +273,27 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
     content.append(node("h3", "Faction Turns"));
     if (!draft) {
       const active = manager.factions.filter(faction => faction.hp > 0);
+      const round = manager.history.length + 1;
+      content.append(node("h4", `Round ${round}`));
+      if (manager.factions.length) {
+        const roster = node("table");
+        roster.setAttribute("aria-label", "Faction turn roster");
+        roster.className = "tpv-world-site-table";
+        const header = roster.createTHead().insertRow();
+        for (const label of ["Faction", "HP", "FacCreds", "Expected income", "Status"]) {
+          const cell = node("th", label);
+          cell.scope = "col";
+          header.append(cell);
+        }
+        const rows = roster.createTBody();
+        for (const faction of manager.factions) {
+          const row = rows.insertRow();
+          for (const value of [faction.name, faction.hp, faction.credits, income(faction),
+            faction.hp > 0 ? "Ready" : "Inactive"]) row.insertCell().textContent = value;
+        }
+        content.append(roster);
+      }
+      if (active.length) content.append(node("p", "Advance Faction Turn opens a draft with proposed actions. Review or override them, then choose Resolve and Save to commit the round."));
       const advance = button("Advance Faction Turn", () => {
         const start = roll(active.length) - 1;
         const order = [...active.slice(start), ...active.slice(0, start)].map(faction => faction.id);
@@ -353,7 +374,8 @@ export function renderFactionManager(profile, inspector, sector, save, back, rol
       inspector.append(node("h3", "Draft balances"));
       for (const faction of result.factions) inspector.append(node("p", `${faction.name} · ${faction.credits} FacCreds · ${faction.hp} HP`));
     }
-    if (manager.history.length) content.append(node("h3", "Turn history"));
+    content.append(node("h3", "Turn history"));
+    if (!manager.history.length) content.append(node("p", "No rounds have been saved yet."));
     for (const record of [...manager.history].reverse()) {
       const history = node("details");
       history.append(node("summary", `Round ${record.round}`));
