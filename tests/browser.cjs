@@ -438,7 +438,11 @@ async function main() {
     await areas.getByRole("button").nth(1).click();
     assert.equal(await areas.locator(".tpv-site-selected").count(), 1);
     assert.equal(await areas.getByRole("button").nth(1).getAttribute("aria-pressed"), "true");
-    assert.equal(await stationProfile.locator(".tpv-selected-site").getByText("Occupant", { exact: true }).count(), 1);
+    const areaDetails = detailsPane.locator(".tpv-area-details");
+    assert.equal(await areaDetails.getByText("Occupant", { exact: true }).count(), 1);
+    assert.equal(await stationProfile.getByText("Occupant", { exact: true }).count(), 0);
+    assert.ok(await areaDetails.evaluate(area => area.nextElementSibling.matches(".inspector-header")));
+    assert.equal(await areaDetails.locator("summary").textContent(), await areas.getByRole("button").nth(1).textContent());
     await stationProfile.getByRole("button", { name: "Add Site", exact: true }).click();
     assert.equal(await stationProfile.locator(".tpv-site-list li").count(), 1);
     assert.ok(await stationProfile.locator(".tpv-site-list").evaluate(list =>

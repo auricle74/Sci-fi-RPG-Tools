@@ -410,7 +410,7 @@ function centreOverview(centre) {
   ]);
 }
 
-function centreDetails(centre, roll, save, refresh, selectPlace, showPlace) {
+function centreDetails(centre, roll, save, refresh, selectPlace, showPlace, areaSummary) {
   const group = node("section");
   const settlement = centre.settlement;
   if (settlement) {
@@ -433,14 +433,15 @@ function centreDetails(centre, roll, save, refresh, selectPlace, showPlace) {
       summary.replaceChildren(node("h3", typedName?.[1] ?? place.name));
       if (typedName) summary.append(node("p", typedName[2]));
       summary.append(node("p", place.detail));
+      areaSummary.hidden = true;
+      areaSummary.replaceChildren();
       if (!place.site?.length) return;
 
       const areas = table(["#", "Area"]);
       areas.className = "tpv-world-site-table tpv-place-areas";
       const areaRows = areas.createTBody();
-      const areaSummary = node("section");
       const areaButtons = [];
-      summary.append(areas, areaSummary);
+      summary.append(areas);
 
       function selectArea(index) {
         const area = place.site[index];
@@ -448,6 +449,7 @@ function centreDetails(centre, roll, save, refresh, selectPlace, showPlace) {
           control.setAttribute("aria-pressed", offset === index);
           areaRows.rows[offset].classList.toggle("tpv-site-selected", offset === index);
         });
+        areaSummary.hidden = false;
         areaSummary.replaceChildren(detailSection(area.name, [
           ["Occupant", area.occupant], ["Obstacle", area.obstacle],
           ...(area.discovery ? [["Discovery", area.discovery]] : []),
@@ -711,6 +713,9 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             content.className = "inspector-fields tpv-detail-fields tpv-world-locations";
             const settlement = centre?.settlement;
             const isOrbitalOutpost = /^orbital outpost$/i.test(body.type);
+            const areaSummary = node("section");
+            areaSummary.className = "inspector-fields tpv-detail-fields tpv-area-details";
+            areaSummary.hidden = true;
             let updatePlaceDetails;
             let selectedPlace = developedPlace;
             let selectPlace;
@@ -748,7 +753,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             }
             if (centre) {
               overview.append(centreOverview(centre));
-              (centre.settlement ? content : overview).append(centreDetails(centre, roll, save, renderSettlement, selectPlace, update => { updatePlaceDetails = update; }));
+              (centre.settlement ? content : overview).append(centreDetails(centre, roll, save, renderSettlement, selectPlace, update => { updatePlaceDetails = update; }, areaSummary));
             } else {
               content.append(node("p", body.type));
             }
@@ -815,11 +820,11 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
                 ancestry: [worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : [])],
                 societies: sector.societies ?? [], society: sector.societies?.find(society => society.id === centre?.societyId),
-                station: { details: [header, fields, overview], extra: content, refresh },
+                station: { details: [areaSummary, header, fields, overview], extra: content, refresh },
               });
               return;
             }
-            inspector.replaceChildren(header, fields);
+            inspector.replaceChildren(areaSummary, header, fields);
             profile.replaceChildren(trail, title, node("p", `Host: ${worldProfile ? body.name : feature.name}`), content);
             title.focus();
           }
