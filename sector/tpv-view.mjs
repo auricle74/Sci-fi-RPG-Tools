@@ -3,9 +3,8 @@ import { openCommunity, siteEditor, siteList, siteProfileVisual, siteTypeLabel }
 import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
 import { svg, worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
-import { factionNotation, factionRows, generateFactionProfile, rollFactionName } from "./tpv-faction-profile.mjs";
-import { factionPresence } from "./tpv-factions.mjs";
-import { generateSociety } from "./tpv-societies.mjs";
+import { factionNotation, factionRows } from "./tpv-faction-profile.mjs";
+import { factionPresence, satelliteHomeSocieties } from "./tpv-factions.mjs";
 import { bearsLife, generateLifeforms } from "./tpv-lifeforms.mjs";
 import { orbitalAppearance } from "./tpv-graphics.mjs";
 import { canDevelopBody, developBody, worldNotation } from "./tpv-development.mjs";
@@ -531,7 +530,7 @@ function giantMoons(body) {
   });
 }
 
-function societyDetails(sector, feature, target, homeName, indigenous, roll, save, refresh) {
+function societyDetails(sector, target, save, refresh, showSetting) {
   const societies = sector.societies ?? [];
   const society = societies.find(item => item.id === target.societyId);
   const minimumTech = ["Station", "Outpost"].includes(target.type) ? 3 : 0;
@@ -549,23 +548,8 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
     save();
     refresh();
   };
-  const input = node("input");
-  const create = button("Develop Society", () => {
-    const name = input.value.trim();
-    if (!name) { input.reportValidity(); return; }
-    const generated = generateSociety({ id: crypto.randomUUID(), name, status: feature.status, indigenous, minimumTech, roll });
-    generated.faction = generateFactionProfile(roll, { place: homeName });
-    (sector.societies ??= []).push(generated);
-    link(generated.id);
-  });
   if (!society) {
-    const inputLabel = node("label", "New society name");
-    input.required = true;
-    input.value = rollFactionName(roll, { place: homeName });
-    inputLabel.append(input);
-    group.append(inputLabel, button("New Name", () => {
-      input.value = rollFactionName(roll, { place: homeName });
-    }), create);
+    group.append(button("Create societies in Faction Manager", showSetting));
   } else group.append(button("Unlink society", () => {
     delete target.societyId;
     save();
@@ -590,7 +574,6 @@ function societyDetails(sector, feature, target, homeName, indigenous, roll, sav
 function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, showSetting, redevelop) {
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
-  const settingStep = ["Setting Overview", showSetting];
   const chartStep = ["Sector Chart", back];
   const catalogue = sector.addSwnTags ? tpvTagCatalogue() : null;
   function appendSwnTags(target, container, type, body) {
@@ -603,7 +586,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   const systemTagPanel = node("section");
   systemTagPanel.className = "tpv-world-locations tpv-detail-fields tpv-system-tags";
   appendSwnTags(feature, systemTagPanel, "System");
-  const systemTrail = profileBreadcrumb(settingStep, chartStep, ["System Profile", () => heading.focus()]);
+  const systemTrail = profileBreadcrumb(chartStep, ["System Profile", () => heading.focus()]);
   const details = node("p");
   const updateDetails = () => {
     details.textContent = `Hex ${coordinate(feature.column, feature.row)} · ${feature.type} · ${feature.status} · ${feature.satellites.length} satellites`;
@@ -663,16 +646,16 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const orbital = /orbital|deep-space/i.test(body.type);
         const locationFields = node("section");
         locationFields.className = "inspector-fields tpv-detail-fields tpv-world-locations";
-        const appendWorld = (world, name) => {
+        const appendWorld = world => {
           fields.append(...worldDetails(world), ...lifeformDetails(world));
           appendSwnTags(world, fields, world.classification);
           const indigenous = world.lifeforms?.some(lifeform => lifeform.level === "Advanced") ?? false;
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
-          if (indigenous || populated) fields.append(societyDetails(sector, feature, world, name, indigenous, roll, save, show));
+          if (world.societyId || indigenous || populated) fields.append(societyDetails(sector, world, save, show, () => worldSettingStep[1]()));
         };
         if (planets.length) {
           fields.append(node("h4", "Planet"), orbitDetails(band));
-          for (const planet of planets) appendWorld(planet, body.name);
+          for (const planet of planets) appendWorld(planet);
         } else {
           fields.append(orbitDetails(band));
           if (worldProfile && body.size) fields.append(detailSection("Physical Profile", [["Size", body.size]]));
@@ -682,7 +665,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           for (const [index, moon] of moons.entries()) {
             const name = developedMoonName(body, index);
             fields.append(node("h5", name));
-            appendWorld(moon, name);
+            appendWorld(moon);
           }
         }
         if (!worlds.length && !centre) appendSwnTags(body, fields, tpvBodyTagType(body), body);
@@ -699,7 +682,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           inspector.replaceChildren(...systemInspector);
           (worldTrigger ?? heading).focus();
         }
-        const worldSettingStep = ["Setting Overview", () => {
+        const worldSettingStep = ["Faction Manager", () => {
           inspector.replaceChildren(...systemInspector);
           showSetting();
         }];
@@ -762,14 +745,13 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             if (centre) {
               const destination = isOrbitalOutpost ? communityDetails : overview;
               appendSwnTags(centre, destination, centre.type, body);
-              destination.append(societyDetails(sector, feature, centre, body.name, false, roll, save,
-                () => renderSettlement(selectedPlace)));
+              destination.append(societyDetails(sector, centre, save, () => renderSettlement(selectedPlace), worldSettingStep[1]));
             }
             const worldStep = ["World Profile", () => {
               show();
               if (trigger?.classList.contains("tpv-globe-target")) profile.querySelector(".tpv-globe-target")?.focus();
             }];
-            const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : []), ["Site Profile", () => title.focus()]);
+            const trail = profileBreadcrumb(chartStep, systemStep, ...(worldProfile ? [worldStep] : []), ["Site Profile", () => title.focus()]);
             const facilities = body.facilities ??= [];
             const refresh = () => renderSettlement(selectedPlace);
             const siteStep = ["Site Profile", refresh];
@@ -780,12 +762,12 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
             }
             if (body.facilityInterior) content.append(button("Open Facility Interior", () =>
               openCommunity(body.facilityInterior, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
-                ancestry: [worldSettingStep, chartStep, systemStep, siteStep], societies: sector.societies ?? [] })));
+                ancestry: [chartStep, systemStep, siteStep], societies: sector.societies ?? [] })));
             if (!isSpaceStation) content.append(siteEditor(facilities, options), siteList(facilities, {
               ...options,
               reroll: () => makeCommunity("Facility", roll),
               open: site => openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
-                ancestry: [worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : []), siteStep],
+                ancestry: [chartStep, systemStep, ...(worldProfile ? [worldStep] : []), siteStep],
                 societies: sector.societies ?? [] }),
             }));
             if (isOrbitalOutpost) content.append(communityDetails);
@@ -818,7 +800,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               }
               openCommunity({ name: siteName, type: body.type, children: facilities }, {
                 roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
-                ancestry: [worldSettingStep, chartStep, systemStep, ...(worldProfile ? [worldStep] : [])],
+                ancestry: [chartStep, systemStep, ...(worldProfile ? [worldStep] : [])],
                 societies: sector.societies ?? [], society: sector.societies?.find(society => society.id === centre?.societyId),
                 station: { details: [areaSummary, header, fields, overview], extra: content, refresh },
               });
@@ -842,7 +824,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const legacy = centre && surface && (lunarCentre ? surface.classification === "moon" :
           !orbital && surface.classification === "planet");
         const worldStep = ["World Profile", () => show()];
-        const ancestry = [worldSettingStep, chartStep, systemStep, worldStep];
+        const ancestry = [chartStep, systemStep, worldStep];
         const refresh = () => show();
         const society = (sector.societies ?? []).find(candidate => candidate.id === (surface?.societyId ?? (legacy ? centre.societyId : undefined)));
         const populated = legacy || body.type.toLowerCase() === `populated ${surface?.classification}` ||
@@ -964,7 +946,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           label.append(picker);
           context.append(label);
         }
-        const trail = profileBreadcrumb(worldSettingStep, chartStep, systemStep, ["World Profile", () => worldHeading.focus()]);
+        const trail = profileBreadcrumb(chartStep, systemStep, ["World Profile", () => worldHeading.focus()]);
         profile.replaceChildren(trail, worldHeading, context, globe, locationFields);
         locationFields.append(summary);
         inspector.replaceChildren(fields);
@@ -993,13 +975,39 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       } else {
         marker.prepend(graphic);
       }
+      const homeSocieties = satelliteHomeSocieties(sector, feature, body);
+      const homeLabel = homeSocieties.map(society => society.name).join(", ");
+      if (homeLabel) {
+        const icon = marker.firstElementChild;
+        const badge = node("span");
+        badge.className = "tpv-orbit-home";
+        const squares = node("span");
+        squares.className = "tpv-home-squares";
+        squares.setAttribute("aria-hidden", "true");
+        for (const home of homeSocieties) {
+          const square = node("span");
+          square.className = "tpv-home-square";
+          square.style.setProperty("--faction-colour", home.colour ?? "#9de7e1");
+          squares.append(square);
+        }
+        badge.title = `Homeworld of ${homeLabel}`;
+        icon.replaceWith(badge);
+        badge.append(icon, squares);
+        marker.setAttribute("aria-label", `${marker.getAttribute("aria-label") ?? body.name} · Home of ${homeLabel}`);
+      }
       lane.append(marker);
       const row = rows.insertRow();
       row.insertCell().append(button(body.name, show));
       row.insertCell().textContent = String(band);
       const details = descriptions();
       if (namedMoons.length) details.push(summary, ...namedMoons.map(([name, moonlets]) => `${name} · ${moonlets}`));
-      row.insertCell().append(...(details.length ? details : [summary]).map(text => node("div", text)));
+      const description = row.insertCell();
+      description.append(...(details.length ? details : [summary]).map(text => node("div", text)));
+      for (const home of homeSocieties) {
+        const label = node("div", `Homeworld of ${home.name}`);
+        label.style.color = home.colour ?? "#9de7e1";
+        description.append(label);
+      }
     }
     orbits.append(lane);
   }
@@ -1008,7 +1016,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     row.insertCell().append(button(site.name, () => {
       const previous = [...inspector.childNodes];
       openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
-        ancestry: [settingStep, chartStep, ["System Profile", () => {
+        ancestry: [chartStep, ["System Profile", () => {
           inspector.replaceChildren(...previous);
           profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries, systemTagPanel);
           heading.focus();

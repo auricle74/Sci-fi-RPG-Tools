@@ -1,5 +1,5 @@
+import { renderFactionManager } from "./faction-manager.mjs";
 import { factionPresence } from "./tpv-factions.mjs";
-import { renderSetting } from "./tpv-setting-view.mjs";
 import { generateTpvSector, tpvDistance, tpvRules } from "./tpv.mjs";
 import { inspectTpv, renderChart } from "./tpv-view.mjs";
 import { bookTags, catalogueTags } from "./tag-catalogue.mjs";
@@ -153,7 +153,7 @@ function selectHex(column, row, focus = false) {
       }, () => {
         setProfileOpen(false);
         selectHex(column, row, true);
-      }, showSettingOverview);
+      }, showFactionManager);
     const coverage = nebulae.filter(nebula => nebula !== system);
     if (coverage.length) {
       const details = document.createElement("section");
@@ -278,23 +278,18 @@ function setProfileOpen(open) {
   element("map-title").parentElement.hidden = open;
 }
 
-const settingOverview = element("tpv-setting-overview");
-settingOverview.addEventListener("click", showSettingOverview);
+element("faction-manager").addEventListener("click", showFactionManager);
 
-function showSettingOverview() {
+function showFactionManager() {
   setProfileOpen(true);
-  renderSetting(element("tpv-profile"), sector, coordinate, roll, saveSector, system => {
+  renderFactionManager(element("tpv-profile"), element("world"), sector, saveSector, renderMap, roll, system => {
     sector.selectedHex = { column: system.column, row: system.row };
     renderMap();
     hexes.get(coordinate(system.column, system.row))?.focus();
-  }, () => {
-    renderMap();
-    settingOverview.focus();
-  });
+  }, coordinate, isTpv());
 }
 
 function renderMap() {
-  settingOverview.hidden = !isTpv();
   setProfileOpen(false);
   map.closest(".sector-map").classList.toggle("tpv-map", isTpv());
   if (isTpv()) renderChart(chartList, sector.systems, coordinate, feature => {
