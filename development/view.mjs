@@ -120,7 +120,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   controls.append(settings, field("Development type", type), encounterFields, incidentField, jobField);
   if (context) controls.prepend(node("p", context.label));
   else controls.append(field("Context (optional)", inputContext));
-  controls.append(action("Roll Development", rollDraft), action("Look for Work", () => {
+  controls.append(action("Roll Development", () => rollDraft()), action("Look for Work", () => {
     type.value = "Job";
     updateControls();
     rollDraft();
@@ -141,8 +141,8 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   interpretation.rows = 3;
   const manualConnection = node("input");
   const selectedConnections = new Set();
-  function rollDraft() {
-    draftOptions = options();
+  function rollDraft(rollOptions = options()) {
+    draftOptions = rollOptions;
     const next = rollDevelopment(draftOptions, selectedBooks(), roll);
     if (!next) {
       status.textContent = "Select a book that supports this roll in Roll from.";
@@ -191,9 +191,32 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   function renderDraft() {
     preview.replaceChildren(node("h2", draft.type), node("p", draft.book));
     if (!context && draft.typeRoll) preview.append(node("small", `Development Type, p. 122 · d100 → ${draft.typeRoll.result}`));
-    const list = promptList(draft.prompts);
-    list.querySelectorAll("button").forEach((button, index) => { button.parentElement.dataset.rerollIndex = index; });
-    preview.append(list);
+    if (context) {
+      const reroll = action("Reroll", () => {
+        rollDraft(draftOptions);
+        preview.querySelector(".reroll-action")?.focus();
+      });
+      reroll.className = "reroll-action";
+      reroll.setAttribute("aria-label", "Reroll Development");
+      preview.firstElementChild.append(" ", reroll);
+      const appendRows = prompts => {
+        for (const prompt of prompts) {
+          if (prompt.value !== "Combine two results") {
+            const row = node("div");
+            const label = prompt.table.split(" · ")[0];
+            if (label !== draft.type) row.append(node("small", label + " · "));
+            row.append(node("span", prompt.value));
+            preview.append(row);
+          }
+          appendRows(prompt.children);
+        }
+      };
+      appendRows(draft.prompts);
+    } else {
+      const list = promptList(draft.prompts);
+      list.querySelectorAll("button").forEach((button, index) => { button.parentElement.dataset.rerollIndex = index; });
+      preview.append(list);
+    }
     if (draft.type === "Situation" && draft.bookId === "tpv") {
       const actions = node("div");
       for (const table of optionalSituationPrompts.filter(name => !draft.prompts.some(prompt => prompt.table === name))) {
