@@ -144,10 +144,10 @@ function detailRows(rows) {
   return table;
 }
 
-export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies, region, station }) {
+export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies, region, station }) {
   if (region) {
-    const parent = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies });
-    openCommunity(region, { roll, world, save, profile, inspector, breadcrumb,
+    const parent = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies });
+    openCommunity(region, { roll, world, save, profile, inspector, breadcrumb, development,
       ancestry: [...ancestry, [site.name, parent]], society, societies });
     return;
   }
@@ -158,7 +158,7 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
   }
   const title = element("h2", `${site.name} · ${station ? "Site Profile" : site.type}`);
   title.tabIndex = -1;
-  const refresh = station?.refresh ?? (() => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, ancestry, society, societies }));
+  const refresh = station?.refresh ?? (() => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies }));
   const current = societies.find(candidate => candidate.id === site.societyId) ?? society;
   const open = child => {
     if (child.type === "Location") {
@@ -168,7 +168,7 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
       heading.focus();
       return;
     }
-    openCommunity(child, { roll, world, save, profile, inspector, breadcrumb,
+    openCommunity(child, { roll, world, save, profile, inspector, breadcrumb, development,
       ancestry: [...ancestry, [site.name, refresh]], society: current, societies });
   };
   const info = element("section");
@@ -225,6 +225,6 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
       siteList(site.children, { open, save: saveChildren, refresh, reroll }));
   }
   if (station) content.append(station.extra);
-  profile.replaceChildren(breadcrumb(...ancestry, [station ? "Site Profile" : site.name, () => title.focus()]), title, content);
+  profile.replaceChildren(breadcrumb(...ancestry, [station ? "Site Profile" : site.name, () => title.focus()]), title, ...(development ? [development(site.name, station ? "Voidside" : "Worldside", site.id)] : []), content);
   title.focus();
 }

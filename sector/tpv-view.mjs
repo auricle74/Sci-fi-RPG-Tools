@@ -1,3 +1,6 @@
+import { profileDevelopmentButton, sectorBooks } from "../development/view.mjs";
+import { chartFactionPresence } from "./tpv-factions.mjs";
+import { sectorLocations } from "./faction-manager.mjs";
 import { initialWorldSites, makeCommunity, makeDistrict } from "./tpv-communities.mjs";
 import { openCommunity, siteEditor, siteList, siteProfileVisual, siteTypeLabel } from "./tpv-community-view.mjs";
 import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
@@ -572,6 +575,26 @@ function societyDetails(sector, target, save, refresh, showSetting) {
 }
 
 function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, showSetting, redevelop) {
+  function development(label, environment = "Voidside", locationId = feature.id, people = []) {
+    const locations = sectorLocations(sector);
+    const present = chartFactionPresence(sector, locations).get(feature.id);
+    const factions = [...(present?.values() ?? [])].map(entry => entry.name);
+    const leaders = (sector.societies ?? []).filter(society => factions.includes(society.name))
+      .map(society => society.faction?.leader?.name);
+    const suggestions = [...new Set([...factions, ...leaders, ...people,
+      ...locations.filter(location => location.systemId === feature.id).map(location => location.name)].filter(Boolean))];
+    return profileDevelopmentButton(inspector, {
+      context: { systemId: feature.id, locationId, label: label === feature.name ? label : `${feature.name} · ${label}` },
+      initialEnvironment: environment, territory: feature.status, suggestions, roll,
+      selectedBooks: () => sectorBooks(sector),
+      entries: () => (sector.developmentLog ?? []).filter(entry => entry.context?.locationId === locationId),
+      saveEntry: entry => {
+        (sector.developmentLog ??= []).push(entry);
+        save();
+      },
+    });
+  }
+  const systemDevelopment = development(feature.name);
   const heading = node("h2", `${feature.name} · System Profile`);
   heading.tabIndex = -1;
   const chartStep = ["Sector Chart", back];
@@ -678,7 +701,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           fields.append(notation);
         }
         function returnToSystem() {
-          profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries, systemTagPanel);
+          profile.replaceChildren(systemTrail, controls, heading, systemDevelopment, details, orbits, entries, systemTagPanel);
           inspector.replaceChildren(...systemInspector);
           (worldTrigger ?? heading).focus();
         }
@@ -761,12 +784,12 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               save();
             }
             if (body.facilityInterior) content.append(button("Open Facility Interior", () =>
-              openCommunity(body.facilityInterior, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
+              openCommunity(body.facilityInterior, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
                 ancestry: [chartStep, systemStep, siteStep], societies: sector.societies ?? [] })));
             if (!isSpaceStation) content.append(siteEditor(facilities, options), siteList(facilities, {
               ...options,
               reroll: () => makeCommunity("Facility", roll),
-              open: site => openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
+              open: site => openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
                 ancestry: [chartStep, systemStep, ...(worldProfile ? [worldStep] : []), siteStep],
                 societies: sector.societies ?? [] }),
             }));
@@ -798,8 +821,8 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 body.stationDistrictsInitialised = true;
                 save();
               }
-              openCommunity({ name: siteName, type: body.type, children: facilities }, {
-                roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
+              openCommunity({ id: body.id ?? `${feature.id}:${body.name}:station`, name: siteName, type: body.type, children: facilities }, {
+                roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
                 ancestry: [chartStep, systemStep, ...(worldProfile ? [worldStep] : [])],
                 societies: sector.societies ?? [], society: sector.societies?.find(society => society.id === centre?.societyId),
                 station: { details: [areaSummary, header, fields, overview], extra: content, refresh },
@@ -807,7 +830,10 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               return;
             }
             inspector.replaceChildren(areaSummary, header, fields);
-            profile.replaceChildren(trail, title, node("p", `Host: ${worldProfile ? body.name : feature.name}`), content);
+            profile.replaceChildren(trail, title,
+              development(siteName, orbital ? "Voidside" : "Worldside", `${feature.id}:${body.id ?? body.name}:settlement`,
+                settlement?.people?.map(person => person.name)),
+              node("p", `Host: ${worldProfile ? body.name : feature.name}`), content);
             title.focus();
           }
           renderSettlement();
@@ -836,7 +862,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const sites = surface?.sites ?? [];
         const open = (site, region, event) => {
           if (site.legacy) return openSettlement(event);
-          openCommunity(site, { roll, world: surface, save, profile, inspector, breadcrumb: profileBreadcrumb,
+          openCommunity(site, { roll, world: surface, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
             ancestry, society, societies: sector.societies ?? [], region });
         };
         const legacySite = centre && (legacy || orbital)
@@ -947,7 +973,9 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
           context.append(label);
         }
         const trail = profileBreadcrumb(chartStep, systemStep, ["World Profile", () => worldHeading.focus()]);
-        profile.replaceChildren(trail, worldHeading, context, globe, locationFields);
+        profile.replaceChildren(trail, worldHeading,
+          development(surface?.name ?? body.name, "Worldside", `${feature.id}:${body.id ?? body.name}:${surface?.classification ?? "world"}`),
+          context, globe, locationFields);
         locationFields.append(summary);
         inspector.replaceChildren(fields);
         worldHeading.focus();
@@ -1015,10 +1043,10 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     const row = rows.insertRow();
     row.insertCell().append(button(site.name, () => {
       const previous = [...inspector.childNodes];
-      openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb,
+      openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
         ancestry: [chartStep, ["System Profile", () => {
           inspector.replaceChildren(...previous);
-          profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries, systemTagPanel);
+          profile.replaceChildren(systemTrail, controls, heading, systemDevelopment, details, orbits, entries, systemTagPanel);
           heading.focus();
         }]], societies: sector.societies ?? [] });
     }));
@@ -1054,6 +1082,6 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     redevelop(status.value);
   });
   controls.append(statusLabel, openForm, form);
-  profile.replaceChildren(systemTrail, controls, heading, details, orbits, entries, systemTagPanel);
+  profile.replaceChildren(systemTrail, controls, heading, systemDevelopment, details, orbits, entries, systemTagPanel);
   heading.focus();
 }

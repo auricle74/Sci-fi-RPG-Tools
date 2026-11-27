@@ -99,7 +99,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .sector-details { border-inline-start: 1px solid #34495c; }
 .sector-shortcuts { display: grid; justify-items: start; gap: .25rem; }
 .sector-shortcut { text-decoration: none; }
-.sector-options h1 { font-size: 1.45rem; margin: 1rem 0 1.25rem; }
+.sector-options h1 { font-size: 1.45rem; margin: 1rem 0 .8rem; }
 .sector-options .panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -108,10 +108,12 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   background: transparent;
   border: 0;
 }
-.sector-options .sector-files {
-  border-top: 1px solid #34495c;
+.sector-options .sector-settings-section {
+  border: 0;
+  border-block-start: 1px solid #34495c;
   border-radius: 0;
-  padding-top: 1rem;
+  margin-block-start: .8rem;
+  padding-block-start: .8rem;
 }
 .sector-options label, #world label { min-width: 0; grid-template-columns: minmax(0, 1fr); }
 #replace-sector p { margin-top: 0; }
@@ -215,15 +217,15 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   gap: .2rem .55rem;
 }
 #world .has-reroll :is(input, select) { grid-column: 1 / -1; min-width: 0; }
-:is(#world, .tpv-world-locations) .reroll-action {
+:is(#world, .tpv-world-locations, .development-page) .reroll-action {
   justify-self: start;
   padding: .15rem .35rem;
   color: #92a3b3;
   font-size: .75rem;
   font-weight: 400;
 }
-:is(#world, .tpv-world-locations) .reroll-action:hover,
-:is(#world, .tpv-world-locations) .reroll-action:focus-visible { color: #edf4fb; }
+:is(#world, .tpv-world-locations, .development-page) .reroll-action:hover,
+:is(#world, .tpv-world-locations, .development-page) .reroll-action:focus-visible { color: #edf4fb; }
 
 .sector-details > h2 {
   color: #b5c5d4;
@@ -282,7 +284,7 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 }
 #trade-route-key { color: #edc68f; font-size: .85rem; }
 
-.sector-options .map-visibility { margin-top: 1rem; gap: .55rem 1rem; }
+.sector-options .map-visibility { margin: 0; gap: .55rem 1rem; }
 .map-visibility legend { font-weight: 600; }
 .map-visibility label, #tpv-start-control:not([hidden]), #tpv-swn-tags-control:not([hidden]) { display: flex; align-items: center; }
 .map-visibility input, #tpv-start, #tpv-swn-tags { width: auto; margin: 0; accent-color: #9de7e1; }
@@ -764,3 +766,89 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .faction-name-actions button { padding: .35rem .4rem; }
 .faction-home-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 0 1rem; }
 .faction-home-fields select { width: 100%; min-width: 0; }
+
+.home .tool + .tool { margin-block-start: 1rem; }
+.development-standalone {
+  display: grid;
+  grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.development-controls, .development-output {
+  display: grid;
+  gap: .75rem;
+  min-width: 0;
+}
+.development-standalone > * {
+  background: #131f2d;
+  border: 1px solid #34495c;
+  border-radius: .85rem;
+  padding: 1rem;
+}
+.development-controls > div { display: grid; gap: .65rem; }
+.development-controls [hidden] { display: none; }
+.development-output > p:empty, .development-controls > section:empty { display: none; }
+.development-books {
+  display: grid;
+  gap: .35rem;
+  padding: .45rem 0;
+  border: 0;
+  margin: 0;
+}
+.development-books legend { color: #c7d6e4; }
+.development-books label, .development-output details label {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.development-books input, .development-output details input { width: auto; }
+.development-output h2 { margin-block: .25rem; }
+.development-output label { margin-block: .5rem; }
+.development-output textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  padding: .55rem;
+  color: inherit;
+  background: #0c131e;
+  border: 1px solid #647991;
+  border-radius: .4rem;
+}
+.development-page button:not(.reroll-action) {
+  color: #9de7e1;
+  background: #192b3d;
+  border: 1px solid #496176;
+  cursor: pointer;
+}
+.development-page button:not(.reroll-action):hover { background: #243e51; }
+.development-page .reroll-action { background: none; border: 0; cursor: pointer; }
+.development-output button { margin: .25rem .35rem .25rem 0; }
+.development-prompts { padding-inline-start: 1.2rem; }
+.development-prompts li { margin-block: .35rem; }
+.development-prompts small { color: #bdccda; }
+.development-record { white-space: pre-wrap; overflow-wrap: anywhere; }
+.development-log { margin-block: .8rem; }
+.development-log details { margin-inline-start: .6rem; }
+.profile-development { border-block-end: 1px solid #496176; padding-block-end: .8rem; }
+@media (max-width: 43rem) {
+  .development-standalone { grid-template-columns: 1fr; }
+}
+
+.profile-development .development-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem .55rem;
+  margin-top: .5rem;
+}
+.profile-development .development-actions button {
+  margin: 0;
+  padding: .25rem 0;
+  font-size: .875rem;
+}
+.profile-development .development-log { margin-block: .25rem; }
+
+.profile-development .development-source {
+  color: #bdccda;
+  font-size: .75rem;
+  font-weight: 400;
+}

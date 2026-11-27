@@ -9,11 +9,18 @@
   <aside class="sector-options" aria-labelledby="sector-title">
     <nav><a href="../">← Sci-fi RPG Tools</a></nav>
     <h1 id="sector-title">Sector Generator</h1>
-    <nav class="sector-shortcuts" aria-label="Sector shortcuts">
+    <div class="panel sector-settings-section">
+      <div class="sector-name-heading">
+        <label for="sector-name">Sector name</label>
+        <button id="new-sector-name" type="button" aria-label="New name for sector">New name</button>
+      </div>
+      <input id="sector-name">
+    </div>
+    <nav class="sector-shortcuts sector-settings-section" aria-label="Sector shortcuts">
       <a class="sector-shortcut" href="tags.html" target="_blank" rel="noopener" aria-label="Tag Editor (opens in a new tab)">Tag Editor</a>
       <button type="button" id="faction-manager">Faction Manager</button>
     </nav>
-    <form id="setup" class="panel">
+    <form id="setup" class="panel sector-settings-section">
       <label>Generation rules
         <select id="rules"><option value="swn-revised">Stars Without Number Revised</option><option value="perilous-void">The Perilous Void</option></select>
       </label>
@@ -64,17 +71,19 @@
       </div>
       <p id="generation-status" role="status"></p>
     </form>
-    <fieldset class="panel map-visibility">
-      <legend>Visibility</legend>
-      <label><input id="show-trade-routes" type="checkbox" checked> <span id="route-visibility-label">Trade Routes</span></label>
-      <label><input id="show-system-names" type="checkbox" checked> System Names</label>
-    </fieldset>
-    <div class="panel sector-files">
-      <div class="sector-name-heading">
-        <label for="sector-name">Sector name</label>
-        <button id="new-sector-name" type="button" aria-label="New name for sector">New name</button>
-      </div>
-      <input id="sector-name">
+    <section class="sector-settings-section">
+      <fieldset class="panel map-visibility">
+        <legend>Visibility</legend>
+        <label><input id="show-trade-routes" type="checkbox" checked> <span id="route-visibility-label">Trade Routes</span></label>
+        <label><input id="show-system-names" type="checkbox" checked> System Names</label>
+      </fieldset>
+    </section>
+    <section class="sector-settings-section" aria-labelledby="development-heading">
+      <h2 id="development-heading">Development Generator</h2>
+      <div id="development-settings"></div>
+      <button type="button" id="open-development-log">Development Log</button>
+    </section>
+    <div class="panel sector-settings-section">
       <button type="button" id="export-sector">Export JSON</button>
       <label>Import JSON <input id="import-sector" type="file" accept=".json,application/json"></label>
       <p id="file-status" role="status"></p>
