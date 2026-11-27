@@ -281,7 +281,8 @@ async function main() {
     assert.equal(await tpv.locator("#tpv-profile .tpv-orbits section").count(), 11);
     assert.equal(await selectedSystem.getAttribute("data-system-status"), "Core");
     assert.notEqual(await hexFill(), wildFill);
-    const systemTagPanel = tpv.locator(".tpv-system-tags");
+    assert.ok(await tpv.locator("#world .tpv-jump-routes").isVisible());
+    const systemTagPanel = tpv.locator("#world .tpv-system-tags");
     const tagHeading = systemTagPanel.locator(".tpv-swn-tags > summary");
     const symbol = locator => locator.evaluate(summary => getComputedStyle(summary, "::before").content);
     assert.equal(await symbol(tagHeading), '"−"');
@@ -474,9 +475,9 @@ async function main() {
     assert.equal(await areaDetails.locator("summary").textContent(), await areas.getByRole("button").nth(1).textContent());
     await stationProfile.getByRole("button", { name: "Add Site", exact: true }).click();
     assert.equal(await stationProfile.locator(".tpv-site-list li").count(), 1);
-    assert.ok(await stationProfile.locator(".tpv-site-list").evaluate(list =>
-      Boolean(list.compareDocumentPosition(list.closest("#tpv-profile").querySelector(".tpv-swn-tags")) &
-        Node.DOCUMENT_POSITION_FOLLOWING)));
+    assert.ok(await tpv.locator("#world .details-tags .tpv-swn-tags").last().isVisible());
+    assert.match(await tpv.locator("#details-location").innerText(), / · /);
+    assert.equal(await tpv.locator("#world .tpv-jump-routes").count(), 0);
     await tpv.getByRole("button", { name: "System Profile", exact: true }).click();
     await tpv.locator(".tpv-orbit-marker").filter({ hasText: "Test planetary outpost" }).click();
     await stationProfile.locator(".tpv-world-site-table tbody tr").first().locator("td:nth-child(2) button").click();
