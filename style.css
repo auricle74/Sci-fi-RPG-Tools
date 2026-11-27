@@ -846,3 +846,9 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   font-size: .875rem;
 }
 .profile-development .development-log { margin-block: .25rem; }
+
+.profile-development .development-source {
+  color: #bdccda;
+  font-size: .75rem;
+  font-weight: 400;
+}
