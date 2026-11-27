@@ -47,25 +47,22 @@ export function bookChecklist(selected, change) {
   return group;
 }
 
-function promptLines(prompts, storyOnly, depth = 0) {
+function promptLines(prompts, depth = 0) {
   return prompts.flatMap(prompt => [
-    `${"  ".repeat(depth)}- ${prompt.table}: ${prompt.value}${storyOnly ? "" : ` (p. ${prompt.page}${prompt.result ? `, d${prompt.sides} → ${prompt.result}` : ""})`}`,
-    ...promptLines(prompt.children, storyOnly, depth + 1),
+    `${"  ".repeat(depth)}- ${prompt.table}: ${prompt.value}`,
+    ...promptLines(prompt.children, depth + 1),
   ]);
 }
 
-function recordText(entry, storyOnly = false) {
+function recordText(entry) {
   return [
-    !storyOnly && `## ${entry.type} · ${entry.book}`,
-    !storyOnly && (entry.context?.label ?? entry.context),
-    !storyOnly && entry.typeRoll && `Development Type (p. ${entry.typeRoll.page}): d100 → ${entry.typeRoll.result}`,
-    ...promptLines(entry.prompts, storyOnly),
+    ...promptLines(entry.prompts),
     entry.connections?.length ? `Connections: ${entry.connections.join(", ")}` : "",
     entry.notes,
   ].filter(Boolean).join("\n");
 }
 
-export function developmentLog(entries, openSystem, storyOnly = false) {
+export function developmentLog(entries, openSystem) {
   const log = node("details");
   log.className = "development-log";
   log.open = true;
@@ -74,7 +71,7 @@ export function developmentLog(entries, openSystem, storyOnly = false) {
   for (const entry of [...entries].reverse()) {
     const item = node("details");
     item.append(node("summary", `${entry.type}${entry.context?.label || entry.context ? ` · ${entry.context.label ?? entry.context}` : ""}`));
-    const details = node("p", recordText(entry, storyOnly));
+    const details = node("p", recordText(entry));
     details.className = "development-record";
     item.append(details);
     if (entry.context?.systemId && openSystem) {
@@ -118,7 +115,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   status.setAttribute("role", "status");
   const preview = node("div");
   const history = node("div");
-  history.append(developmentLog(entries(), openSystem, !context));
+  history.append(developmentLog(entries(), openSystem));
   controls.append(settings, field("Development type", type), encounterFields, incidentField, jobField);
   if (context) controls.prepend(node("p", context.label));
   else controls.append(field("Context (optional)", inputContext));
@@ -160,9 +157,10 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   function renderPrompt(prompt, prompts, index) {
     const row = node("li");
     const description = node("strong", `${prompt.table}: ${prompt.value}`);
-    row.append(description, node("small", ` p. ${prompt.page}${prompt.result ? ` · d${prompt.sides} → ${prompt.result}` : ""}`));
+    row.append(description);
+    if (!context) row.append(node("small", ` p. ${prompt.page}${prompt.result ? ` · d${prompt.sides} → ${prompt.result}` : ""}`));
     if (!prompt.placeholder) {
-      const reroll = action(context ? `Reroll ${prompt.table}` : "Reroll", () => {
+      const reroll = action("Reroll", () => {
         if (prompt.choices) {
           const result = roll(10);
           prompts[index] = { ...prompt, result, value: prompt.choices[result <= 3 ? 0 : result <= 7 ? 1 : 2] };
@@ -171,10 +169,8 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
         renderDraft();
         preview.querySelectorAll("button")[Number(row.dataset.rerollIndex)]?.focus();
       });
-      if (!context) {
-        reroll.className = "reroll-action";
-        reroll.setAttribute("aria-label", `Reroll ${prompt.table}`);
-      }
+      reroll.className = "reroll-action";
+      reroll.setAttribute("aria-label", `Reroll ${prompt.table}`);
       row.append(reroll);
     }
     if (prompt.children.length) row.append(promptList(prompt.children));
@@ -193,7 +189,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   }
   function renderDraft() {
     preview.replaceChildren(node("h2", draft.type), node("p", draft.book));
-    if (draft.typeRoll) preview.append(node("small", `Development Type, p. 122 · d100 → ${draft.typeRoll.result}`));
+    if (!context && draft.typeRoll) preview.append(node("small", `Development Type, p. 122 · d100 → ${draft.typeRoll.result}`));
     const list = promptList(draft.prompts);
     list.querySelectorAll("button").forEach((button, index) => { button.parentElement.dataset.rerollIndex = index; });
     preview.append(list);
@@ -232,7 +228,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
     preview.append(field("NPC, faction or location to note (optional)", manualConnection), field("Interpretation", interpretation),
       action("Copy Result", async () => {
         try {
-          await navigator.clipboard.writeText(recordText(record(), !context));
+          await navigator.clipboard.writeText(recordText(record()));
           status.textContent = "Result copied.";
         } catch {
           status.textContent = "Clipboard unavailable. Save the result to keep it in the log.";
@@ -241,7 +237,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
       action("Save to Development Log", () => {
         try {
           saveEntry(structuredClone(record()));
-          history.replaceChildren(developmentLog(entries(), openSystem, !context));
+          history.replaceChildren(developmentLog(entries(), openSystem));
           status.textContent = "Saved to Development Log.";
         } catch {
           status.textContent = "Could not save the development.";
