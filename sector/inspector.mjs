@@ -89,7 +89,7 @@ function disclosure(title, className = "inspector-group") {
   return group;
 }
 
-export function showInspector(section, sector, system, { save, render, roll, highlightRoute }) {
+export function showInspector(section, sector, system, { save, render, roll, highlightRoute, updateLocation }) {
   const makeId = () => crypto.randomUUID();
   function collectNames(record, names) {
     if (record.name) names.add(record.name.trim());
@@ -197,6 +197,7 @@ export function showInspector(section, sector, system, { save, render, roll, hig
   }
 
   function openObject(record, kind, back, remove, focus = true) {
+    updateLocation?.(record === system ? [system.name] : [system.name, record.name || kind]);
     section.replaceChildren();
     const header = node("header");
     header.className = "inspector-header";

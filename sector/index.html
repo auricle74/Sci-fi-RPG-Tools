@@ -112,8 +112,13 @@
   <aside class="sector-details" aria-labelledby="details-title">
     <h2 id="details-title">System details</h2>
     <output id="selection" aria-live="polite"></output>
+    <div id="details-location" aria-label="Current location" hidden></div>
+    <section id="details-factions" aria-label="Faction control and influence" hidden></section>
     <section id="world" aria-label="Selected hex editor"></section>
-    <section id="tpv-chart" hidden></section>
+    <details id="tpv-chart-navigation" open hidden>
+      <summary>Subsectors of interest</summary>
+      <section id="tpv-chart" hidden></section>
+    </details>
   </aside>
 </main>
 </html>

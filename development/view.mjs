@@ -287,7 +287,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
 }
 
 export function profileDevelopmentButton(inspector, options) {
-  return action("Roll Development", () => {
+  return action("Roll Development Generator", () => {
     const existing = inspector.querySelector(".profile-development");
     if (existing) {
       existing.querySelector("select")?.focus();

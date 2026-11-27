@@ -852,3 +852,22 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   font-size: .75rem;
   font-weight: 400;
 }
+
+#details-location { margin-block: .45rem; font-weight: 700; overflow-wrap: anywhere; }
+#details-factions, #tpv-chart-navigation, .details-tags:not(:empty),
+.sector-details #world > .tpv-jump-routes, .sector-details #world > .tpv-system-tags:not(:empty) {
+  width: 100%;
+  border-block-start: 1px solid #34495c;
+  padding-block-start: .55rem;
+}
+#details-factions { font-size: .88rem; line-height: 1.45; }
+#details-factions strong { color: #b5c5d4; }
+#tpv-chart-navigation { margin-block-start: .65rem; }
+#tpv-chart-navigation > summary { cursor: pointer; font-weight: 600; }
+.details-tags:empty, .tpv-system-tags:empty { display: none; }
+.sector-details:has(#details-location:not([hidden])) #world:not(:empty) {
+  border-block-start: 1px solid #34495c;
+  padding-block-start: .55rem;
+  margin-block-start: .55rem;
+}
+.sector-details #world > .tpv-jump-routes h4 { margin-block-start: 0; }

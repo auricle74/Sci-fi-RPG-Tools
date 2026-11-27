@@ -144,11 +144,11 @@ function detailRows(rows) {
   return table;
 }
 
-export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies, region, station }) {
+export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, communityTags, ancestry, society, societies, region, station, location = [], updateLocation }) {
   if (region) {
-    const parent = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies });
-    openCommunity(region, { roll, world, save, profile, inspector, breadcrumb, development,
-      ancestry: [...ancestry, [site.name, parent]], society, societies });
+    const parent = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, communityTags, ancestry, society, societies, location, updateLocation });
+    openCommunity(region, { roll, world, save, profile, inspector, breadcrumb, development, communityTags,
+      ancestry: [...ancestry, [site.name, parent]], society, societies, location: [...location, site.name], updateLocation });
     return;
   }
   if (site.children === undefined || (!site.children.length && !site.developed && ["Village", "Outpost", "Colony", "Facility"].includes(site.type))) {
@@ -158,18 +158,23 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
   }
   const title = element("h2", `${site.name} · ${station ? "Site Profile" : site.type}`);
   title.tabIndex = -1;
-  const refresh = station?.refresh ?? (() => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies }));
+  const refresh = station?.refresh ?? (() => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, communityTags, ancestry, society, societies, location, updateLocation }));
   const current = societies.find(candidate => candidate.id === site.societyId) ?? society;
+  const path = [...location, site.name];
+  updateLocation?.(path, current);
   const open = child => {
     if (child.type === "Location") {
+      updateLocation?.([...path, child.name], societies.find(candidate => candidate.id === site.societyId) ?? society);
       const heading = element("h3", child.name);
       heading.tabIndex = -1;
       inspector.replaceChildren(heading, detailRows([["Location", child.function], ...child.summary]));
+      const tags = communityTags?.(child);
+      if (tags) inspector.append(tags);
       heading.focus();
       return;
     }
-    openCommunity(child, { roll, world, save, profile, inspector, breadcrumb, development,
-      ancestry: [...ancestry, [site.name, refresh]], society: current, societies });
+    openCommunity(child, { roll, world, save, profile, inspector, breadcrumb, development, communityTags,
+      ancestry: [...ancestry, [site.name, refresh]], society: current, societies, location: path, updateLocation });
   };
   const info = element("section");
   info.append(detailRows([["Type", site.type], ...(site.function ? [["Function", site.function]] : []), ...(site.summary ?? [])]));
@@ -182,12 +187,15 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
     picker.addEventListener("change", () => {
       if (picker.value) site.societyId = picker.value;
       else delete site.societyId;
+      updateLocation?.(path, societies.find(candidate => candidate.id === site.societyId) ?? society);
       save();
     });
     label.append(picker);
     info.append(label);
   }
   inspector.replaceChildren(...(station?.details ?? [info]));
+  const tags = !station && communityTags?.(site);
+  if (tags) inspector.append(tags);
   const content = element("section");
   const isMegacity = site.type === "Megacity";
   const childTypes = station ? [...districtTypes.map(type => `${type} District`), "Facility"] : isMegacity ? ["Region", "Facility"] :

@@ -23,6 +23,16 @@ const additionalTags = {
     ["Redundant Stores", "Emergency reserves are split between caches to survive a local failure."],
     ["Remote Survey", "The installation gathers data from instruments scattered far beyond its perimeter."],
   ],
+  Settlement: [
+    ["Civic Rivalry", "Local organisations disagree over who should decide the settlement’s future."],
+    ["Uneven Services", "The quality of public services varies sharply from one neighbourhood to another."],
+    ["Informal Networks", "Residents rely on personal connections to get things done."],
+  ],
+  Facility: [
+    ["Restricted Wing", "Part of the facility is closed to most workers and visitors."],
+    ["Deferred Maintenance", "An important system is overdue for service."],
+    ["Shift Divide", "The crews on different shifts tell very different stories about the facility."],
+  ],
   "Gas Giant": [
     ["Shearing Bands", "Neighbouring cloud bands move at sharply different speeds."],
     ["Transient Vortex", "A short-lived vortex can expose deeper atmospheric layers."],
@@ -53,6 +63,12 @@ const hookSubjects = {
   "Limited Watch": "an understaffed watch post",
   "Redundant Stores": "one of the emergency supply caches",
   "Remote Survey": "a remote survey instrument",
+  "Civic Rivalry": "the disputed civic project",
+  "Uneven Services": "an underserved neighbourhood",
+  "Informal Networks": "the local network of favours",
+  "Restricted Wing": "the closed wing",
+  "Deferred Maintenance": "the overdue repair",
+  "Shift Divide": "the handover between shifts",
   "Shearing Bands": "the boundary between the cloud bands",
   "Transient Vortex": "the short-lived vortex",
   "Auroral Arcs": "the edge of an auroral arc",
@@ -145,23 +161,48 @@ function worldTagFits(tag, world, inhabited) {
   }
 }
 
+export function assignTpvTagChoices(target, choices, roll, preferred = () => true) {
+  if (target.swnTagsEdited || target.swnTags?.length >= 2 || !choices.length) return false;
+  const saved = target.swnTags ?? [];
+  const available = choices.filter(tag => !saved.some(existing => sameTpvTag(tag, existing)));
+  const tags = [...saved];
+  while (available.length && tags.length < 2) {
+    const fitting = available.filter(preferred);
+    const pool = fitting.length ? fitting : available;
+    const tag = pool[roll(pool.length) - 1];
+    tags.push(tpvTagReference(tag));
+    available.splice(available.indexOf(tag), 1);
+  }
+  if (tags.length !== saved.length) {
+    target.swnTags = tags;
+    return true;
+  }
+  return false;
+}
+
+export function tpvSiteTagChoices(catalogue, site) {
+  const type = key(site.type);
+  const types = new Set([type]);
+  if (site.function) {
+    types.add(key(site.function));
+    types.add(key(site.function + " " + site.type));
+  }
+  if (["village", "town", "city", "megacity", "district", "region"].includes(type)) {
+    types.add("settlement");
+  }
+  if (type === "megacity") types.add("city");
+  return catalogue.filter(tag => types.has(key(tag.type)));
+}
+
 export function assignTpvTags(system, catalogue, roll) {
   let changed = false;
-  function assign(target, choices, preferred = () => true) {
-    if (target.swnTagsEdited || target.swnTags?.length >= 2 || !choices.length) return;
-    const saved = target.swnTags ?? [];
-    const available = choices.filter(tag => !saved.some(existing => sameTpvTag(tag, existing)));
-    const tags = [...saved];
-    while (available.length && tags.length < 2) {
-      const fitting = available.filter(preferred);
-      const pool = fitting.length ? fitting : available;
-      const tag = pool[roll(pool.length) - 1];
-      tags.push(tpvTagReference(tag));
-      available.splice(available.indexOf(tag), 1);
-    }
-    if (tags.length !== saved.length) {
-      target.swnTags = tags;
-      changed = true;
+  function assign(target, choices, preferred) {
+    if (assignTpvTagChoices(target, choices, roll, preferred)) changed = true;
+  }
+  function visit(sites = []) {
+    for (const site of sites) {
+      assign(site, tpvSiteTagChoices(catalogue, site));
+      visit(site.children);
     }
   }
   assign(system, tpvTagChoices(catalogue, "System"));
@@ -177,6 +218,12 @@ export function assignTpvTags(system, catalogue, roll) {
     }
     if (centre) assign(centre, tpvTagChoices(catalogue, centre.type, body));
     else if (!worlds.length) assign(body, tpvTagChoices(catalogue, tpvBodyTagType(body), body));
+  }
+  visit(system.facilities);
+  for (const body of system.satellites ?? []) {
+    visit(body.facilities);
+    if (body.facilityInterior) visit([body.facilityInterior]);
+    for (const world of body.development?.worlds ?? []) visit(world.sites);
   }
   return changed;
 }
