@@ -1,3 +1,4 @@
+import { bookChecklist, developmentLog, sectorBooks } from "../development/view.mjs";
 import { renderFactionManager, sectorLocations } from "./faction-manager.mjs";
 import { chartFactionPresence, factionPresence } from "./tpv-factions.mjs";
 import { generateTpvSector, tpvDistance, tpvRules } from "./tpv.mjs";
@@ -331,7 +332,30 @@ function bindFactionTooltip(group, name, code, factions) {
   group.addEventListener("click", hideFactionTooltip);
 }
 
+function openDevelopmentSystem(id) {
+  const system = sector.systems.find(item => item.id === id && item.stars?.length);
+  if (!system) return;
+  selectHex(system.column, system.row);
+  element("world").querySelector(".tpv-open-profile")?.click();
+}
+
+element("open-development-log").addEventListener("click", () => {
+  const details = element("world");
+  const previous = details.querySelector(":scope > .development-log");
+  if (previous) {
+    previous.remove();
+    return;
+  }
+  const log = developmentLog(sector.developmentLog ?? [], openDevelopmentSystem);
+  details.prepend(log);
+  log.querySelector("summary").focus();
+});
+
 function renderMap() {
+  element("development-settings").replaceChildren(bookChecklist(() => sectorBooks(sector), books => {
+    sector.developmentBooks = books;
+    saveSector();
+  }));
   hideFactionTooltip();
   setProfileOpen(false);
   map.closest(".sector-map").classList.toggle("tpv-map", isTpv());

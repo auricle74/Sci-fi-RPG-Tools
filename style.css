@@ -764,3 +764,69 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
 .faction-name-actions button { padding: .35rem .4rem; }
 .faction-home-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 0 1rem; }
 .faction-home-fields select { width: 100%; min-width: 0; }
+
+.home .tool + .tool { margin-block-start: 1rem; }
+.development-standalone {
+  display: grid;
+  grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.development-controls, .development-output {
+  display: grid;
+  gap: .75rem;
+  min-width: 0;
+}
+.development-standalone > * {
+  background: #131f2d;
+  border: 1px solid #34495c;
+  border-radius: .85rem;
+  padding: 1rem;
+}
+.development-controls > div { display: grid; gap: .65rem; }
+.development-controls [hidden] { display: none; }
+.development-output > p:empty, .development-controls > section:empty { display: none; }
+.development-books {
+  display: grid;
+  gap: .35rem;
+  padding: .45rem 0;
+  border: 0;
+  margin: 0;
+}
+.development-books legend { color: #c7d6e4; }
+.development-books label, .development-output details label {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.development-books input, .development-output details input { width: auto; }
+.development-output h2 { margin-block: .25rem; }
+.development-output label { margin-block: .5rem; }
+.development-output textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  padding: .55rem;
+  color: inherit;
+  background: #0c131e;
+  border: 1px solid #647991;
+  border-radius: .4rem;
+}
+.development-page button {
+  color: #9de7e1;
+  background: #192b3d;
+  border: 1px solid #496176;
+  cursor: pointer;
+}
+.development-page button:hover { background: #243e51; }
+.development-output button { margin: .25rem .35rem .25rem 0; }
+.development-prompts { padding-inline-start: 1.2rem; }
+.development-prompts li { margin-block: .35rem; }
+.development-prompts small { color: #bdccda; }
+.development-record { white-space: pre-wrap; overflow-wrap: anywhere; }
+.development-log { margin-block: .8rem; }
+.development-log details { margin-inline-start: .6rem; }
+.profile-development { border-block-end: 1px solid #496176; padding-block-end: .8rem; }
+@media (max-width: 43rem) {
+  .development-standalone { grid-template-columns: 1fr; }
+}
