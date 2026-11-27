@@ -64,12 +64,13 @@ function recordText(entry) {
 
 export function developmentLog(entries, openSystem) {
   const log = node("details");
-  log.className = "development-log";
+  log.className = "development-log inspector-group";
   log.open = true;
   log.append(node("summary", "Development Log"));
   if (!entries.length) log.append(node("p", "No saved developments yet."));
   for (const entry of [...entries].reverse()) {
     const item = node("details");
+    item.className = "inspector-group";
     item.append(node("summary", `${entry.type}${entry.context?.label || entry.context ? ` · ${entry.context.label ?? entry.context}` : ""}`));
     const details = node("p", recordText(entry));
     details.className = "development-record";
@@ -205,6 +206,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
     }
     if (draft.bookId === "tpv") {
       const detailGroup = node("details");
+      detailGroup.className = "inspector-group";
       detailGroup.append(node("summary", "Add a detail"), field("Detail table", detail), action("Roll Detail", () => {
         draft.prompts.push(rollFollowUp(draft.bookId, detail.value, draftOptions, roll));
         renderDraft();
@@ -213,6 +215,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
     }
     if (suggestions.length) {
       const group = node("details");
+      group.className = "inspector-group";
       group.append(node("summary", "Link existing factions, NPCs or locations"));
       for (const name of suggestions) {
         const checkbox = node("input");
@@ -225,7 +228,8 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
       }
       preview.append(group);
     }
-    preview.append(field("NPC, faction or location to note (optional)", manualConnection), field("Interpretation", interpretation),
+    if (!context) preview.append(field("NPC, faction or location to note (optional)", manualConnection));
+    preview.append(field("Interpretation", interpretation),
       action("Copy Result", async () => {
         try {
           await navigator.clipboard.writeText(recordText(record()));
