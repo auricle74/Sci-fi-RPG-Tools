@@ -115,6 +115,12 @@ async function main() {
     assert.equal(await inspector.locator("h3").innerText(), "New Horizon");
     assert.equal(await inspector.locator(".planet-tags h4").first().innerText(), "Handwritten tag");
 
+    const backupKey = "scifi-rpg-tools.development";
+    const standaloneBackup = { books: ["tpv"], log: [{ type: "Job", prompts: [], notes: "Saved contract" }] };
+    await page.evaluate(([key, data]) => localStorage.setItem(key, JSON.stringify(data)), [backupKey, standaloneBackup]);
+    const tagBackupKey = "sci-fi-rpg-tools.custom-tags";
+    const tagBackup = { tags: [], deleted: ["removed-starter-tag"] };
+    await page.evaluate(([key, data]) => localStorage.setItem(key, JSON.stringify(data)), [tagBackupKey, tagBackup]);
     const downloadReady = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export JSON" }).click();
     const exported = await readFile(await (await downloadReady).path());
@@ -174,8 +180,11 @@ async function main() {
     await page.getByText(/Could not import/).waitFor();
     assert.equal(await page.locator(".hex").count(), 1280);
     page.once("dialog", (dialog) => dialog.accept());
-    await input.setInputFiles({ name: "sector.json", mimeType: "application/json", buffer: exported });
-    await page.getByText("Sector imported.").waitFor();
+    await page.evaluate(keys => keys.forEach(key => localStorage.removeItem(key)), [backupKey, tagBackupKey]);
+    await input.setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: exported });
+    await page.getByText("Backup restored.").waitFor();
+    assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), backupKey), standaloneBackup);
+    assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), tagBackupKey), tagBackup);
     assert.equal(await tradeRoutes.inputValue(), "no");
     assert.equal(await tradeLines.count(), 0);
     await mainWorld.click();
@@ -210,7 +219,7 @@ async function main() {
     tags.once("dialog", dialog => dialog.accept());
     await tags.getByRole("button", { name: "Delete tag" }).click();
     await tags.getByText("Tag deleted.", { exact: true }).waitFor();
-    const routeFixture = JSON.parse(exported);
+    const routeFixture = JSON.parse(exported).sector;
     routeFixture.selectedHex = { column: 1, row: 1 };
     routeFixture.generateTradeRoutes = false;
     routeFixture.tradeRoutes = [];

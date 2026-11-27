@@ -1,3 +1,4 @@
+import { createBackup, readBackup, restoreBackupStorage } from "./backup.mjs";
 import { bookChecklist, developmentLog, sectorBooks } from "../development/view.mjs";
 import { renderFactionManager, sectorLocations } from "./faction-manager.mjs";
 import { chartFactionPresence, factionPresence } from "./tpv-factions.mjs";
@@ -668,11 +669,20 @@ element("sector-name").addEventListener("input", (event) => {
 });
 
 element("export-sector").addEventListener("click", () => {
-  const json = new Blob([JSON.stringify(sector, null, 2)], { type: "application/json" });
+  let backup;
+  try {
+    backup = createBackup(sector, localStorage, {
+      zoom, left: Math.max(0, mapWindow.scrollLeft), top: Math.max(0, mapWindow.scrollTop),
+    });
+  } catch {
+    element("file-status").textContent = "Could not read browser data for the backup.";
+    return;
+  }
+  const json = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(json);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "sector.json";
+  link.download = "sci-fi-rpg-tools-backup.json";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
@@ -682,19 +692,37 @@ element("import-sector").addEventListener("change", async (event) => {
   event.target.value = "";
   if (!file) return;
   const status = element("file-status");
-  let next;
+  let backup;
   try {
-    next = readSector(await file.text());
+    backup = readBackup(await file.text());
   } catch {
-    status.textContent = "Could not import that file. Choose a valid sector JSON export.";
+    status.textContent = "Could not import that file. Choose a valid app backup or sector JSON export.";
     return;
   }
-  if (!confirm("Replace the current sector with the imported sector?")) {
+  const message = backup.settings
+    ? "Replace the current sector, custom tags, standalone Development Log and visibility settings with this backup?"
+    : "Replace the current sector with the imported sector?";
+  if (!confirm(message)) {
     status.textContent = "Import cancelled.";
     return;
   }
-  activateSector(next);
-  status.textContent = "Sector imported.";
+  if (backup.settings) {
+    try {
+      restoreBackupStorage(backup.settings, localStorage);
+    } catch {
+      status.textContent = "Could not restore the backup to browser storage.";
+      return;
+    }
+    showTradeRoutes.checked = backup.settings.showTradeRoutes !== false;
+    showSystemNames.checked = backup.settings.showSystemNames !== false;
+    zoom = backup.view.zoom;
+  }
+  activateSector(backup.sector);
+  if (backup.view) {
+    mapWindow.scrollLeft = backup.view.left;
+    mapWindow.scrollTop = backup.view.top;
+  }
+  status.textContent = backup.settings ? "Backup restored." : "Sector imported.";
 });
 
 element("tpv-swn-tags").checked = sector.addSwnTags === true;
