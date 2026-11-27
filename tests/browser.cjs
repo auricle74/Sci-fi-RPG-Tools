@@ -377,7 +377,7 @@ async function main() {
     await development.getByRole("button", { name: "Roll Development", exact: true }).click();
     assert.equal(await development.getByRole("button", { name: /^Reroll/ }).count(), 1);
     await development.getByRole("button", { name: "Reroll Development", exact: true }).click();
-    await development.getByRole("button", { name: "Save to Development Log", exact: true }).click();
+    await development.getByRole("button", { name: "Save to Log", exact: true }).click();
     assert.ok(await tpv.evaluate(() => JSON.parse(localStorage.getItem("scifi-rpg-tools.sector")).developmentLog[0].context.systemId));
     await development.getByRole("button", { name: "Close Development", exact: true }).click();
     assert.deepEqual(await developedRows.locator("td:last-child").allTextContents(), worldDetails);
