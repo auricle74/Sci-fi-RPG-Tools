@@ -232,7 +232,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
     preview.append(field("NPC, faction or location to note (optional)", manualConnection), field("Interpretation", interpretation),
       action("Copy Result", async () => {
         try {
-          await navigator.clipboard.writeText(recordText(record()));
+          await navigator.clipboard.writeText(recordText(record(), !context));
           status.textContent = "Result copied.";
         } catch {
           status.textContent = "Clipboard unavailable. Save the result to keep it in the log.";
