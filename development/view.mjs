@@ -138,7 +138,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   let draftOptions;
   const detail = select(detailTables, detailTables[0]);
   const interpretation = node("textarea");
-  interpretation.rows = 3;
+  interpretation.rows = context ? 2 : 3;
   const manualConnection = node("input");
   const selectedConnections = new Set();
   function rollDraft(rollOptions = options()) {
@@ -252,7 +252,10 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
       preview.append(group);
     }
     if (!context) preview.append(field("NPC, faction or location to note (optional)", manualConnection));
-    preview.append(field("Interpretation", interpretation),
+    preview.append(field("Interpretation", interpretation));
+    const actions = node("div");
+    actions.className = "development-actions";
+    actions.append(
       action("Copy Result", async () => {
         try {
           await navigator.clipboard.writeText(recordText(record()));
@@ -275,6 +278,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
         preview.replaceChildren(node("h2", "Result"), node("p", "Roll a development to see its prompts."));
         status.textContent = "Draft discarded.";
       }));
+    preview.append(actions);
   }
   return root;
 }
