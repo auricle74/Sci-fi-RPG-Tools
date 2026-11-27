@@ -144,11 +144,11 @@ function detailRows(rows) {
   return table;
 }
 
-export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies, region, station }) {
+export function openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies, region, station, location = [], updateLocation }) {
   if (region) {
-    const parent = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies });
+    const parent = () => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies, location, updateLocation });
     openCommunity(region, { roll, world, save, profile, inspector, breadcrumb, development,
-      ancestry: [...ancestry, [site.name, parent]], society, societies });
+      ancestry: [...ancestry, [site.name, parent]], society, societies, location: [...location, site.name], updateLocation });
     return;
   }
   if (site.children === undefined || (!site.children.length && !site.developed && ["Village", "Outpost", "Colony", "Facility"].includes(site.type))) {
@@ -160,8 +160,11 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
   title.tabIndex = -1;
   const refresh = station?.refresh ?? (() => openCommunity(site, { roll, world, save, profile, inspector, breadcrumb, development, ancestry, society, societies }));
   const current = societies.find(candidate => candidate.id === site.societyId) ?? society;
+  const path = [...location, site.name];
+  updateLocation?.(path, current);
   const open = child => {
     if (child.type === "Location") {
+      updateLocation?.([...path, child.name], societies.find(candidate => candidate.id === site.societyId) ?? society);
       const heading = element("h3", child.name);
       heading.tabIndex = -1;
       inspector.replaceChildren(heading, detailRows([["Location", child.function], ...child.summary]));
@@ -169,7 +172,7 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
       return;
     }
     openCommunity(child, { roll, world, save, profile, inspector, breadcrumb, development,
-      ancestry: [...ancestry, [site.name, refresh]], society: current, societies });
+      ancestry: [...ancestry, [site.name, refresh]], society: current, societies, location: path, updateLocation });
   };
   const info = element("section");
   info.append(detailRows([["Type", site.type], ...(site.function ? [["Function", site.function]] : []), ...(site.summary ?? [])]));
@@ -182,6 +185,7 @@ export function openCommunity(site, { roll, world, save, profile, inspector, bre
     picker.addEventListener("change", () => {
       if (picker.value) site.societyId = picker.value;
       else delete site.societyId;
+      updateLocation?.(path, societies.find(candidate => candidate.id === site.societyId) ?? society);
       save();
     });
     label.append(picker);

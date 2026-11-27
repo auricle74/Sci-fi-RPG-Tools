@@ -255,6 +255,7 @@ async function main() {
     assert.equal(await tpv.locator(".hex").count(), 100);
     assert.equal(await tpv.locator("#tpv-chart tbody tr").count(), 20);
     assert.ok(await tpv.locator(".sector-details #tpv-chart").isVisible());
+    assert.ok(await tpv.locator("#tpv-chart-navigation").evaluate(node => node.open));
     assert.equal(await tpv.locator(".sector-map #tpv-chart").count(), 0);
     const lastHex = tpv.locator(".hex.occupied").last();
     await lastHex.dispatchEvent("click");

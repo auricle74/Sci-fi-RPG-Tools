@@ -143,6 +143,7 @@ function selectHex(column, row, focus = false) {
   tradeRoutes.querySelector(".highlighted-route")?.classList.remove("highlighted-route");
   const nebulae = nebulaHexes.get(code) ?? [];
   element("selection").textContent = system || nebulae.length ? `Hex ${code}` : `Hex ${code} · Empty`;
+  showDetailsLocation(system ? [system.name] : [], system);
   if (isTpv()) {
     selectChartRow(code);
     const usedNames = new Set([system?.name]);
@@ -154,7 +155,7 @@ function selectHex(column, row, focus = false) {
       }, () => {
         setProfileOpen(false);
         selectHex(column, row, true);
-      }, showFactionManager);
+      }, showFactionManager, (path, society) => showDetailsLocation(path, system, society));
     const coverage = nebulae.filter(nebula => nebula !== system);
     if (coverage.length) {
       const details = document.createElement("section");
@@ -181,6 +182,7 @@ function selectHex(column, row, focus = false) {
       renderTradeRoutes();
       saveSector();
     }, render: renderMap, roll,
+    updateLocation: path => showDetailsLocation(path, system),
     highlightRoute(index) {
       for (const [position, line] of Array.from(tradeRoutes.children).entries()) {
         line.classList.toggle("highlighted-route", position === index);
@@ -258,6 +260,37 @@ function renderTradeRoutes() {
 }
 
 const chartLayout = element("sector-chart-layout");
+function showDetailsLocation(path, system, society) {
+  const location = element("details-location");
+  const names = path.filter((name, index) => name && name !== path[index - 1]);
+  location.textContent = names.join(" · ");
+  location.hidden = !names.length;
+
+  const factions = element("details-factions");
+  const affiliation = new Map();
+  if (system) {
+    for (const entry of factionPresence(sector, system.id)) {
+      affiliation.set(entry.name, entry.role === "Frontier" ? "Faction influence" : "Faction control");
+    }
+    const presence = chartFactionPresence(sector, sectorLocations(sector)).get(system.id);
+    for (const entry of presence?.values() ?? []) {
+      if (!affiliation.has(entry.name)) affiliation.set(entry.name, "Faction influence");
+    }
+  }
+  if (society) affiliation.set(society.name, "Faction control");
+  factions.replaceChildren();
+  for (const label of ["Faction control", "Faction influence"]) {
+    const names = [...affiliation].filter(([, role]) => role === label).map(([name]) => name);
+    if (!names.length) continue;
+    const row = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = label;
+    row.append(title, " · " + names.join(", "));
+    factions.append(row);
+  }
+  factions.hidden = !factions.childElementCount;
+}
+
 const chartList = element("tpv-chart");
 function selectChartRow(code) {
   chartList.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
@@ -273,6 +306,7 @@ function selectChartRow(code) {
 function setProfileOpen(open) {
   element("tpv-profile").hidden = !open;
   chartList.hidden = open || !isTpv();
+  element("tpv-chart-navigation").hidden = chartList.hidden;
   const openProfile = element("world").querySelector(".tpv-open-profile");
   if (openProfile) openProfile.hidden = open;
   chartLayout.hidden = open;
