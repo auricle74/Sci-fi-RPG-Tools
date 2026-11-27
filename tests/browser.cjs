@@ -375,7 +375,8 @@ async function main() {
     assert.equal(await development.getByLabel("Encounter environment").inputValue(), "Voidside");
     await development.getByLabel("Development type").selectOption("Situation");
     await development.getByRole("button", { name: "Roll Development", exact: true }).click();
-    await development.getByRole("button", { name: "Reroll Theme", exact: true }).first().click();
+    assert.equal(await development.getByRole("button", { name: /^Reroll/ }).count(), 1);
+    await development.getByRole("button", { name: "Reroll Development", exact: true }).click();
     await development.getByRole("button", { name: "Save to Development Log", exact: true }).click();
     assert.ok(await tpv.evaluate(() => JSON.parse(localStorage.getItem("scifi-rpg-tools.sector")).developmentLog[0].context.systemId));
     await development.getByRole("button", { name: "Close Development", exact: true }).click();
