@@ -47,25 +47,25 @@ export function bookChecklist(selected, change) {
   return group;
 }
 
-function promptLines(prompts, depth = 0) {
+function promptLines(prompts, storyOnly, depth = 0) {
   return prompts.flatMap(prompt => [
-    `${"  ".repeat(depth)}- ${prompt.table}: ${prompt.value} (p. ${prompt.page}${prompt.result ? `, d${prompt.sides} → ${prompt.result}` : ""})`,
-    ...promptLines(prompt.children, depth + 1),
+    `${"  ".repeat(depth)}- ${prompt.table}: ${prompt.value}${storyOnly ? "" : ` (p. ${prompt.page}${prompt.result ? `, d${prompt.sides} → ${prompt.result}` : ""})`}`,
+    ...promptLines(prompt.children, storyOnly, depth + 1),
   ]);
 }
 
-function recordText(entry) {
+function recordText(entry, storyOnly = false) {
   return [
-    `## ${entry.type} · ${entry.book}`,
-    entry.context?.label ?? entry.context,
-    entry.typeRoll && `Development Type (p. ${entry.typeRoll.page}): d100 → ${entry.typeRoll.result}`,
-    ...promptLines(entry.prompts),
+    !storyOnly && `## ${entry.type} · ${entry.book}`,
+    !storyOnly && (entry.context?.label ?? entry.context),
+    !storyOnly && entry.typeRoll && `Development Type (p. ${entry.typeRoll.page}): d100 → ${entry.typeRoll.result}`,
+    ...promptLines(entry.prompts, storyOnly),
     entry.connections?.length ? `Connections: ${entry.connections.join(", ")}` : "",
     entry.notes,
   ].filter(Boolean).join("\n");
 }
 
-export function developmentLog(entries, openSystem) {
+export function developmentLog(entries, openSystem, storyOnly = false) {
   const log = node("details");
   log.className = "development-log";
   log.open = true;
@@ -74,7 +74,7 @@ export function developmentLog(entries, openSystem) {
   for (const entry of [...entries].reverse()) {
     const item = node("details");
     item.append(node("summary", `${entry.type}${entry.context?.label || entry.context ? ` · ${entry.context.label ?? entry.context}` : ""}`));
-    const details = node("p", recordText(entry));
+    const details = node("p", recordText(entry, storyOnly));
     details.className = "development-record";
     item.append(details);
     if (entry.context?.systemId && openSystem) {
@@ -118,7 +118,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
   status.setAttribute("role", "status");
   const preview = node("div");
   const history = node("div");
-  history.append(developmentLog(entries(), openSystem));
+  history.append(developmentLog(entries(), openSystem, !context));
   controls.append(settings, field("Development type", type), encounterFields, incidentField, jobField);
   if (context) controls.prepend(node("p", context.label));
   else controls.append(field("Context (optional)", inputContext));
@@ -162,7 +162,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
     const description = node("strong", `${prompt.table}: ${prompt.value}`);
     row.append(description, node("small", ` p. ${prompt.page}${prompt.result ? ` · d${prompt.sides} → ${prompt.result}` : ""}`));
     if (!prompt.placeholder) {
-      row.append(action(`Reroll ${prompt.table}`, () => {
+      const reroll = action(context ? `Reroll ${prompt.table}` : "Reroll", () => {
         if (prompt.choices) {
           const result = roll(10);
           prompts[index] = { ...prompt, result, value: prompt.choices[result <= 3 ? 0 : result <= 7 ? 1 : 2] };
@@ -170,7 +170,12 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
         status.textContent = `${prompt.table} rerolled.`;
         renderDraft();
         preview.querySelectorAll("button")[Number(row.dataset.rerollIndex)]?.focus();
-      }));
+      });
+      if (!context) {
+        reroll.className = "reroll-action";
+        reroll.setAttribute("aria-label", `Reroll ${prompt.table}`);
+      }
+      row.append(reroll);
     }
     if (prompt.children.length) row.append(promptList(prompt.children));
     return row;
@@ -236,7 +241,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
       action("Save to Development Log", () => {
         try {
           saveEntry(structuredClone(record()));
-          history.replaceChildren(developmentLog(entries(), openSystem));
+          history.replaceChildren(developmentLog(entries(), openSystem, !context));
           status.textContent = "Saved to Development Log.";
         } catch {
           status.textContent = "Could not save the development.";

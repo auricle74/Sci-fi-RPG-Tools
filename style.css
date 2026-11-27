@@ -215,15 +215,15 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   gap: .2rem .55rem;
 }
 #world .has-reroll :is(input, select) { grid-column: 1 / -1; min-width: 0; }
-:is(#world, .tpv-world-locations) .reroll-action {
+:is(#world, .tpv-world-locations, .development-page) .reroll-action {
   justify-self: start;
   padding: .15rem .35rem;
   color: #92a3b3;
   font-size: .75rem;
   font-weight: 400;
 }
-:is(#world, .tpv-world-locations) .reroll-action:hover,
-:is(#world, .tpv-world-locations) .reroll-action:focus-visible { color: #edf4fb; }
+:is(#world, .tpv-world-locations, .development-page) .reroll-action:hover,
+:is(#world, .tpv-world-locations, .development-page) .reroll-action:focus-visible { color: #edf4fb; }
 
 .sector-details > h2 {
   color: #b5c5d4;
@@ -812,13 +812,14 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   border: 1px solid #647991;
   border-radius: .4rem;
 }
-.development-page button {
+.development-page button:not(.reroll-action) {
   color: #9de7e1;
   background: #192b3d;
   border: 1px solid #496176;
   cursor: pointer;
 }
-.development-page button:hover { background: #243e51; }
+.development-page button:not(.reroll-action):hover { background: #243e51; }
+.development-page .reroll-action { background: none; border: 0; cursor: pointer; }
 .development-output button { margin: .25rem .35rem .25rem 0; }
 .development-prompts { padding-inline-start: 1.2rem; }
 .development-prompts li { margin-block: .35rem; }
