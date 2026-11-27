@@ -152,7 +152,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
     interpretation.value = "";
     manualConnection.value = "";
     selectedConnections.clear();
-    status.textContent = `${draft.type} rolled.`;
+    status.textContent = context ? "" : `${draft.type} rolled.`;
     renderDraft();
   }
   function renderPrompt(prompt, prompts, index) {
@@ -189,7 +189,8 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
     ] };
   }
   function renderDraft() {
-    preview.replaceChildren(node("h2", draft.type), node("p", draft.book));
+    preview.replaceChildren(node("h2", draft.type));
+    if (!context) preview.append(node("p", draft.book));
     if (!context && draft.typeRoll) preview.append(node("small", `Development Type, p. 122 · d100 → ${draft.typeRoll.result}`));
     if (context) {
       const reroll = action("Reroll", () => {
@@ -198,7 +199,9 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
       });
       reroll.className = "reroll-action";
       reroll.setAttribute("aria-label", "Reroll Development");
-      preview.firstElementChild.append(" ", reroll);
+      const source = node("small", draft.book);
+      source.className = "development-source";
+      preview.firstElementChild.append(" ", reroll, " ", source);
       const appendRows = prompts => {
         for (const prompt of prompts) {
           if (prompt.value !== "Combine two results") {
@@ -264,7 +267,7 @@ export function developmentView({ selectedBooks, setBooks, entries, saveEntry, c
           status.textContent = "Clipboard unavailable. Save the result to keep it in the log.";
         }
       }),
-      action("Save to Development Log", () => {
+      action(context ? "Save to Log" : "Save to Development Log", () => {
         try {
           saveEntry(structuredClone(record()));
           history.replaceChildren(developmentLog(entries(), openSystem));
