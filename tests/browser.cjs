@@ -372,7 +372,7 @@ async function main() {
     await tpv.reload();
     await tpv.getByRole("button", { name: "Open System Profile" }).click();
     await tpv.locator("#tpv-profile .tpv-orbit-marker").first().waitFor();
-    await tpv.locator("#tpv-profile").getByRole("button", { name: "Roll Development", exact: true }).click();
+    await tpv.locator("#tpv-profile").getByRole("button", { name: "Roll Development Generator", exact: true }).click();
     const development = tpv.locator("#world .profile-development");
     assert.equal(await development.getByLabel("Encounter environment").inputValue(), "Voidside");
     await development.getByLabel("Development type").selectOption("Situation");

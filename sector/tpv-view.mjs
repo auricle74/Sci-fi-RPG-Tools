@@ -3,7 +3,7 @@ import { chartFactionPresence } from "./tpv-factions.mjs";
 import { sectorLocations } from "./faction-manager.mjs";
 import { initialWorldSites, makeCommunity, makeDistrict } from "./tpv-communities.mjs";
 import { openCommunity, siteEditor, siteList, siteProfileVisual, siteTypeLabel } from "./tpv-community-view.mjs";
-import { assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
+import { assignTpvTagChoices, assignTpvTags, sameTpvTag, tpvBodyTagType, tpvTagCatalogue, tpvTagChoices, tpvSiteTagChoices, tpvTagReference } from "./tpv-swn-tags.mjs";
 import { svg, worldGlobe } from "./tpv-globe.mjs";
 import { developSettlement, developSite, layOutSite } from "./tpv-settlement.mjs";
 import { factionNotation, factionRows } from "./tpv-faction-profile.mjs";
@@ -605,6 +605,16 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   heading.tabIndex = -1;
   const chartStep = ["Sector Chart", back];
   const catalogue = sector.addSwnTags ? tpvTagCatalogue() : null;
+  function communityTags(site) {
+    if (!catalogue) return null;
+    const choices = tpvSiteTagChoices(catalogue, site);
+    if (assignTpvTagChoices(site, choices, roll)) save();
+    if (!choices.length && !site.swnTags?.length) return null;
+    const tags = node("section");
+    tags.className = "details-tags tpv-detail-fields";
+    tags.append(swnTagDetails(site, choices, catalogue, roll, save));
+    return tags;
+  }
   function appendSwnTags(target, container, type, body) {
     if (!catalogue) return;
     const choices = tpvTagChoices(catalogue, type, body);
@@ -808,12 +818,12 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               save();
             }
             if (body.facilityInterior) content.append(button("Open Facility Interior", () =>
-              openCommunity(body.facilityInterior, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
+              openCommunity(body.facilityInterior, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development, communityTags,
                 location: sitePath, updateLocation, society: siteSociety(), ancestry: [chartStep, systemStep, siteStep], societies: sector.societies ?? [] })));
             if (!isSpaceStation) content.append(siteEditor(facilities, options), siteList(facilities, {
               ...options,
               reroll: () => makeCommunity("Facility", roll),
-              open: site => openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
+              open: site => openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development, communityTags,
                 location: sitePath, updateLocation, society: siteSociety(),
                 ancestry: [chartStep, systemStep, ...(worldProfile ? [worldStep] : []), siteStep],
                 societies: sector.societies ?? [] }),
@@ -847,7 +857,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
                 save();
               }
               openCommunity({ id: body.id ?? `${feature.id}:${body.name}:station`, name: siteName, type: body.type, children: facilities }, {
-                roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
+                roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development, communityTags,
                 ancestry: [chartStep, systemStep, ...(worldProfile ? [worldStep] : [])],
                 societies: sector.societies ?? [], society: sector.societies?.find(society => society.id === centre?.societyId),
                 location: bodyPath, updateLocation,
@@ -888,7 +898,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const sites = surface?.sites ?? [];
         const open = (site, region, event) => {
           if (site.legacy) return openSettlement(event);
-          openCommunity(site, { roll, world: surface, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
+          openCommunity(site, { roll, world: surface, save, profile, inspector, breadcrumb: profileBreadcrumb, development, communityTags,
             location: surfacePath, updateLocation, ancestry, society, societies: sector.societies ?? [], region });
         };
         const legacySite = centre && (legacy || orbital)
@@ -1069,7 +1079,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
     const row = rows.insertRow();
     row.insertCell().append(button(site.name, () => {
       const previous = [...inspector.childNodes];
-      openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development,
+      openCommunity(site, { roll, save, profile, inspector, breadcrumb: profileBreadcrumb, development, communityTags,
         location: [feature.name], updateLocation,
         ancestry: [chartStep, ["System Profile", () => {
           showSystemLocation();

@@ -36,7 +36,7 @@ function validSettlement(value) {
 }
 
 function validWorldSites(sites) {
-  return Array.isArray(sites) && sites.every(site => record(site) &&
+  return Array.isArray(sites) && sites.every(site => record(site) && validSwnTags(site) &&
     ["id", "type", "name"].every(key => typeof site[key] === "string") &&
     (site.function === undefined || typeof site.function === "string") &&
     (site.functions === undefined || strings(site.functions)) &&
