@@ -871,3 +871,5 @@ button, select, input, textarea { box-sizing: border-box; max-width: 100%; }
   margin-block-start: .55rem;
 }
 .sector-details #world > .tpv-jump-routes h4 { margin-block-start: 0; }
+
+.sector-workspace .xenobestiary-link { padding: .1rem .2rem; text-align: start; }

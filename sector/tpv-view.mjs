@@ -69,7 +69,7 @@ export function renderChart(container, features, coordinate, select, presence) {
   container.replaceChildren(chart);
 }
 
-export function inspectTpv(inspector, profile, sector, feature, coordinate, roll, nameFor, save, back, showSetting, updateLocation) {
+export function inspectTpv(inspector, profile, sector, feature, coordinate, roll, nameFor, save, back, showSetting, updateLocation, openXenobestiary) {
   inspector.replaceChildren();
   if (!feature) return;
   inspector.append(node("h3", feature.name), node("p", feature.type));
@@ -106,23 +106,24 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
     save();
   }
 
-  function showProfile() {
+  function showProfile(destination) {
     const resourceChanges = (feature.satellites ?? []).map(body => recordWorldResources(body, roll));
     if (resourceChanges.includes(true)) save();
     if (sector.addSwnTags && assignTpvTags(feature, tpvTagCatalogue(), roll)) save();
     renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, status, showSetting, systemStatus => {
       develop(systemStatus);
       showProfile();
-    }, updateLocation);
+    }, updateLocation, openXenobestiary, destination);
   }
 
-  const open = button(complete ? "Open System Profile" : "Develop System", () => {
+  function openProfile(destination) {
     if (!feature.satellites || feature.satellites.some(body =>
       needsDetails(body) || body.development?.worlds.some(needsLifeforms))) {
       develop(status.value, feature.satellites);
     }
-    showProfile();
-  });
+    showProfile(destination);
+  }
+  const open = button(complete ? "Open System Profile" : "Develop System", () => openProfile());
   open.className = "tpv-open-profile";
   const routes = node("section");
   routes.className = "tpv-jump-routes";
@@ -165,6 +166,7 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
     inspector.append(tags);
   }
   inspector.append(routes);
+  return openProfile;
 }
 
 function detailSection(title, rows = []) {
@@ -260,13 +262,64 @@ function worldDetails(world) {
   ];
 }
 
-function lifeformDetails(world) {
+function isCatalogueLifeform(lifeform) {
+  return ["Complex", "Advanced"].includes(lifeform.level);
+}
+
+function lifeformDescription(lifeform) {
+  return [lifeform.size, lifeform.quantity === undefined ? "" : "Encounter quantity: " + lifeform.quantity,
+    ...lifeform.traits].filter(Boolean).join(" · ");
+}
+
+function lifeformDetails(world, openEntry) {
   if (!world.lifeforms?.length) return [];
-  return [detailSection("Lifeforms", world.lifeforms.map(lifeform => [
-    lifeform.level, lifeform.form,
-    [lifeform.size, lifeform.quantity === undefined ? "" : `Encounter quantity: ${lifeform.quantity}`,
-      ...lifeform.traits].filter(Boolean).join(" · "),
-  ]))];
+  const group = detailSection("Lifeforms", world.lifeforms.map(lifeform => [
+    lifeform.level, lifeform.form, lifeformDescription(lifeform),
+  ]));
+  group.classList.add("tpv-lifeforms");
+  const fields = group.querySelectorAll("dd");
+  world.lifeforms.forEach((lifeform, index) => {
+    if (!isCatalogueLifeform(lifeform)) return;
+    const link = button(lifeform.form, () => openEntry(index));
+    link.className = "xenobestiary-link";
+    link.dataset.lifeformIndex = index;
+    fields[index].firstChild.replaceWith(link);
+  });
+  return [group];
+}
+
+export function renderXenobestiary(profile, sector, back, openHome, selected) {
+  const entries = sector.systems.flatMap(system => (system.satellites ?? []).flatMap((body, bodyIndex) => {
+    let moonIndex = 0;
+    return (body.development?.worlds ?? []).flatMap((world, worldIndex) => {
+      const home = world.classification === "moon" ? developedMoonName(body, moonIndex++) : body.name;
+      return (world.lifeforms ?? []).flatMap((lifeform, lifeformIndex) => isCatalogueLifeform(lifeform)
+        ? [{ system, home, bodyIndex, worldIndex, lifeform, lifeformIndex }] : []);
+    });
+  }));
+  entries.sort((left, right) => left.lifeform.form.localeCompare(right.lifeform.form, undefined, { sensitivity: "base" }) ||
+    left.home.localeCompare(right.home) || left.system.name.localeCompare(right.system.name));
+  const heading = node("h2", "Xenobestiary");
+  heading.tabIndex = -1;
+  const trail = profileBreadcrumb(["Sector Chart", back], ["Xenobestiary", () => heading.focus()]);
+  const catalogue = node("section");
+  catalogue.className = "tpv-detail-fields";
+  let selectedEntry;
+  for (const { system, home, bodyIndex, worldIndex, lifeform, lifeformIndex } of entries) {
+    const entry = detailSection(lifeform.form);
+    const destination = { bodyIndex, worldIndex, lifeformIndex };
+    const origin = button(home + " · " + system.name, () => openHome(system, destination));
+    origin.className = "xenobestiary-link";
+    entry.append(node("p", [lifeform.level, lifeformDescription(lifeform)].filter(Boolean).join(" · ")), origin);
+    catalogue.append(entry);
+    if (selected?.systemId === system.id && selected.bodyIndex === bodyIndex &&
+        selected.worldIndex === worldIndex && selected.lifeformIndex === lifeformIndex) {
+      selectedEntry = entry.querySelector("summary");
+    }
+  }
+  if (!entries.length) catalogue.append(node("p", "No complex or advanced lifeforms have been recorded in this sector."));
+  profile.replaceChildren(trail, heading, catalogue);
+  (selectedEntry ?? heading).focus();
 }
 
 function settlementPointcrawl(place, index) {
@@ -597,7 +650,7 @@ function societyDetails(sector, target, save, refresh, showSetting) {
   return group;
 }
 
-function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, showSetting, redevelop, updateLocation) {
+function renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, systemStatus, showSetting, redevelop, updateLocation, openXenobestiary, destination) {
   function development(label, environment = "Voidside", locationId = feature.id, people = []) {
     const locations = sectorLocations(sector);
     const present = chartFactionPresence(sector, locations).get(feature.id);
@@ -661,6 +714,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   orbits.append(star);
   const entries = table(["Satellite or feature", "Orbit", "Details"]);
   const rows = entries.createTBody();
+  let openDestination;
   for (let band = 1; band <= 10; band += 1) {
     const lane = node("section");
     lane.append(node("h3", `${band} · ${orbitZone(band)}`));
@@ -680,6 +734,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         }
         return worlds;
       }
+      const bodyIndex = feature.satellites.indexOf(body);
       let worldTrigger;
       let systemInspector;
       let selectedSurface;
@@ -718,7 +773,11 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
         const locationFields = node("section");
         locationFields.className = "inspector-fields tpv-detail-fields tpv-world-locations";
         const appendWorld = world => {
-          fields.append(...worldDetails(world), ...lifeformDetails(world));
+          const worldIndex = worlds.indexOf(world);
+          const lifeforms = lifeformDetails(world, lifeformIndex =>
+            openXenobestiary({ systemId: feature.id, bodyIndex, worldIndex, lifeformIndex }));
+          if (lifeforms.length) lifeforms[0].dataset.worldIndex = worldIndex;
+          fields.append(...worldDetails(world), ...lifeforms);
           appendSwnTags(world, tags, world.classification);
           const indigenous = world.lifeforms?.some(lifeform => lifeform.level === "Advanced") ?? false;
           const populated = body.type.toLowerCase() === `populated ${world.classification}`;
@@ -851,7 +910,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
               const redraw = () => {
                 inspector.replaceChildren(...systemInspector);
                 renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save,
-                  statusLabel, systemStatus, showSetting, redevelop, updateLocation);
+                  statusLabel, systemStatus, showSetting, redevelop, updateLocation, openXenobestiary);
               };
               content.append(button("Reroll Installation", () => {
                 if (!confirm(`Replace the generated details for ${body.name}?`)) return;
@@ -1045,6 +1104,12 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       graphic.setAttribute("aria-hidden", "true");
       const marker = button(body.name, show);
       marker.className = "tpv-orbit-marker";
+      if (destination?.bodyIndex === bodyIndex) openDestination = () => {
+        selectedSurface = destination.worldIndex;
+        show({ currentTarget: marker });
+        const selector = `.tpv-lifeforms[data-world-index="${destination.worldIndex}"] [data-lifeform-index="${destination.lifeformIndex}"]`;
+        inspector.querySelector(selector)?.focus();
+      };
       if (appearance.kind === "planet" && /^orbital space station$/i.test(body.type)) {
         const pair = node("span");
         pair.className = "tpv-planet-station";
@@ -1141,4 +1206,5 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
   profile.replaceChildren(systemTrail, controls, heading, systemDevelopment, details, orbits, entries);
   showSystemLocation();
   heading.focus();
+  openDestination?.();
 }

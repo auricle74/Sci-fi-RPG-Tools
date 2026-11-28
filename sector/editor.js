@@ -3,7 +3,7 @@ import { bookChecklist, developmentLog, sectorBooks } from "../development/view.
 import { renderFactionManager, sectorLocations } from "./faction-manager.mjs";
 import { chartFactionPresence, factionPresence } from "./tpv-factions.mjs";
 import { generateTpvSector, tpvDistance, tpvRules } from "./tpv.mjs";
-import { inspectTpv, renderChart } from "./tpv-view.mjs";
+import { inspectTpv, renderChart, renderXenobestiary } from "./tpv-view.mjs";
 import { bookTags, catalogueTags } from "./tag-catalogue.mjs";
 import { findTradeRoutes, validTradeRoutes } from "./trade-routes.mjs";
 import { generateSystems, rollName, starCount } from "./swn.mjs";
@@ -145,10 +145,11 @@ function selectHex(column, row, focus = false) {
   const nebulae = nebulaHexes.get(code) ?? [];
   element("selection").textContent = system || nebulae.length ? `Hex ${code}` : `Hex ${code} · Empty`;
   showDetailsLocation(system ? [system.name] : [], system);
+  let openProfile;
   if (isTpv()) {
     selectChartRow(code);
     const usedNames = new Set([system?.name]);
-    inspectTpv(element("world"), element("tpv-profile"), sector, system, coordinate, roll,
+    openProfile = inspectTpv(element("world"), element("tpv-profile"), sector, system, coordinate, roll,
       () => rollName(roll, usedNames), () => {
         if (system?.stars) target.dataset.systemStatus = system.status ?? "Wild";
         renderTradeRoutes();
@@ -156,7 +157,7 @@ function selectHex(column, row, focus = false) {
       }, () => {
         setProfileOpen(false);
         selectHex(column, row, true);
-      }, showFactionManager, (path, society) => showDetailsLocation(path, system, society));
+      }, showFactionManager, (path, society) => showDetailsLocation(path, system, society), showXenobestiary);
     const coverage = nebulae.filter(nebula => nebula !== system);
     if (coverage.length) {
       const details = document.createElement("section");
@@ -192,6 +193,7 @@ function selectHex(column, row, focus = false) {
   });
   if (focus) target.focus();
   saveSector();
+  return openProfile;
 }
 
 function svgElement(name, attributes) {
@@ -315,6 +317,18 @@ function setProfileOpen(open) {
 }
 
 element("faction-manager").addEventListener("click", showFactionManager);
+
+element("xenobestiary").addEventListener("click", () => showXenobestiary());
+
+function showXenobestiary(selected) {
+  setProfileOpen(true);
+  element("world").replaceChildren();
+  renderXenobestiary(element("tpv-profile"), sector, renderMap, (system, destination) => {
+    const open = selectHex(system.column, system.row);
+    setProfileOpen(true);
+    open?.(destination);
+  }, selected);
+}
 
 function showFactionManager() {
   setProfileOpen(true);
