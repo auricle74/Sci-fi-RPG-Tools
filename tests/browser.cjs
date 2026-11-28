@@ -507,6 +507,37 @@ async function main() {
     await tpv.getByRole("button", { name: "Sector Chart", exact: true }).click();
     await tpv.locator("#tpv-chart").waitFor();
     assert.ok(await tpv.locator(".map-stage").isVisible());
+    await tpv.evaluate(() => {
+      const key = "scifi-rpg-tools.sector";
+      const sector = JSON.parse(localStorage.getItem(key));
+      const { column, row } = sector.selectedHex;
+      const system = sector.systems.find(entry => entry.column === column && entry.row === row);
+      const source = system.satellites.find(body => body.development?.worlds.length).development.worlds[0];
+      const { sites, societyId, ...world } = source;
+      system.satellites.push({ band: 4, kind: "planet", type: "Planet", name: "Test habitat", development: { worlds: [
+        { ...world, classification: "planet", lifeforms: [
+          { level: "Complex", form: "Zebra specimen", traits: [] },
+          { level: "Simple", form: "Excluded specimen", traits: [] },
+        ] },
+        { ...world, classification: "moon", lifeforms: [
+          { level: "Advanced", form: "Aardvark specimen", traits: [] },
+        ] },
+      ] } });
+      localStorage.setItem(key, JSON.stringify(sector));
+    });
+    await tpv.reload();
+    await tpv.getByRole("button", { name: "Xenobestiary", exact: true }).click();
+    const entries = tpv.locator("#tpv-profile summary");
+    const namesInCatalogue = await entries.allTextContents();
+    assert.ok(namesInCatalogue.indexOf("Aardvark specimen") < namesInCatalogue.indexOf("Zebra specimen"));
+    assert.ok(!namesInCatalogue.includes("Excluded specimen"));
+    await tpv.getByRole("button", { name: /^Test habitat A · / }).click();
+    assert.equal(await tpv.getByLabel("Surface").inputValue(), "1");
+    const specimen = tpv.locator("#world").getByRole("button", { name: "Aardvark specimen", exact: true });
+    assert.ok(await specimen.evaluate(button => button === document.activeElement));
+    await specimen.click();
+    assert.equal(await tpv.evaluate(() => document.activeElement.textContent), "Aardvark specimen");
+    await tpv.getByRole("button", { name: "Sector Chart", exact: true }).click();
     await tpv.getByRole("button", { name: "Faction Manager", exact: true }).click();
     await tpv.getByRole("button", { name: "Add Faction", exact: true }).click();
     const factionName = tpv.getByLabel("Name", { exact: true });
