@@ -1,3 +1,4 @@
+import { recordWorldResources } from "./tpv-resources.mjs";
 import { profileDevelopmentButton, sectorBooks } from "../development/view.mjs";
 import { chartFactionPresence } from "./tpv-factions.mjs";
 import { sectorLocations } from "./faction-manager.mjs";
@@ -106,6 +107,8 @@ export function inspectTpv(inspector, profile, sector, feature, coordinate, roll
   }
 
   function showProfile() {
+    const resourceChanges = (feature.satellites ?? []).map(body => recordWorldResources(body, roll));
+    if (resourceChanges.includes(true)) save();
     if (sector.addSwnTags && assignTpvTags(feature, tpvTagCatalogue(), roll)) save();
     renderProfile(profile, inspector, feature, coordinate, back, sector, roll, save, statusLabel, status, showSetting, systemStatus => {
       develop(systemStatus);
@@ -222,6 +225,20 @@ function orbitDetails(band) {
 }
 
 function worldDetails(world) {
+  const byCategory = new Map();
+  for (const { category, name } of world.resourceDeposits ?? []) {
+    if (!byCategory.has(category)) byCategory.set(category, new Map());
+    const deposits = byCategory.get(category);
+    deposits.set(name, (deposits.get(name) ?? 0) + 1);
+  }
+  const resourceRows = [["Resource rating", world.resources]];
+  for (const [category, deposits] of byCategory) {
+    const list = [...deposits].map(([name, count]) => name
+      ? (count === 1 ? name : `${name} ×${count}`)
+      : (count === 1 ? "1 deposit" : `${count} deposits`));
+    resourceRows.push([category, list.join(", ")]);
+  }
+  if (!byCategory.size) resourceRows.push(["Deposits", "None at interstellar scale"]);
   return [
     detailSection(world.classification === "moon" ? "Moon Details" : "Host Planet Details", [
       ["Classification", `${world.type} ${world.classification}`],
@@ -235,8 +252,8 @@ function worldDetails(world) {
       ["Water", `${world.water} (${world.waterPercent}%)`,
         world.waterPercent ? `Water covers ${world.waterPercent}% of the surface (p. 47).` : ""],
       ["Life", world.life, lifeDetails[world.life.toLowerCase()]],
-      ["Resources", world.resources],
     ]),
+    detailSection("World Resources", resourceRows),
     detailSection("World Features", world.notes.length
       ? world.notes.map((note, index) => [String(index + 1), note])
       : [["Features", "None recorded"]]),
@@ -667,6 +684,7 @@ function renderProfile(profile, inspector, feature, coordinate, back, sector, ro
       let systemInspector;
       let selectedSurface;
       function show(event) {
+        if (recordWorldResources(body, roll)) save();
         if (catalogue && assignTpvTags(feature, catalogue, roll)) save();
         if (event) {
           worldTrigger = event.currentTarget;
