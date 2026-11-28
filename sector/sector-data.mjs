@@ -52,6 +52,9 @@ function validDevelopment(data) {
   return record(data) && Array.isArray(data.worlds) && data.worlds.every(world => record(world) && validSwnTags(world) &&
     ["classification", "type", "position", "size", "climate", "gravity", "atmosphere", "composition",
       "water", "life", "resources"].every(key => typeof world[key] === "string") &&
+    (world.resourceDeposits === undefined || Array.isArray(world.resourceDeposits) &&
+      world.resourceDeposits.every(deposit => record(deposit) && typeof deposit.category === "string" &&
+        (deposit.name === undefined || typeof deposit.name === "string"))) &&
     Number.isInteger(world.diameter) && world.diameter > 0 &&
     Number.isInteger(world.waterPercent) && world.waterPercent >= 0 && world.waterPercent <= 100 &&
     (world.regions === undefined || Number.isInteger(world.regions) && world.regions >= 1 && world.regions <= 40) &&
